@@ -9,6 +9,7 @@ LLM, so depending on it here would defeat the purpose.
 
 from __future__ import annotations
 
+import difflib
 import re
 from typing import Any
 
@@ -41,7 +42,8 @@ WEATHER_TERMS: tuple[str, ...] = (
 
 # offset -> the words that mean it, across all six languages
 DAY_TERMS: dict[int, tuple[str, ...]] = {
-    2: ("day after tomorrow", "overmorrow", "परसों", "परवा", "ఎల్లుండి", "পরশু", "পৰহিলৈ", "পরহিলৈ"),
+    2: ("day after tomorrow", "the day after", "overmorrow", "परसों", "परवा", "ఎల్లుండి",
+        "পরশু", "পৰহিলৈ", "পরহিলৈ"),
     1: ("tomorrow", "कल", "उद्या", "रेपु", "రేపు", "আগামীকাল", "কাল", "কাইলৈ"),
     0: ("today", "now", "right now", "currently", "tonight", "आज", "अभी", "आत्ता",
         "ఈరోజు", "ఇప్పుడు", "আজ", "এখন", "আজি", "এতিয়া"),
@@ -80,6 +82,15 @@ PROFILE_TERMS: dict[str, tuple[str, ...]] = {
     "aviation": ("aviation", "pilot", "airport", "runway", "takeoff", "landing", "visibility for flight"),
     "urban": ("city drainage", "waterlogging", "traffic", "urban", "municipal"),
 }
+
+# Deictic openers that signal a follow-up to the previous turn rather than a
+# fresh question. Only ever consulted when a location is already established.
+FOLLOWUP_TERMS: tuple[str, ...] = (
+    "what about", "how about", "and", "then", "there", "also", "what if", "same",
+    "और", "फिर", "वहाँ", "आणि", "मग", "तिथे",
+    "మరి", "అక్కడ", "అయితే",
+    "আর", "তাহলে", "সেখানে", "আৰু", "তেনেহ'লে", "তাত",
+)
 
 SIMPLE_TERMS: tuple[str, ...] = (
     "simply", "simple words", "in simple", "easy words", "short", "briefly", "explain simply",
@@ -126,9 +137,30 @@ def _contains(text: str, terms: tuple[str, ...]) -> bool:
     return False
 
 
+# The English nouns worth correcting a typo for. Kept small so fuzzy matching
+# cannot quietly pull unrelated words into scope.
+_FUZZY_CORE: tuple[str, ...] = (
+    "weather", "rain", "rainfall", "forecast", "temperature", "humidity",
+    "storm", "flood", "cyclone", "monsoon", "thunder", "lightning", "sunny",
+    "cloudy", "windy", "climate", "drizzle", "heatwave",
+)
+# Real English words that are near-misses for the above and must not trigger.
+_FUZZY_BLOCK = frozenset({"whether", "wetter", "rein", "reign", "brain", "train", "drain", "grain", "chain"})
+
+
+def _fuzzy_weather_token(text: str) -> bool:
+    """Tolerate a typo in a core weather noun without widening scope generally."""
+    for token in _tokens(text):
+        if len(token) < 4 or not token.isascii() or token in _FUZZY_BLOCK:
+            continue
+        if difflib.get_close_matches(token, _FUZZY_CORE, n=1, cutoff=0.82):
+            return True
+    return False
+
+
 def is_weather_related(text: str) -> bool:
     """Scope guardrail for the no-LLM path."""
-    return _contains(text, WEATHER_TERMS)
+    return _contains(text, WEATHER_TERMS) or _fuzzy_weather_token(text)
 
 
 def detect_day_offset(text: str) -> int:
@@ -210,8 +242,9 @@ def extract(query: str, *, language: str = "en", known_location: str | None = No
     if not in_scope and location is not None and (day_offset > 0 or user_type is not None):
         # "I'm a farmer near Warangal, should I harvest tomorrow?"
         in_scope = True
-    if not in_scope and known_location and day_offset > 0:
-        # A bare follow-up ("what about tomorrow?") inherits the running topic.
+    if not in_scope and known_location and (day_offset > 0 or _contains(text, FOLLOWUP_TERMS)):
+        # A bare follow-up ("and tomorrow?", "మరి ఎల్లుండి?") continues the
+        # running topic rather than starting a new, locationless question.
         in_scope = True
 
     intent = detect_intent(text, day_offset) if in_scope else "out_of_scope"

@@ -87,7 +87,13 @@ def understand(
     """Structured interpretation, LLM first with a rules fallback."""
     known = state.location_name
     if llm.available():
-        raw = llm.extract_query(query, history=state.transcript(4), known_location=known)
+        # llm.* already swallows provider errors, but this is the boundary where
+        # a turn is either answered or lost, so it does not take that on trust.
+        try:
+            raw = llm.extract_query(query, history=state.transcript(4), known_location=known)
+        except Exception as exc:  # noqa: BLE001
+            log.warning("extraction raised unexpectedly: %s", exc)
+            raw = None
         clean = _sanitise_extraction(raw, fallback_language=detected_language)
         if clean is not None:
             degraded.llm_used = True
@@ -232,6 +238,9 @@ def handle_chat(
         except language.TranslationError as exc:
             degraded.translation_error = str(exc)
             english_query = text  # rules-based extraction reads the original fine
+        except Exception as exc:  # noqa: BLE001
+            log.warning("inbound translation raised unexpectedly: %s", exc)
+            english_query = text
 
     # --- 3. Understand -----------------------------------------------------
     extraction = understand(english_query, state, detected_language=detected, degraded=degraded)
@@ -325,16 +334,20 @@ def handle_chat(
 
     if llm.available():
         extra = _extra_context(bundle, risk, mode, extraction["user_type"], out_lang)
-        composed = llm.compose_answer(
-            query=english_query,
-            weather_data=payload,
-            risk=payload["risk"],
-            language_name=language.language_name(out_lang),
-            user_type=extraction["user_type"],
-            response_mode=mode,
-            history=state.transcript(4),
-            extra_context=extra,
-        )
+        try:
+            composed = llm.compose_answer(
+                query=english_query,
+                weather_data=payload,
+                risk=payload["risk"],
+                language_name=language.language_name(out_lang),
+                user_type=extraction["user_type"],
+                response_mode=mode,
+                history=state.transcript(4),
+                extra_context=extra,
+            )
+        except Exception as exc:  # noqa: BLE001 - fall through to the template
+            log.warning("generation raised unexpectedly: %s", exc)
+            composed = None
         if composed:
             candidate = str(composed.get("answer", "")).strip()
             candidate_expl = str(composed.get("explanation", "")).strip()
@@ -449,7 +462,7 @@ def _ensure_language(
     if language.detect(answer).language == target:
         return answer, explanation, degraded
     try:
-        translated = language.translate(answer, "en", target, llm=llm)
+        translated = language.translate(answer, "en", target, llm=llm)  # may return None
         if translated:
             if explanation:
                 try:
@@ -459,6 +472,8 @@ def _ensure_language(
             return translated, explanation, degraded
     except language.TranslationError as exc:
         degraded.translation_error = str(exc)
+    except Exception as exc:  # noqa: BLE001 - never lose an answer over wording
+        log.warning("language safety net failed: %s", exc)
     return answer, explanation, degraded
 
 
