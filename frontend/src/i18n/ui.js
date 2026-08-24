@@ -85,6 +85,7 @@ const STRINGS = {
     connected: 'Live alerts connected',
     reconnecting: 'Reconnecting to live alerts…',
     offlineAlerts: 'Live alerts offline',
+    pollingAlerts: 'Alerts updating periodically',
     quick: [
       'Will it rain today?',
       'Any severe alerts?',
@@ -171,6 +172,7 @@ const STRINGS = {
     connected: 'लाइव चेतावनियाँ जुड़ी हैं',
     reconnecting: 'लाइव चेतावनियों से फिर जुड़ रहे हैं…',
     offlineAlerts: 'लाइव चेतावनियाँ बंद',
+    pollingAlerts: 'चेतावनियाँ समय-समय पर अपडेट हो रही हैं',
     quick: [
       'क्या आज बारिश होगी?',
       'कोई गंभीर चेतावनी?',
@@ -257,6 +259,7 @@ const STRINGS = {
     connected: 'ప్రత్యక్ష హెచ్చరికలు అనుసంధానమయ్యాయి',
     reconnecting: 'ప్రత్యక్ష హెచ్చరికలకు మళ్లీ కలుస్తోంది…',
     offlineAlerts: 'ప్రత్యక్ష హెచ్చరికలు ఆఫ్‌లైన్',
+    pollingAlerts: 'హెచ్చరికలు క్రమం తప్పకుండా నవీకరించబడుతున్నాయి',
     quick: [
       'ఈరోజు వర్షం పడుతుందా?',
       'తీవ్రమైన హెచ్చరికలు ఉన్నాయా?',
@@ -343,6 +346,7 @@ const STRINGS = {
     connected: 'লাইভ সতর্কতা যুক্ত',
     reconnecting: 'লাইভ সতর্কতায় পুনরায় যুক্ত হচ্ছে…',
     offlineAlerts: 'লাইভ সতর্কতা বন্ধ',
+    pollingAlerts: 'সতর্কতা নিয়মিত হালনাগাদ হচ্ছে',
     quick: [
       'আজ কি বৃষ্টি হবে?',
       'কোনো তীব্র সতর্কতা?',
@@ -429,6 +433,7 @@ const STRINGS = {
     connected: 'थेट इशारे जोडलेले',
     reconnecting: 'थेट इशाऱ्यांशी पुन्हा जोडत आहे…',
     offlineAlerts: 'थेट इशारे बंद',
+    pollingAlerts: 'इशारे ठराविक वेळाने अद्ययावत होत आहेत',
     quick: [
       'आज पाऊस पडेल का?',
       'काही गंभीर इशारे?',
@@ -515,6 +520,7 @@ const STRINGS = {
     connected: 'লাইভ সতৰ্কবাণী সংযুক্ত',
     reconnecting: 'লাইভ সতৰ্কবাণীৰ সৈতে পুনৰ সংযোগ হৈ আছে…',
     offlineAlerts: 'লাইভ সতৰ্কবাণী বন্ধ',
+    pollingAlerts: 'সতৰ্কবাণী নিয়মীয়াকৈ সতেজ হৈ আছে',
     quick: [
       'আজি বৰষুণ হ’ব নেকি?',
       'কোনো গুৰুতৰ সতৰ্কবাণী?',

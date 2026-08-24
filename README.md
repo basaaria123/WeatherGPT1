@@ -55,6 +55,21 @@ falls back to English.
 
 ---
 
+## Deploying
+
+`vercel.json` in the repo root declares both services and the routing, so the
+repo imports into Vercel as-is. **Read [`docs/DEPLOYMENT.md`](docs/DEPLOYMENT.md)
+first** — three components (the alert scheduler, the `/ws/alerts` WebSocket and
+the SQLite store) need a long-lived process, which serverless does not provide.
+
+The app detects a serverless runtime and adapts rather than failing: the
+in-process scheduler is disabled in favour of a platform cron, the database
+moves to `/tmp`, the API is served at both `/chat` and `/api/chat` so it works
+whether or not the platform strips the prefix, and the client switches the alert
+feed from WebSocket to polling — reporting "Alerts updating periodically" rather
+than pretending to be live. That guide covers what is degraded and the split
+deploy (Vercel frontend, Render backend) that avoids all of it.
+
 ## Quick start
 
 Two terminals. Neither step needs an API key to run.

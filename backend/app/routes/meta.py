@@ -37,7 +37,12 @@ def health() -> dict:
             "scheduler_enabled": settings.scheduler_enabled,
             "interval_minutes": settings.alert_interval_minutes,
             "websocket_clients": hub.client_count,
+            "websockets_supported": settings.websockets_supported,
             "sms_configured": settings.twilio_configured,
+        },
+        "runtime": {
+            "serverless": settings.serverless,
+            "api_mount_prefix": settings.api_mount_prefix,
         },
     }
 
@@ -61,6 +66,10 @@ def config() -> dict:
         "simulated_data": settings.use_fixtures,
         "voice_input_available": speech.transcription_available(),
         "voice_output_available": speech.synthesis_available(),
+        # False on serverless hosts, where the client must poll /alerts instead
+        # of holding a socket open.
+        "websockets_supported": settings.websockets_supported,
+        "alert_poll_seconds": max(30, settings.alert_interval_minutes * 60 // 10),
     }
 
 

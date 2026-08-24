@@ -138,6 +138,7 @@ function Logo() {
 function ConnectionDot({ state, language }) {
   const map = {
     open: { color: 'var(--color-safe)', label: t(language, 'connected') },
+    polling: { color: 'var(--color-accent)', label: t(language, 'pollingAlerts') },
     connecting: { color: 'var(--color-caution)', label: t(language, 'reconnecting') },
     reconnecting: { color: 'var(--color-caution)', label: t(language, 'reconnecting') },
     closed: { color: 'var(--color-faint)', label: t(language, 'offlineAlerts') },
@@ -146,7 +147,7 @@ function ConnectionDot({ state, language }) {
   return (
     <span title={tone.label} className="flex items-center gap-1.5 px-1" role="status" aria-label={tone.label}>
       <span
-        className={`h-1.5 w-1.5 rounded-full ${state === 'open' ? '' : 'pulse-alert'}`}
+        className={`h-1.5 w-1.5 rounded-full ${state === 'open' || state === 'polling' ? '' : 'pulse-alert'}`}
         style={{ background: tone.color }}
       />
     </span>

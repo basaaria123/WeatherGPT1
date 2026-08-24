@@ -47,6 +47,12 @@ async def lifespan(app: FastAPI):
     )
     if settings.use_fixtures:
         log.warning("WEATHER_DATA_MODE=fixture — responses use SIMULATED data, not live observations.")
+    if settings.serverless:
+        log.info(
+            "serverless runtime detected: in-process scheduler disabled (use a platform cron "
+            "against %s/alerts/scan) and /ws/alerts is unavailable; clients fall back to polling.",
+            settings.api_mount_prefix.rstrip("/"),
+        )
 
     scheduler = None
     if settings.scheduler_enabled:
@@ -92,11 +98,19 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(meta.router)
-app.include_router(chat.router)
-app.include_router(weather_routes.router)
-app.include_router(alerts_routes.router)
-app.include_router(risk_routes.router)
+_ROUTERS = (meta.router, chat.router, weather_routes.router, alerts_routes.router, risk_routes.router)
+
+for _router in _ROUTERS:
+    app.include_router(_router)
+
+# Also serve everything under the mount prefix. Platforms that route by path
+# (Vercel services, an API gateway, an ingress rule) may forward the prefix
+# rather than strip it; mounting both ways means the API works either way and
+# needs no deployment-specific configuration.
+_prefix = _settings.api_mount_prefix.rstrip("/")
+if _prefix and _prefix != "/":
+    for _router in _ROUTERS:
+        app.include_router(_router, prefix=_prefix, include_in_schema=False)
 
 
 @app.exception_handler(RequestValidationError)

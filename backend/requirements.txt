@@ -2,7 +2,7 @@
 fastapi>=0.115
 uvicorn[standard]>=0.30
 python-multipart>=0.0.9        # multipart form parsing for /voice-chat
-websockets>=12.0               # /ws/alerts
+websockets>=12.0               # /ws/alerts (not available on serverless hosts)
 pydantic>=2.7
 
 # --- Data + scheduling ------------------------------------------------------
@@ -12,18 +12,17 @@ APScheduler>=3.10              # the single alert scheduler
 # --- AI ---------------------------------------------------------------------
 anthropic>=1.0                 # Claude (structured tool use); optional at runtime
 
-# --- Voice ------------------------------------------------------------------
+# --- Voice output -----------------------------------------------------------
 gTTS>=2.5                      # text to speech; optional at runtime
-faster-whisper>=1.0            # local speech recognition; optional at runtime
 
 # --- Notifications ----------------------------------------------------------
 twilio>=9.0                    # SMS alerts; falls back to console logging
 
-# --- Tests ------------------------------------------------------------------
-pytest>=8.0
-pytest-asyncio>=0.23
-
-# Optional extras, not required for any code path:
-#   deep-translator   -> alternative translation provider
-#   pyttsx3           -> offline text to speech
-#   openai-whisper    -> alternative speech recogniser
+# Speech recognition lives in requirements-voice.txt. faster-whisper pulls in
+# CTranslate2 and onnxruntime, which are far too large for a serverless bundle
+# and are not needed by any other code path — /voice-chat still works there via
+# the browser's own speech recognition (sent as `client_transcript`).
+#
+#   pip install -r requirements-voice.txt
+#
+# Test dependencies are in requirements-dev.txt.

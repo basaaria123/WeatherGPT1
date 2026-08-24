@@ -1,0 +1,10 @@
+# Server-side speech recognition. Optional: without it /voice-chat accepts a
+# browser-supplied transcript instead, and /health reports transcription: false.
+#
+# Skip this file on serverless hosts — the wheels exceed typical bundle limits.
+faster-whisper>=1.0
+
+# Alternatives, if you prefer them:
+#   openai-whisper   -> the reference implementation (needs torch; much larger)
+#   pyttsx3          -> offline text to speech, no network required
+#   deep-translator  -> alternative translation provider

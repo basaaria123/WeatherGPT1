@@ -36,6 +36,14 @@ def _env_float(name: str, default: float) -> float:
         return default
 
 
+def _is_serverless() -> bool:
+    """True on Vercel, AWS Lambda and similar function runtimes."""
+    return any(
+        os.getenv(name)
+        for name in ("VERCEL", "AWS_LAMBDA_FUNCTION_NAME", "FUNCTIONS_WORKER_RUNTIME", "K_SERVICE")
+    )
+
+
 def _env_list(name: str, default: list[str]) -> list[str]:
     raw = os.getenv(name)
     if not raw:
@@ -69,11 +77,22 @@ class Settings:
     weather_cache_seconds: int = field(default_factory=lambda: _env_int("WEATHER_CACHE_SECONDS", 600))
 
     # --- Persistence -------------------------------------------------------
-    db_path: str = field(default_factory=lambda: os.getenv("WEATHERGPT_DB", str(BASE_DIR.parent / "weathergpt.db")))
+    # On a serverless host the project directory is read-only, so fall back to
+    # /tmp. That storage is per-instance and short-lived — see docs/DEPLOYMENT.md.
+    db_path: str = field(
+        default_factory=lambda: os.getenv(
+            "WEATHERGPT_DB",
+            "/tmp/weathergpt.db" if _is_serverless() else str(BASE_DIR.parent / "weathergpt.db"),
+        )
+    )
 
     # --- Alert scheduler ---------------------------------------------------
     alert_interval_minutes: int = field(default_factory=lambda: _env_int("ALERT_INTERVAL_MINUTES", 30))
-    scheduler_enabled: bool = field(default_factory=lambda: _env_bool("SCHEDULER_ENABLED", True))
+    # An in-process scheduler cannot run on a serverless host: there is no
+    # long-lived process to hold it. Use a platform cron against /alerts/scan.
+    scheduler_enabled: bool = field(
+        default_factory=lambda: _env_bool("SCHEDULER_ENABLED", not _is_serverless())
+    )
     alert_min_risk_score: int = field(default_factory=lambda: _env_int("ALERT_MIN_RISK_SCORE", 61))
     alert_dedup_hours: int = field(default_factory=lambda: _env_int("ALERT_DEDUP_HOURS", 6))
 
@@ -103,6 +122,12 @@ class Settings:
     )
     cors_allow_all: bool = field(default_factory=lambda: _env_bool("CORS_ALLOW_ALL", False))
 
+    # --- Deployment --------------------------------------------------------
+    # Routers are served at the root *and* under this prefix, so the API works
+    # whether or not the platform strips the prefix before forwarding.
+    api_mount_prefix: str = field(default_factory=lambda: os.getenv("API_MOUNT_PREFIX", "/api").strip())
+    serverless: bool = field(default_factory=lambda: _is_serverless())
+
     # --- Behaviour ---------------------------------------------------------
     max_query_chars: int = field(default_factory=lambda: _env_int("MAX_QUERY_CHARS", 1200))
     session_ttl_seconds: int = field(default_factory=lambda: _env_int("SESSION_TTL_SECONDS", 60 * 60 * 6))
@@ -115,6 +140,11 @@ class Settings:
     @property
     def twilio_configured(self) -> bool:
         return bool(self.twilio_account_sid and self.twilio_auth_token and self.twilio_from_number)
+
+    @property
+    def websockets_supported(self) -> bool:
+        """Serverless functions cannot hold a socket open across invocations."""
+        return not self.serverless
 
     @property
     def llm_configured(self) -> bool:
