@@ -1,0 +1,1123 @@
+[
+ {
+  "name": "Vijayawada",
+  "admin1": "Andhra Pradesh",
+  "latitude": 16.5062,
+  "longitude": 80.648,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "bezawada"
+  ],
+  "native": [
+   "విజయవాడ",
+   "विजयवाड़ा",
+   "বিজয়ওয়াড়া"
+  ]
+ },
+ {
+  "name": "Visakhapatnam",
+  "admin1": "Andhra Pradesh",
+  "latitude": 17.6868,
+  "longitude": 83.2185,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "vizag",
+   "waltair"
+  ],
+  "native": [
+   "విశాఖపట్నం",
+   "विशाखापत्तनम",
+   "বিশাখাপত্তনম"
+  ]
+ },
+ {
+  "name": "Guntur",
+  "admin1": "Andhra Pradesh",
+  "latitude": 16.3067,
+  "longitude": 80.4365,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "గుంటూరు",
+   "गुंटूर"
+  ]
+ },
+ {
+  "name": "Tirupati",
+  "admin1": "Andhra Pradesh",
+  "latitude": 13.6288,
+  "longitude": 79.4192,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "తిరుపతి",
+   "तिरुपति"
+  ]
+ },
+ {
+  "name": "Kakinada",
+  "admin1": "Andhra Pradesh",
+  "latitude": 16.9891,
+  "longitude": 82.2475,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "కాకినాడ"
+  ]
+ },
+ {
+  "name": "Nellore",
+  "admin1": "Andhra Pradesh",
+  "latitude": 14.4426,
+  "longitude": 79.9865,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "నెల్లూరు"
+  ]
+ },
+ {
+  "name": "Guwahati",
+  "admin1": "Assam",
+  "latitude": 26.1445,
+  "longitude": 91.7362,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "gauhati"
+  ],
+  "native": [
+   "গুৱাহাটী",
+   "গুয়াহাটি",
+   "गुवाहाटी",
+   "గువాహటి"
+  ]
+ },
+ {
+  "name": "Dibrugarh",
+  "admin1": "Assam",
+  "latitude": 27.4728,
+  "longitude": 94.912,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "ডিব্ৰুগড়",
+   "ডিব্রুগড়",
+   "डिब्रूगढ़"
+  ]
+ },
+ {
+  "name": "Silchar",
+  "admin1": "Assam",
+  "latitude": 24.8333,
+  "longitude": 92.7789,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "শিলচৰ",
+   "শিলচর",
+   "सिलचर"
+  ]
+ },
+ {
+  "name": "Jorhat",
+  "admin1": "Assam",
+  "latitude": 26.7509,
+  "longitude": 94.2037,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "যোৰহাট",
+   "যোরহাট",
+   "जोरहाट"
+  ]
+ },
+ {
+  "name": "Nagaon",
+  "admin1": "Assam",
+  "latitude": 26.3464,
+  "longitude": 92.684,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "nowgong"
+  ],
+  "native": [
+   "নগাঁও",
+   "नगाँव"
+  ]
+ },
+ {
+  "name": "Barpeta",
+  "admin1": "Assam",
+  "latitude": 26.322,
+  "longitude": 91.0,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "বৰপেটা",
+   "বরপেটা"
+  ]
+ },
+ {
+  "name": "Dhubri",
+  "admin1": "Assam",
+  "latitude": 26.0207,
+  "longitude": 89.9747,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "ধুবুৰী",
+   "ধুবরি"
+  ]
+ },
+ {
+  "name": "Patna",
+  "admin1": "Bihar",
+  "latitude": 25.5941,
+  "longitude": 85.1376,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "पटना",
+   "পাটনা",
+   "పాట్నా"
+  ]
+ },
+ {
+  "name": "Gaya",
+  "admin1": "Bihar",
+  "latitude": 24.7955,
+  "longitude": 85.0002,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "गया",
+   "গয়া"
+  ]
+ },
+ {
+  "name": "Muzaffarpur",
+  "admin1": "Bihar",
+  "latitude": 26.1209,
+  "longitude": 85.3647,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "मुजफ्फरपुर",
+   "মুজাফফরপুর"
+  ]
+ },
+ {
+  "name": "Bhagalpur",
+  "admin1": "Bihar",
+  "latitude": 25.2425,
+  "longitude": 86.9842,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "भागलपुर",
+   "ভাগলপুর"
+  ]
+ },
+ {
+  "name": "Raipur",
+  "admin1": "Chhattisgarh",
+  "latitude": 21.2514,
+  "longitude": 81.6296,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "रायपुर",
+   "রায়পুর"
+  ]
+ },
+ {
+  "name": "Panaji",
+  "admin1": "Goa",
+  "latitude": 15.4909,
+  "longitude": 73.8278,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "panjim",
+   "goa"
+  ],
+  "native": [
+   "पणजी",
+   "পানাজি"
+  ]
+ },
+ {
+  "name": "Ahmedabad",
+  "admin1": "Gujarat",
+  "latitude": 23.0225,
+  "longitude": 72.5714,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "amdavad"
+  ],
+  "native": [
+   "अहमदाबाद",
+   "আহমেদাবাদ",
+   "అహ్మదాబాద్"
+  ]
+ },
+ {
+  "name": "Surat",
+  "admin1": "Gujarat",
+  "latitude": 21.1702,
+  "longitude": 72.8311,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "सूरत",
+   "সুরাট",
+   "సూరత్"
+  ]
+ },
+ {
+  "name": "Rajkot",
+  "admin1": "Gujarat",
+  "latitude": 22.3039,
+  "longitude": 70.8022,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "राजकोट",
+   "রাজকোট"
+  ]
+ },
+ {
+  "name": "Vadodara",
+  "admin1": "Gujarat",
+  "latitude": 22.3072,
+  "longitude": 73.1812,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "baroda"
+  ],
+  "native": [
+   "वडोदरा",
+   "ভাদোদরা"
+  ]
+ },
+ {
+  "name": "Bhuj",
+  "admin1": "Gujarat",
+  "latitude": 23.2419,
+  "longitude": 69.6669,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "kutch"
+  ],
+  "native": [
+   "भुज",
+   "ভুজ"
+  ]
+ },
+ {
+  "name": "Gurugram",
+  "admin1": "Haryana",
+  "latitude": 28.4595,
+  "longitude": 77.0266,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "gurgaon"
+  ],
+  "native": [
+   "गुरुग्राम",
+   "গুরুগ্রাম"
+  ]
+ },
+ {
+  "name": "Shimla",
+  "admin1": "Himachal Pradesh",
+  "latitude": 31.1048,
+  "longitude": 77.1734,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "शिमला",
+   "সিমলা"
+  ]
+ },
+ {
+  "name": "Srinagar",
+  "admin1": "Jammu and Kashmir",
+  "latitude": 34.0837,
+  "longitude": 74.7973,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "श्रीनगर",
+   "শ্রীনগর"
+  ]
+ },
+ {
+  "name": "Ranchi",
+  "admin1": "Jharkhand",
+  "latitude": 23.3441,
+  "longitude": 85.3096,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "रांची",
+   "রাঁচি"
+  ]
+ },
+ {
+  "name": "Bengaluru",
+  "admin1": "Karnataka",
+  "latitude": 12.9716,
+  "longitude": 77.5946,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "bangalore",
+   "bengaluru city"
+  ],
+  "native": [
+   "बेंगलुरु",
+   "বেঙ্গালুরু",
+   "బెంగళూరు",
+   "बंगळूर"
+  ]
+ },
+ {
+  "name": "Mangaluru",
+  "admin1": "Karnataka",
+  "latitude": 12.9141,
+  "longitude": 74.856,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "mangalore"
+  ],
+  "native": [
+   "मंगलुरु",
+   "ম্যাঙ্গালোর"
+  ]
+ },
+ {
+  "name": "Hubballi",
+  "admin1": "Karnataka",
+  "latitude": 15.3647,
+  "longitude": 75.124,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "hubli"
+  ],
+  "native": [
+   "हुबळी",
+   "হুবলি"
+  ]
+ },
+ {
+  "name": "Mysuru",
+  "admin1": "Karnataka",
+  "latitude": 12.2958,
+  "longitude": 76.6394,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "mysore"
+  ],
+  "native": [
+   "मैसूर",
+   "মহীশূর"
+  ]
+ },
+ {
+  "name": "Kochi",
+  "admin1": "Kerala",
+  "latitude": 9.9312,
+  "longitude": 76.2673,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "cochin",
+   "ernakulam"
+  ],
+  "native": [
+   "कोच्चि",
+   "কোচি",
+   "కొచ్చి"
+  ]
+ },
+ {
+  "name": "Thiruvananthapuram",
+  "admin1": "Kerala",
+  "latitude": 8.5241,
+  "longitude": 76.9366,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "trivandrum"
+  ],
+  "native": [
+   "तिरुवनंतपुरम",
+   "তিরুবনন্তপুরম"
+  ]
+ },
+ {
+  "name": "Kozhikode",
+  "admin1": "Kerala",
+  "latitude": 11.2588,
+  "longitude": 75.7804,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "calicut"
+  ],
+  "native": [
+   "कोझिकोड",
+   "কোঝিকোড"
+  ]
+ },
+ {
+  "name": "Alappuzha",
+  "admin1": "Kerala",
+  "latitude": 9.4981,
+  "longitude": 76.3388,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "alleppey"
+  ],
+  "native": [
+   "आलप्पुषा",
+   "আলাপ্পুঝা"
+  ]
+ },
+ {
+  "name": "Bhopal",
+  "admin1": "Madhya Pradesh",
+  "latitude": 23.2599,
+  "longitude": 77.4126,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "भोपाल",
+   "ভোপাল",
+   "భోపాల్"
+  ]
+ },
+ {
+  "name": "Indore",
+  "admin1": "Madhya Pradesh",
+  "latitude": 22.7196,
+  "longitude": 75.8577,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "इंदौर",
+   "ইন্দোর",
+   "ఇండోర్"
+  ]
+ },
+ {
+  "name": "Jabalpur",
+  "admin1": "Madhya Pradesh",
+  "latitude": 23.1815,
+  "longitude": 79.9864,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "जबलपुर",
+   "জবলপুর"
+  ]
+ },
+ {
+  "name": "Mumbai",
+  "admin1": "Maharashtra",
+  "latitude": 19.076,
+  "longitude": 72.8777,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "bombay"
+  ],
+  "native": [
+   "मुंबई",
+   "মুম্বই",
+   "ముంబై",
+   "মুম্বাই"
+  ]
+ },
+ {
+  "name": "Pune",
+  "admin1": "Maharashtra",
+  "latitude": 18.5204,
+  "longitude": 73.8567,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "poona"
+  ],
+  "native": [
+   "पुणे",
+   "পুণে",
+   "పూణే"
+  ]
+ },
+ {
+  "name": "Nagpur",
+  "admin1": "Maharashtra",
+  "latitude": 21.1458,
+  "longitude": 79.0882,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "नागपूर",
+   "नागपुर",
+   "নাগপুর",
+   "నాగ్‌పూర్"
+  ]
+ },
+ {
+  "name": "Nashik",
+  "admin1": "Maharashtra",
+  "latitude": 19.9975,
+  "longitude": 73.7898,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "nasik"
+  ],
+  "native": [
+   "नाशिक",
+   "নাসিক"
+  ]
+ },
+ {
+  "name": "Ratnagiri",
+  "admin1": "Maharashtra",
+  "latitude": 16.9902,
+  "longitude": 73.312,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "रत्नागिरी",
+   "রত্নগিরি"
+  ]
+ },
+ {
+  "name": "Kolhapur",
+  "admin1": "Maharashtra",
+  "latitude": 16.705,
+  "longitude": 74.2433,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "कोल्हापूर",
+   "কোলহাপুর"
+  ]
+ },
+ {
+  "name": "Imphal",
+  "admin1": "Manipur",
+  "latitude": 24.817,
+  "longitude": 93.9368,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "ইম্ফল",
+   "इंफाल"
+  ]
+ },
+ {
+  "name": "Shillong",
+  "admin1": "Meghalaya",
+  "latitude": 25.5788,
+  "longitude": 91.8933,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "শিলং",
+   "शिलाँग",
+   "షిల్లాంగ్"
+  ]
+ },
+ {
+  "name": "Cherrapunji",
+  "admin1": "Meghalaya",
+  "latitude": 25.3,
+  "longitude": 91.7,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "sohra"
+  ],
+  "native": [
+   "ছেৰাপুঞ্জী",
+   "চেরাপুঞ্জি",
+   "चेरापूंजी"
+  ]
+ },
+ {
+  "name": "Aizawl",
+  "admin1": "Mizoram",
+  "latitude": 23.7271,
+  "longitude": 92.7176,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "আইজল",
+   "आइजोल"
+  ]
+ },
+ {
+  "name": "Kohima",
+  "admin1": "Nagaland",
+  "latitude": 25.6751,
+  "longitude": 94.1086,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "কোহিমা",
+   "कोहिमा"
+  ]
+ },
+ {
+  "name": "Bhubaneswar",
+  "admin1": "Odisha",
+  "latitude": 20.2961,
+  "longitude": 85.8245,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "भुवनेश्वर",
+   "ভুবনেশ্বর",
+   "భువనేశ్వర్"
+  ]
+ },
+ {
+  "name": "Puri",
+  "admin1": "Odisha",
+  "latitude": 19.8135,
+  "longitude": 85.8312,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "पुरी",
+   "পুরী",
+   "పూరీ"
+  ]
+ },
+ {
+  "name": "Cuttack",
+  "admin1": "Odisha",
+  "latitude": 20.4625,
+  "longitude": 85.883,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "कटक",
+   "কটক"
+  ]
+ },
+ {
+  "name": "Paradip",
+  "admin1": "Odisha",
+  "latitude": 20.316,
+  "longitude": 86.611,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "paradeep"
+  ],
+  "native": [
+   "पारादीप",
+   "পারাদ্বীপ"
+  ]
+ },
+ {
+  "name": "Ludhiana",
+  "admin1": "Punjab",
+  "latitude": 30.901,
+  "longitude": 75.8573,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "लुधियाना",
+   "লুধিয়ানা"
+  ]
+ },
+ {
+  "name": "Amritsar",
+  "admin1": "Punjab",
+  "latitude": 31.634,
+  "longitude": 74.8723,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "अमृतसर",
+   "অমৃতসর"
+  ]
+ },
+ {
+  "name": "Jaipur",
+  "admin1": "Rajasthan",
+  "latitude": 26.9124,
+  "longitude": 75.7873,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "जयपुर",
+   "জয়পুর",
+   "జైపూర్"
+  ]
+ },
+ {
+  "name": "Jodhpur",
+  "admin1": "Rajasthan",
+  "latitude": 26.2389,
+  "longitude": 73.0243,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "जोधपुर",
+   "যোধপুর"
+  ]
+ },
+ {
+  "name": "Bikaner",
+  "admin1": "Rajasthan",
+  "latitude": 28.0229,
+  "longitude": 73.3119,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "बीकानेर",
+   "বিকানের"
+  ]
+ },
+ {
+  "name": "Jaisalmer",
+  "admin1": "Rajasthan",
+  "latitude": 26.9157,
+  "longitude": 70.9083,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "जैसलमेर",
+   "জয়সলমীর"
+  ]
+ },
+ {
+  "name": "Gangtok",
+  "admin1": "Sikkim",
+  "latitude": 27.3389,
+  "longitude": 88.6065,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "গ্যাংটক",
+   "गंगटोक"
+  ]
+ },
+ {
+  "name": "Chennai",
+  "admin1": "Tamil Nadu",
+  "latitude": 13.0827,
+  "longitude": 80.2707,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "madras"
+  ],
+  "native": [
+   "चेन्नई",
+   "চেন্নাই",
+   "చెన్నై"
+  ]
+ },
+ {
+  "name": "Coimbatore",
+  "admin1": "Tamil Nadu",
+  "latitude": 11.0168,
+  "longitude": 76.9558,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "kovai"
+  ],
+  "native": [
+   "कोयंबटूर",
+   "কোয়েম্বাটুর"
+  ]
+ },
+ {
+  "name": "Madurai",
+  "admin1": "Tamil Nadu",
+  "latitude": 9.9252,
+  "longitude": 78.1198,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "मदुरै",
+   "মাদুরাই"
+  ]
+ },
+ {
+  "name": "Rameswaram",
+  "admin1": "Tamil Nadu",
+  "latitude": 9.2876,
+  "longitude": 79.3129,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "rameshwaram"
+  ],
+  "native": [
+   "रामेश्वरम",
+   "রামেশ্বরম"
+  ]
+ },
+ {
+  "name": "Nagapattinam",
+  "admin1": "Tamil Nadu",
+  "latitude": 10.766,
+  "longitude": 79.842,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "नागपट्टिनम",
+   "নাগাপট্টিনম"
+  ]
+ },
+ {
+  "name": "Hyderabad",
+  "admin1": "Telangana",
+  "latitude": 17.385,
+  "longitude": 78.4867,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "secunderabad",
+   "bhagyanagar"
+  ],
+  "native": [
+   "హైదరాబాద్",
+   "हैदराबाद",
+   "হায়দরাবাদ"
+  ]
+ },
+ {
+  "name": "Warangal",
+  "admin1": "Telangana",
+  "latitude": 17.9689,
+  "longitude": 79.5941,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "వరంగల్",
+   "वारंगल"
+  ]
+ },
+ {
+  "name": "Karimnagar",
+  "admin1": "Telangana",
+  "latitude": 18.4386,
+  "longitude": 79.1288,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "కరీంనగర్",
+   "करीमनगर"
+  ]
+ },
+ {
+  "name": "Khammam",
+  "admin1": "Telangana",
+  "latitude": 17.2473,
+  "longitude": 80.1514,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "ఖమ్మం",
+   "खम्मम"
+  ]
+ },
+ {
+  "name": "Agartala",
+  "admin1": "Tripura",
+  "latitude": 23.8315,
+  "longitude": 91.2868,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "আগরতলা",
+   "अगरतला"
+  ]
+ },
+ {
+  "name": "Lucknow",
+  "admin1": "Uttar Pradesh",
+  "latitude": 26.8467,
+  "longitude": 80.9462,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "लखनऊ",
+   "লখনউ",
+   "లక్నో"
+  ]
+ },
+ {
+  "name": "Kanpur",
+  "admin1": "Uttar Pradesh",
+  "latitude": 26.4499,
+  "longitude": 80.3319,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "कानपुर",
+   "কানপুর"
+  ]
+ },
+ {
+  "name": "Varanasi",
+  "admin1": "Uttar Pradesh",
+  "latitude": 25.3176,
+  "longitude": 82.9739,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "banaras",
+   "kashi"
+  ],
+  "native": [
+   "वाराणसी",
+   "বারাণসী",
+   "వారణాసి"
+  ]
+ },
+ {
+  "name": "Prayagraj",
+  "admin1": "Uttar Pradesh",
+  "latitude": 25.4358,
+  "longitude": 81.8463,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "allahabad"
+  ],
+  "native": [
+   "प्रयागराज",
+   "প্রয়াগরাজ"
+  ]
+ },
+ {
+  "name": "Gorakhpur",
+  "admin1": "Uttar Pradesh",
+  "latitude": 26.7606,
+  "longitude": 83.3732,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "गोरखपुर",
+   "গোরখপুর"
+  ]
+ },
+ {
+  "name": "Dehradun",
+  "admin1": "Uttarakhand",
+  "latitude": 30.3165,
+  "longitude": 78.0322,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "देहरादून",
+   "দেরাদুন"
+  ]
+ },
+ {
+  "name": "Haridwar",
+  "admin1": "Uttarakhand",
+  "latitude": 29.9457,
+  "longitude": 78.1642,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "हरिद्वार",
+   "হরিদ্বার"
+  ]
+ },
+ {
+  "name": "Kolkata",
+  "admin1": "West Bengal",
+  "latitude": 22.5726,
+  "longitude": 88.3639,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "calcutta"
+  ],
+  "native": [
+   "কলকাতা",
+   "कोलकाता",
+   "కోల్‌కతా"
+  ]
+ },
+ {
+  "name": "Darjeeling",
+  "admin1": "West Bengal",
+  "latitude": 27.036,
+  "longitude": 88.2627,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "দার্জিলিং",
+   "दार्जिलिंग"
+  ]
+ },
+ {
+  "name": "Siliguri",
+  "admin1": "West Bengal",
+  "latitude": 26.7271,
+  "longitude": 88.3953,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "শিলিগুড়ি",
+   "सिलीगुड़ी"
+  ]
+ },
+ {
+  "name": "Digha",
+  "admin1": "West Bengal",
+  "latitude": 21.627,
+  "longitude": 87.507,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "দীঘা",
+   "दीघा"
+  ]
+ },
+ {
+  "name": "New Delhi",
+  "admin1": "Delhi",
+  "latitude": 28.6139,
+  "longitude": 77.209,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "delhi",
+   "dilli"
+  ],
+  "native": [
+   "नई दिल्ली",
+   "दिल्ली",
+   "দিল্লি",
+   "দিল্লী",
+   "ఢిల్లీ",
+   "नवी दिल्ली"
+  ]
+ },
+ {
+  "name": "Chandigarh",
+  "admin1": "Chandigarh",
+  "latitude": 30.7333,
+  "longitude": 76.7794,
+  "timezone": "Asia/Kolkata",
+  "aliases": [],
+  "native": [
+   "चंडीगढ़",
+   "চণ্ডীগড়"
+  ]
+ },
+ {
+  "name": "Port Blair",
+  "admin1": "Andaman and Nicobar Islands",
+  "latitude": 11.6234,
+  "longitude": 92.7265,
+  "timezone": "Asia/Kolkata",
+  "aliases": [
+   "andaman"
+  ],
+  "native": [
+   "पोर्ट ब्लेयर",
+   "পোর্ট ব্লেয়ার"
+  ]
+ }
+]

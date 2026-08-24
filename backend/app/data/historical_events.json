@@ -1,0 +1,139 @@
+{
+  "_note": "Reference events used ONLY for historical context in advisories. Figures are approximate published estimates from news and official reporting, not precise official statistics, and are shown to convey scale. Matching is threshold-based (see `criteria`), never impressionistic, and a match is never presented as a prediction.",
+  "events": [
+    {
+      "id": "assam_floods_2025_06",
+      "name": "June 2025 Assam floods",
+      "date": "June 2025",
+      "region": "Assam, Brahmaputra valley",
+      "states": [
+        "Assam",
+        "Meghalaya",
+        "Arunachal Pradesh"
+      ],
+      "summary": "Sustained pre-monsoon and early monsoon rainfall across the Brahmaputra basin flooded large parts of Assam, affecting more than 600,000 people across multiple districts.",
+      "headline_fact": "more than 600,000 people were affected across Assam",
+      "criteria": {
+        "hazard": "Flood Risk",
+        "rain_24h_min_mm": 90,
+        "rain_72h_min_mm": 220,
+        "wind_gust_min_kmh": null,
+        "months": [
+          5,
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      "source_note": "Approximate figure from contemporaneous reporting on the June 2025 Assam flood situation."
+    },
+    {
+      "id": "kerala_floods_2018_08",
+      "name": "August 2018 Kerala floods",
+      "date": "August 2018",
+      "region": "Kerala",
+      "states": [
+        "Kerala",
+        "Tamil Nadu",
+        "Karnataka"
+      ],
+      "summary": "Kerala received far above-normal monsoon rainfall and every major dam was opened, producing the state's worst flooding in close to a century.",
+      "headline_fact": "around 5.4 million people were affected and over 480 lives were lost",
+      "criteria": {
+        "hazard": "Flood Risk",
+        "rain_24h_min_mm": 110,
+        "rain_72h_min_mm": 260,
+        "wind_gust_min_kmh": null,
+        "months": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      "source_note": "Figures from Kerala State Disaster Management Authority and central government reporting on the 2018 floods."
+    },
+    {
+      "id": "cyclone_amphan_2020_05",
+      "name": "Cyclone Amphan",
+      "date": "May 2020",
+      "region": "West Bengal and coastal Odisha",
+      "states": [
+        "West Bengal",
+        "Odisha"
+      ],
+      "summary": "A super cyclonic storm made landfall near the West Bengal-Bangladesh border with extremely destructive winds and a large storm surge.",
+      "headline_fact": "sustained winds near 155 km/h damaged large parts of coastal West Bengal",
+      "criteria": {
+        "hazard": "Strong Wind",
+        "rain_24h_min_mm": 60,
+        "rain_72h_min_mm": null,
+        "wind_gust_min_kmh": 95,
+        "months": [
+          4,
+          5,
+          6,
+          10,
+          11,
+          12
+        ]
+      },
+      "source_note": "Wind figures from India Meteorological Department bulletins issued during Cyclone Amphan."
+    },
+    {
+      "id": "chennai_floods_2015_12",
+      "name": "December 2015 Chennai floods",
+      "date": "December 2015",
+      "region": "Chennai and northern Tamil Nadu",
+      "states": [
+        "Tamil Nadu",
+        "Andhra Pradesh",
+        "Puducherry"
+      ],
+      "summary": "An exceptionally wet north-east monsoon culminated in extreme rainfall that overwhelmed the Adyar and Cooum basins and inundated much of the city.",
+      "headline_fact": "close to 490 mm of rain fell in a single day on 1 December 2015",
+      "criteria": {
+        "hazard": "Flood Risk",
+        "rain_24h_min_mm": 120,
+        "rain_72h_min_mm": 240,
+        "wind_gust_min_kmh": null,
+        "months": [
+          10,
+          11,
+          12,
+          1
+        ]
+      },
+      "source_note": "Rainfall figure from India Meteorological Department records for the December 2015 Chennai event."
+    },
+    {
+      "id": "mumbai_deluge_2005_07",
+      "name": "The 26 July 2005 Mumbai deluge",
+      "date": "July 2005",
+      "region": "Mumbai and Konkan",
+      "states": [
+        "Maharashtra",
+        "Goa"
+      ],
+      "summary": "An intense mesoscale system stalled over Mumbai and produced one of the highest single-day rainfall totals ever recorded in an Indian city.",
+      "headline_fact": "944 mm of rain fell over Santacruz in 24 hours",
+      "criteria": {
+        "hazards": [
+          "Heavy Rainfall",
+          "Flood Risk"
+        ],
+        "rain_24h_min_mm": 130,
+        "rain_72h_min_mm": null,
+        "wind_gust_min_kmh": null,
+        "months": [
+          6,
+          7,
+          8,
+          9
+        ]
+      },
+      "source_note": "Rainfall figure from the India Meteorological Department Santacruz observatory record for 26 July 2005."
+    }
+  ]
+}

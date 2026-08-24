@@ -1,0 +1,29 @@
+# --- Core API ---------------------------------------------------------------
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9        # multipart form parsing for /voice-chat
+websockets>=12.0               # /ws/alerts
+pydantic>=2.7
+
+# --- Data + scheduling ------------------------------------------------------
+httpx>=0.27                    # Open-Meteo client
+APScheduler>=3.10              # the single alert scheduler
+
+# --- AI ---------------------------------------------------------------------
+anthropic>=1.0                 # Claude (structured tool use); optional at runtime
+
+# --- Voice ------------------------------------------------------------------
+gTTS>=2.5                      # text to speech; optional at runtime
+faster-whisper>=1.0            # local speech recognition; optional at runtime
+
+# --- Notifications ----------------------------------------------------------
+twilio>=9.0                    # SMS alerts; falls back to console logging
+
+# --- Tests ------------------------------------------------------------------
+pytest>=8.0
+pytest-asyncio>=0.23
+
+# Optional extras, not required for any code path:
+#   deep-translator   -> alternative translation provider
+#   pyttsx3           -> offline text to speech
+#   openai-whisper    -> alternative speech recogniser
