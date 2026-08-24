@@ -310,7 +310,9 @@ def templated_answer(
     """The full no-LLM answer. Correct, multilingual, and impossible to
     hallucinate with, because every number is substituted from real data."""
     lang = i18n.normalise_lang(lang)
-    if mode == "emergency" or risk_engine.is_actionable(risk):
+    # Emergency wording is gated on the measured risk alone. `mode` cannot
+    # promote a calm reading into a warning, only the risk engine can.
+    if risk_engine.is_actionable(risk):
         return emergency_brief(bundle, risk, user_type, lang)
     if intent == "forecast":
         return forecast_answer(bundle, lang, day_offset=day_offset)

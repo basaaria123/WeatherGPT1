@@ -251,7 +251,11 @@ def handle_chat(
     state.user_type = extraction["user_type"]
 
     if response_mode in VALID_MODES:
-        extraction["response_mode"] = response_mode
+        # A caller may ask for "normal" or "simple". It may not ask for
+        # "emergency": that is decided by measured risk further down, exactly as
+        # it is for the LLM. Otherwise a request parameter could manufacture a
+        # warning for a location with no hazard at all.
+        extraction["response_mode"] = "normal" if response_mode == "emergency" else response_mode
 
     # --- 4. Scope guardrail ------------------------------------------------
     if not extraction["in_scope"] or extraction["intent"] == "out_of_scope":
