@@ -35,6 +35,12 @@ anything resembling real use, split it.
 `vercel.json` in the repo root already declares both services and the routing:
 `/api/*` → FastAPI, everything else → the Vite build.
 
+The backend service sets `"entrypoint": "main.py"`, resolved relative to its
+`root`. Vercel's Python runtime requires this explicitly once it detects
+FastAPI — without it the build fails with *"must specify an entrypoint for
+runtime python"*. `backend/main.py` re-exports the ASGI app from
+`backend/app/main.py`; keep it if you move things around.
+
 ### 1. Import the repo
 
 Vercel detects `frontend` (Vite) and `backend` (FastAPI). The committed
