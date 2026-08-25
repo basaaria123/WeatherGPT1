@@ -71,7 +71,7 @@ export default function RiskMap({ data, loading, error, onRetry, onSelect }) {
         <>
           <p className="mb-2 text-[11px] leading-relaxed text-muted">{t(language, 'mapHint')}</p>
 
-          <div className="relative h-[19rem] overflow-hidden rounded-xl border border-white/[0.08] sm:h-[23rem]">
+          <div className="relative h-[19rem] overflow-hidden rounded-xl border border-[rgb(var(--wx-tint)/0.08)] sm:h-[23rem]">
             {mounted && (
               <MapContainer
                 center={INDIA_CENTER}
@@ -116,9 +116,9 @@ export default function RiskMap({ data, loading, error, onRetry, onSelect }) {
                             <button
                               type="button"
                               onClick={() => onSelect(entry)}
-                              className="mt-2 w-full rounded-lg border border-white/15 bg-white/[0.06]
+                              className="mt-2 w-full rounded-lg border border-[rgb(var(--wx-tint)/0.15)] bg-[rgb(var(--wx-tint)/0.06)]
                                          px-2 py-1 text-[11px] font-medium text-ink transition
-                                         hover:border-white/30 hover:bg-white/[0.12]"
+                                         hover:border-[rgb(var(--wx-tint)/0.30)] hover:bg-[rgb(var(--wx-tint)/0.12)]"
                             >
                               {t(language, 'openLocalDetail')} →
                             </button>

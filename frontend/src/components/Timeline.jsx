@@ -58,14 +58,14 @@ export default function Timeline({ data, loading, error }) {
     >
       <div className="scroll-x -mx-1 flex min-w-0 gap-1.5 px-1 pb-1">
         {hours.map((hour, index) => (
-          <HourCard key={hour.time} hour={hour} index={index} />
+          <HourCard key={hour.time} hour={hour} index={index} isNow={index === 0} language={language} />
         ))}
       </div>
     </Panel>
   )
 }
 
-function HourCard({ hour, index }) {
+function HourCard({ hour, index, isNow, language }) {
   const tone = severityOf(hour.risk_level)
   const risky = isActionable(hour.risk_level)
 
@@ -77,11 +77,15 @@ function HourCard({ hour, index }) {
       title={`${formatHour(hour.time)} · ${hour.condition ?? ''} · ${hour.risk_level} risk (${hour.risk_score}/100)`}
       className="flex w-[4.4rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-2 text-center"
       style={{
-        borderColor: risky ? tone.ring : 'rgb(255 255 255 / 0.07)',
-        background: risky ? tone.tint : 'rgb(255 255 255 / 0.03)',
+        borderColor: risky ? tone.ring : 'rgb(var(--wx-tint) / 0.07)',
+        background: risky ? tone.tint : 'rgb(var(--wx-tint) / 0.03)',
       }}
     >
-      <span className="text-[11px] font-medium text-muted">{formatHour(hour.time)}</span>
+      {/* The strip always starts at the current hour, so the first card says so
+          rather than leaving the reader to infer it from the clock. */}
+      <span className={`text-[11px] font-medium ${isNow ? 'text-primary' : 'text-muted'}`}>
+        {isNow ? t(language, 'nowLabel') : formatHour(hour.time)}
+      </span>
       <WeatherGlyph code={hour.weather_code} size={26} />
       <span className="text-sm font-semibold text-ink">
         {hour.temperature_c !== null && hour.temperature_c !== undefined

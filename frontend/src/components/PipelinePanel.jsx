@@ -132,7 +132,7 @@ export default function PipelinePanel({ answer }) {
                 initial="hidden"
                 animate="show"
                 custom={index}
-                className="min-w-0 rounded-xl border border-white/[0.08] bg-white/[0.03] p-3.5"
+                className="min-w-0 rounded-xl border border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.03)] p-3.5"
               >
                 <header className="mb-2.5 flex items-center gap-2">
                   <span

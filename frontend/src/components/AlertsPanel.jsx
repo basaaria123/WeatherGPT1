@@ -57,7 +57,7 @@ export default function AlertsPanel({ onViewArea }) {
       )}
 
       {elsewhere.length > 0 && (
-        <details className="mt-2.5 border-t border-white/[0.07] pt-2.5">
+        <details className="mt-2.5 border-t border-[rgb(var(--wx-tint)/0.07)] pt-2.5">
           <summary className="cursor-pointer list-none text-[11px] text-muted transition hover:text-ink">
             {t(language, 'elsewhere')} · {elsewhere.length} ▾
           </summary>
@@ -130,7 +130,7 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
       <p className="relative mt-2 text-[12px] leading-relaxed text-ink-soft">{alert.message}</p>
 
       {actions?.length > 0 && (
-        <ul className="relative mt-2 space-y-1 border-t border-white/[0.09] pt-2">
+        <ul className="relative mt-2 space-y-1 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2">
           {actions.slice(0, 2).map((action, index) => (
             <li key={index} className="flex gap-1.5 text-[11px] leading-relaxed text-ink-soft">
               <span aria-hidden="true" style={{ color: tone.color }}>▸</span>
@@ -141,7 +141,7 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
       )}
 
       {alert.historical_comparison && (
-        <p className="relative mt-2 rounded-lg border border-white/[0.09] bg-black/20 px-2 py-1.5 text-[11px] leading-relaxed text-muted">
+        <p className="relative mt-2 rounded-lg border border-[rgb(var(--wx-tint)/0.09)] bg-black/20 px-2 py-1.5 text-[11px] leading-relaxed text-muted">
           <span className="font-semibold text-ink-soft">Historical context · </span>
           {alert.historical_comparison.sentence}
         </p>
@@ -155,8 +155,8 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
           <button
             type="button"
             onClick={() => onViewArea?.(alert)}
-            className="rounded-[var(--radius-pill)] border border-white/12 bg-white/[0.05] px-2 py-0.5
-                       text-[11px] text-ink-soft transition hover:border-white/28"
+            className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] px-2 py-0.5
+                       text-[11px] text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.28)]"
           >
             {t(language, 'viewArea')} →
           </button>

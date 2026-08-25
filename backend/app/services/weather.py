@@ -472,11 +472,27 @@ def _scenario_for(location: Location) -> str:
     return _SCENARIO_ORDER[digest[0] % len(_SCENARIO_ORDER)]
 
 
+def _local_now(location: Location) -> datetime:
+    """Current time at the location, as a naive timestamp.
+
+    Open-Meteo returns hourly times already in the location's timezone and
+    without an offset suffix; the fixture provider has to match that exactly, or
+    the offline demo shows hours that disagree with the user's own clock.
+    """
+    try:
+        from zoneinfo import ZoneInfo
+
+        tz = ZoneInfo(location.timezone or "Asia/Kolkata")
+    except Exception:  # noqa: BLE001 - unknown tz name, fall back to UTC
+        tz = timezone.utc
+    return datetime.now(tz).replace(tzinfo=None, minute=0, second=0, microsecond=0)
+
+
 def _fixture_bundle(location: Location) -> WeatherBundle:
     """Deterministic synthetic weather. Never reachable in live mode."""
     scenario = _scenario_for(location)
     spec = SCENARIOS[scenario]
-    now = datetime.now(timezone.utc).replace(minute=0, second=0, microsecond=0)
+    now = _local_now(location)
 
     hourly: list[dict[str, Any]] = []
     for h in range(48):

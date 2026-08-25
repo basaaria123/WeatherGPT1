@@ -93,7 +93,7 @@ export default function LocationDialog({ open, onClose }) {
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
           transition={{ duration: 0.18 }}
-          className="fixed inset-0 z-50 flex items-start justify-center bg-[rgb(2_6_14/0.72)] p-4 pt-[12vh] backdrop-blur-sm"
+          className="fixed inset-0 z-50 flex items-start justify-center bg-[var(--wx-overlay)] p-4 pt-[12vh] backdrop-blur-sm"
           onClick={onClose}
           role="dialog"
           aria-modal="true"
@@ -122,7 +122,7 @@ export default function LocationDialog({ open, onClose }) {
                 onChange={(event) => setQuery(event.target.value)}
                 placeholder={t(language, 'searchLocation')}
                 aria-label={t(language, 'searchLocation')}
-                className="min-w-0 flex-1 rounded-xl border border-white/12 bg-white/[0.05] px-3 py-2.5
+                className="min-w-0 flex-1 rounded-xl border border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] px-3 py-2.5
                            text-sm text-ink placeholder:text-faint focus:border-primary/50 focus:outline-none"
               />
               <button
@@ -147,8 +147,8 @@ export default function LocationDialog({ open, onClose }) {
                 onClick={useMyLocation}
                 disabled={status === 'locating'}
                 className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border
-                           border-white/12 bg-white/[0.05] px-3 py-2 text-xs font-medium text-ink
-                           transition hover:border-white/28 hover:bg-white/[0.1] disabled:opacity-50"
+                           border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] px-3 py-2 text-xs font-medium text-ink
+                           transition hover:border-[rgb(var(--wx-tint)/0.28)] hover:bg-[rgb(var(--wx-tint)/0.1)] disabled:opacity-50"
               >
                 <span aria-hidden="true" className="text-primary">◎</span>
                 {status === 'locating' ? t(language, 'locating') : t(language, 'useMyLocation')}
@@ -168,7 +168,7 @@ export default function LocationDialog({ open, onClose }) {
                     className={`rounded-[var(--radius-pill)] border px-2.5 py-1 text-[12px] transition ${
                       name === selectedName
                         ? 'border-primary/50 bg-primary/12 text-primary'
-                        : 'border-white/10 bg-white/[0.04] text-ink-soft hover:border-white/25 hover:bg-white/[0.1]'
+                        : 'border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] text-ink-soft hover:border-[rgb(var(--wx-tint)/0.25)] hover:bg-[rgb(var(--wx-tint)/0.1)]'
                     }`}
                   >
                     {name}

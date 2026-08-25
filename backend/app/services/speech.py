@@ -110,7 +110,27 @@ def transcription_engine() -> str:
     return "none"
 
 
+# A library being importable is not the same as it working. Whisper still has
+# to fetch model weights, and gTTS needs to reach Google; both fail on a locked
+# down or offline host. These latch to False after the first real failure so
+# /config stops advertising a capability the server cannot actually deliver.
+_stt_working: bool | None = None
+_tts_working: bool | None = None
+
+
+def note_transcription_result(ok: bool) -> None:
+    global _stt_working
+    _stt_working = ok
+
+
+def note_synthesis_result(ok: bool) -> None:
+    global _tts_working
+    _tts_working = ok
+
+
 def transcription_available() -> bool:
+    if _stt_working is False:
+        return False
     return transcription_engine() != "none"
 
 
@@ -149,6 +169,9 @@ def transcribe(data: bytes, *, filename: str | None = None, content_type: str | 
         raise
     except Exception as exc:  # noqa: BLE001 - model load can fail many ways
         log.error("whisper model load failed: %s", exc)
+        # Model weights are fetched on first use; on a host that cannot reach the
+        # model host this never succeeds, so stop claiming the capability.
+        note_transcription_result(False)
         raise TranscriptionError(
             "The speech recogniser could not start. Please type your question instead."
         ) from exc
@@ -200,6 +223,8 @@ def voice_friendly(text: str) -> str:
 
 
 def synthesis_available() -> bool:
+    if _tts_working is False:
+        return False
     return get_settings().tts_enabled and (_has("gtts") or _has("pyttsx3"))
 
 
@@ -233,6 +258,7 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
             gTTS(text=speech_text, lang=tts_lang, slow=False).write_to_fp(buffer)
             audio = buffer.getvalue()
             if audio:
+                note_synthesis_result(True)
                 return base64.b64encode(audio).decode("ascii"), "audio/mpeg", note
         except Exception as exc:  # noqa: BLE001 - gTTS needs network
             log.warning("gTTS failed: %s", exc)
@@ -249,6 +275,7 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
             engine.runAndWait()
             audio = Path(tmp_path).read_bytes()
             if audio:
+                note_synthesis_result(True)
                 return base64.b64encode(audio).decode("ascii"), "audio/wav", note
         except Exception as exc:  # noqa: BLE001
             log.warning("pyttsx3 failed: %s", exc)
@@ -256,6 +283,9 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
             if tmp_path:
                 Path(tmp_path).unlink(missing_ok=True)
 
+    # Every engine failed: stop advertising speech until the process restarts,
+    # so the UI does not keep offering a play button that yields silence.
+    note_synthesis_result(False)
     raise SynthesisError(
         "Could not produce audio right now. The text answer is still available."
     )

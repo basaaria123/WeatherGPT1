@@ -74,7 +74,7 @@ export function Chip({ children, onClick, active = false, disabled = false, titl
         ${
           active
             ? 'border-primary/60 bg-primary/15 text-primary'
-            : 'border-white/10 bg-white/[0.04] text-ink-soft hover:border-white/25 hover:bg-white/[0.09]'
+            : 'border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] text-ink-soft hover:border-[rgb(var(--wx-tint)/0.25)] hover:bg-[rgb(var(--wx-tint)/0.09)]'
         }`}
     >
       {children}
@@ -120,8 +120,8 @@ export function ErrorState({ title, message, onRetry, retryLabel = 'Try again' }
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3 rounded-[var(--radius-pill)] border border-white/15 bg-white/[0.06] px-3 py-1.5
-                     text-xs font-medium text-ink transition hover:border-white/30 hover:bg-white/[0.12]"
+          className="mt-3 rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.15)] bg-[rgb(var(--wx-tint)/0.06)] px-3 py-1.5
+                     text-xs font-medium text-ink transition hover:border-[rgb(var(--wx-tint)/0.30)] hover:bg-[rgb(var(--wx-tint)/0.12)]"
         >
           {retryLabel}
         </button>

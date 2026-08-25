@@ -98,58 +98,116 @@ const CONDITION_TO_THEME = {
  */
 export const THEMES = {
   base: {
+    scheme: 'dark',
+    scrim: '3 8 20', overlay: 'rgb(2 6 14 / 0.72)',
     bg: '#050d1a', bgDeep: '#030814', raised: '#0a172b', surface: '#0e1c33',
     primary: '#22d3ee', accent: '#60a5fa', border: '#1e3050',
+    tint: '255 255 255',
+    ink: '#f1f5f9', inkSoft: '#cbd5e1', muted: '#94a3b8', faint: '#64748b',
+    safe: '#34d399', caution: '#fbbf24', warning: '#fb923c', danger: '#f43f5e',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(3 8 20 / 0.55) 78%, rgb(3 8 20 / 0.85) 100%)',
+    shadowGlass: '0 6px 20px rgb(2 8 20 / 0.38)',
+    shadowLift: '0 10px 30px rgb(2 8 20 / 0.46)',
     atmosA: 'rgb(34 211 238 / 0.07)', atmosB: 'rgb(45 212 191 / 0.05)',
     pattern: 'none',
   },
+
+  // --- Light themes ------------------------------------------------------
+  // Bright conditions get a bright interface. Text and severity colours are
+  // darkened to keep contrast; yellow never appears as text on white.
   clear: {
-    // Warm, lifted navy — bright for a dark interface without losing contrast.
-    bg: '#0a1626', bgDeep: '#060f1d', raised: '#122036', surface: '#16273f',
-    primary: '#f5c542', accent: '#42a5f5', border: '#2a3d59',
-    atmosA: 'rgb(245 197 66 / 0.13)', atmosB: 'rgb(66 165 245 / 0.07)',
-    // Soft sunlight falling from the upper left.
-    pattern: 'radial-gradient(120% 80% at 12% -10%, rgb(245 197 66 / 0.10), transparent 62%)',
+    scheme: 'light',
+    scrim: '234 247 255', overlay: 'rgb(23 45 68 / 0.42)',
+    bg: '#f8fbff', bgDeep: '#eaf7ff', raised: '#ffffff', surface: '#ffffff',
+    primary: '#e0952a', accent: '#2f7fc4', border: '#cfe3f5',
+    tint: '16 42 67',
+    ink: '#102a43', inkSoft: '#24405c', muted: '#4a6785', faint: '#71889f',
+    safe: '#0f7f57', caution: '#a16207', warning: '#c2410c', danger: '#be123c',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 34%, rgb(214 233 249 / 0.42) 80%, rgb(200 226 247 / 0.62) 100%)',
+    shadowGlass: '0 4px 16px rgb(28 63 99 / 0.10)',
+    shadowLift: '0 10px 28px rgb(28 63 99 / 0.14)',
+    atmosA: 'rgb(245 185 66 / 0.16)', atmosB: 'rgb(66 165 245 / 0.10)',
+    pattern: 'radial-gradient(120% 80% at 12% -10%, rgb(245 185 66 / 0.16), transparent 62%)',
   },
   cloudy: {
-    bg: '#0a1421', bgDeep: '#060e18', raised: '#101d2e', surface: '#152436',
-    primary: '#38a3c7', accent: '#64748b', border: '#243448',
-    atmosA: 'rgb(100 116 139 / 0.11)', atmosB: 'rgb(56 163 199 / 0.06)',
+    scheme: 'light',
+    scrim: '226 232 240', overlay: 'rgb(23 43 58 / 0.42)',
+    bg: '#eef3f7', bgDeep: '#e2e8f0', raised: '#ffffff', surface: '#ffffff',
+    primary: '#2f7f9c', accent: '#546b82', border: '#cbd8e3',
+    tint: '23 43 58',
+    ink: '#172b3a', inkSoft: '#2c4356', muted: '#4f6579', faint: '#78899b',
+    safe: '#0f7f57', caution: '#a16207', warning: '#c2410c', danger: '#be123c',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 34%, rgb(203 216 227 / 0.45) 80%, rgb(190 205 218 / 0.65) 100%)',
+    shadowGlass: '0 4px 16px rgb(30 50 68 / 0.10)',
+    shadowLift: '0 10px 28px rgb(30 50 68 / 0.14)',
+    atmosA: 'rgb(100 116 139 / 0.14)', atmosB: 'rgb(56 163 199 / 0.08)',
     pattern:
-      'radial-gradient(90% 60% at 78% 8%, rgb(148 163 184 / 0.09), transparent 60%),' +
-      'radial-gradient(70% 50% at 18% 24%, rgb(148 163 184 / 0.06), transparent 62%)',
-  },
-  rain: {
-    bg: '#0b1f33', bgDeep: '#071726', raised: '#102a43', surface: '#153b56',
-    primary: '#38bdf8', accent: '#22d3ee', border: '#1f4a6b',
-    atmosA: 'rgb(56 189 248 / 0.12)', atmosB: 'rgb(34 211 238 / 0.07)',
-    // Rain falls at an angle; the texture reads as motion without animating.
-    pattern:
-      'repeating-linear-gradient(72deg, rgb(56 189 248 / 0.045) 0 1px, transparent 1px 9px),' +
-      'radial-gradient(100% 70% at 50% 0%, rgb(56 189 248 / 0.09), transparent 65%)',
-  },
-  storm: {
-    bg: '#071426', bgDeep: '#040d1b', raised: '#0b1f3a', surface: '#12294a',
-    primary: '#38bdf8', accent: '#fbbf24', border: '#1c3357',
-    atmosA: 'rgb(37 99 235 / 0.15)', atmosB: 'rgb(251 191 36 / 0.05)',
-    pattern:
-      'radial-gradient(110% 70% at 50% -12%, rgb(37 99 235 / 0.16), transparent 62%),' +
-      'radial-gradient(60% 40% at 80% 12%, rgb(56 189 248 / 0.07), transparent 60%)',
+      'radial-gradient(90% 60% at 78% 8%, rgb(120 145 170 / 0.14), transparent 60%),' +
+      'radial-gradient(70% 50% at 18% 24%, rgb(120 145 170 / 0.10), transparent 62%)',
   },
   fog: {
-    bg: '#0d1620', bgDeep: '#09111a', raised: '#141f2b', surface: '#1a2735',
-    primary: '#78909c', accent: '#90a4ae', border: '#27333f',
-    atmosA: 'rgb(120 144 156 / 0.13)', atmosB: 'rgb(144 164 174 / 0.08)',
-    // Layered bands read as haze sitting in front of the content.
+    scheme: 'light',
+    scrim: '220 229 234', overlay: 'rgb(38 50 56 / 0.42)',
+    bg: '#e9eef2', bgDeep: '#dce5ea', raised: '#ffffff', surface: '#ffffff',
+    primary: '#4d6b7a', accent: '#657f8c', border: '#c7d3da',
+    tint: '38 50 56',
+    ink: '#263238', inkSoft: '#3b4a52', muted: '#5b6d76', faint: '#84939b',
+    safe: '#0f7f57', caution: '#a16207', warning: '#c2410c', danger: '#be123c',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(214 224 230 / 0.55) 74%, rgb(202 214 222 / 0.75) 100%)',
+    shadowGlass: '0 4px 16px rgb(38 50 56 / 0.09)',
+    shadowLift: '0 10px 28px rgb(38 50 56 / 0.13)',
+    atmosA: 'rgb(120 144 156 / 0.16)', atmosB: 'rgb(144 164 174 / 0.10)',
     pattern:
-      'linear-gradient(0deg, rgb(144 164 174 / 0.07) 0%, transparent 28%),' +
-      'linear-gradient(180deg, rgb(144 164 174 / 0.06) 0%, transparent 34%)',
+      'linear-gradient(0deg, rgb(120 144 156 / 0.12) 0%, transparent 28%),' +
+      'linear-gradient(180deg, rgb(120 144 156 / 0.10) 0%, transparent 34%)',
+  },
+
+  // --- Dark themes -------------------------------------------------------
+  rain: {
+    scheme: 'dark',
+    scrim: '7 23 38', overlay: 'rgb(3 12 22 / 0.72)',
+    bg: '#0b1f33', bgDeep: '#071726', raised: '#102a43', surface: '#153b56',
+    primary: '#38bdf8', accent: '#22d3ee', border: '#1f4a6b',
+    tint: '255 255 255',
+    ink: '#f8fafc', inkSoft: '#dce7f2', muted: '#b8c7d9', faint: '#8aa0b8',
+    safe: '#34d399', caution: '#fbbf24', warning: '#fb923c', danger: '#fb7185',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(4 14 26 / 0.52) 78%, rgb(4 14 26 / 0.82) 100%)',
+    shadowGlass: '0 6px 20px rgb(2 12 24 / 0.40)',
+    shadowLift: '0 10px 30px rgb(2 12 24 / 0.50)',
+    atmosA: 'rgb(56 189 248 / 0.12)', atmosB: 'rgb(34 211 238 / 0.07)',
+    pattern:
+      'repeating-linear-gradient(72deg, rgb(56 189 248 / 0.05) 0 1px, transparent 1px 9px),' +
+      'radial-gradient(100% 70% at 50% 0%, rgb(56 189 248 / 0.10), transparent 65%)',
+  },
+  storm: {
+    scheme: 'dark',
+    scrim: '4 13 27', overlay: 'rgb(2 8 18 / 0.75)',
+    bg: '#071426', bgDeep: '#040d1b', raised: '#0b1f3a', surface: '#12294a',
+    primary: '#38bdf8', accent: '#fbbf24', border: '#1c3357',
+    tint: '255 255 255',
+    ink: '#f8fafc', inkSoft: '#dbe6f5', muted: '#a8bcd6', faint: '#7c93b0',
+    safe: '#34d399', caution: '#fbbf24', warning: '#fb923c', danger: '#fb7185',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 28%, rgb(2 8 18 / 0.58) 76%, rgb(2 8 18 / 0.88) 100%)',
+    shadowGlass: '0 6px 20px rgb(1 6 16 / 0.46)',
+    shadowLift: '0 10px 30px rgb(1 6 16 / 0.56)',
+    atmosA: 'rgb(37 99 235 / 0.16)', atmosB: 'rgb(251 191 36 / 0.06)',
+    pattern:
+      'radial-gradient(110% 70% at 50% -12%, rgb(37 99 235 / 0.18), transparent 62%),' +
+      'radial-gradient(60% 40% at 80% 12%, rgb(56 189 248 / 0.08), transparent 60%)',
   },
   night: {
+    scheme: 'dark',
+    scrim: '4 10 20', overlay: 'rgb(2 7 15 / 0.74)',
     bg: '#07111f', bgDeep: '#040a14', raised: '#0e2035', surface: '#132a44',
     primary: '#60a5fa', accent: '#fbbf77', border: '#1d3350',
-    atmosA: 'rgb(96 165 250 / 0.10)', atmosB: 'rgb(251 191 119 / 0.04)',
-    pattern: 'radial-gradient(100% 70% at 70% -8%, rgb(96 165 250 / 0.10), transparent 62%)',
+    tint: '255 255 255',
+    ink: '#f8fafc', inkSoft: '#dce6f3', muted: '#a9bbd2', faint: '#7d91ac',
+    safe: '#34d399', caution: '#fbbf24', warning: '#fb923c', danger: '#fb7185',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(2 7 15 / 0.55) 78%, rgb(2 7 15 / 0.85) 100%)',
+    shadowGlass: '0 6px 20px rgb(1 5 12 / 0.44)',
+    shadowLift: '0 10px 30px rgb(1 5 12 / 0.54)',
+    atmosA: 'rgb(96 165 250 / 0.11)', atmosB: 'rgb(251 191 119 / 0.05)',
+    pattern: 'radial-gradient(100% 70% at 70% -8%, rgb(96 165 250 / 0.11), transparent 62%)',
   },
 }
 
@@ -192,6 +250,32 @@ const VAR_MAP = {
   '--wx-atmos-a': 'atmosA',
   '--wx-atmos-b': 'atmosB',
   '--wx-pattern': 'pattern',
+  '--wx-tint': 'tint',
+  '--wx-ink': 'ink',
+  '--wx-vignette': 'vignette',
+  '--wx-scrim': 'scrim',
+  '--wx-overlay': 'overlay',
+  // The app's semantic tokens are overridden too. Because every component
+  // already styles through `text-ink` / `bg-primary` / severity colours rather
+  // than hex values, re-pointing these re-themes the whole interface — which is
+  // what makes a light theme possible without touching components.
+  '--color-bg': 'bg',
+  '--color-bg-deep': 'bgDeep',
+  '--color-bg-raised': 'raised',
+  '--color-surface': 'surface',
+  '--color-border': 'border',
+  '--color-primary': 'primary',
+  '--color-accent': 'accent',
+  '--color-ink': 'ink',
+  '--color-ink-soft': 'inkSoft',
+  '--color-muted': 'muted',
+  '--color-faint': 'faint',
+  '--color-safe': 'safe',
+  '--color-caution': 'caution',
+  '--color-warning': 'warning',
+  '--color-danger': 'danger',
+  '--shadow-glass': 'shadowGlass',
+  '--shadow-lift': 'shadowLift',
 }
 
 /**
@@ -203,9 +287,11 @@ export function applyTheme(themeKey) {
   const theme = THEMES[themeKey] ?? THEMES.base
   const root = document.documentElement
   Object.entries(VAR_MAP).forEach(([cssVar, key]) => {
-    root.style.setProperty(cssVar, theme[key])
+    if (theme[key] !== undefined) root.style.setProperty(cssVar, theme[key])
   })
   root.dataset.weatherTheme = themeKey
+  // Drives the browser's own controls, scrollbars and caret colour.
+  root.style.colorScheme = theme.scheme ?? 'dark'
 }
 
 export const THEME_KEYS = Object.keys(THEMES)

@@ -78,7 +78,7 @@ export default function DemoMode({ answer }) {
           aria-modal="true"
           aria-label={t(language, 'demoTitle')}
           className="fixed inset-0 z-50 flex items-center justify-center overflow-y-auto
-                     bg-[rgb(2_6_14/0.82)] p-4 backdrop-blur-md"
+                     bg-[var(--wx-overlay)] p-4 backdrop-blur-md"
         >
           <motion.div
             initial={{ opacity: 0, y: 18, scale: 0.98 }}
@@ -111,8 +111,8 @@ export default function DemoMode({ answer }) {
                   type="button"
                   onClick={() => setOpen(false)}
                   aria-label="Close"
-                  className="grid h-8 w-8 place-items-center rounded-full border border-white/12
-                             bg-white/[0.05] text-sm text-ink-soft transition hover:bg-white/[0.12]"
+                  className="grid h-8 w-8 place-items-center rounded-full border border-[rgb(var(--wx-tint)/0.12)]
+                             bg-[rgb(var(--wx-tint)/0.05)] text-sm text-ink-soft transition hover:bg-[rgb(var(--wx-tint)/0.12)]"
                 >
                   ✕
                 </button>
@@ -124,7 +124,7 @@ export default function DemoMode({ answer }) {
                 initial={{ opacity: 0, x: -14 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45, delay: 0.1 }}
-                className="rounded-xl border border-white/[0.09] bg-black/35 p-4"
+                className="rounded-xl border border-[rgb(var(--wx-tint)/0.09)] bg-black/35 p-4"
               >
                 <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
                   {t(language, 'demoBulletin')}
@@ -173,7 +173,7 @@ export default function DemoMode({ answer }) {
                   <>
                     <p className="whitespace-pre-wrap text-[13px] leading-relaxed text-ink">{answer.answer}</p>
                     {answer.actions?.length > 0 && (
-                      <ul className="mt-3 space-y-1.5 border-t border-white/[0.09] pt-2.5">
+                      <ul className="mt-3 space-y-1.5 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2.5">
                         {answer.actions.slice(0, 3).map((action, index) => (
                           <li key={index} className="flex gap-2 text-[12px] leading-relaxed text-ink-soft">
                             <span aria-hidden="true" className="mt-[3px] text-secondary">▸</span>

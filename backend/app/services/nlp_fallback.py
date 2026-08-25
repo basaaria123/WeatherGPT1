@@ -85,6 +85,22 @@ PROFILE_TERMS: dict[str, tuple[str, ...]] = {
 
 # Deictic openers that signal a follow-up to the previous turn rather than a
 # fresh question. Only ever consulted when a location is already established.
+# "What should I do?" is the question this product exists to answer, but it
+# contains no weather noun, so the guardrail above used to reject it as
+# off-topic. These terms put safety and preparation questions back in scope —
+# but only alongside a known location, so a genuinely contextless question is
+# still redirected rather than answered about nowhere.
+ACTION_TERMS: tuple[str, ...] = (
+    "what should i do", "what to do", "should i", "precaution", "precautions",
+    "safety", "safe", "prepare", "preparation", "protect", "advice", "advise",
+    "recommend", "suggestion", "take care", "careful", "risky", "risk",
+    "क्या करें", "क्या करूँ", "सावधानी", "सुरक्षा", "बचाव", "तैयारी", "सलाह",
+    "काय करावे", "खबरदारी", "सुरक्षित",
+    "ఏం చేయాలి", "జాగ్రత్త", "జాగ్రత్తలు", "భద్రత", "సలహా", "సురక్షితమా",
+    "কী করব", "কি করব", "সতর্কতা অবলম্বন", "নিরাপত্তা", "নিরাপদ", "পরামর্শ",
+    "কি কৰিব", "সাৱধানতা", "নিৰাপদ", "পৰামৰ্শ",
+)
+
 FOLLOWUP_TERMS: tuple[str, ...] = (
     "what about", "how about", "and", "then", "there", "also", "what if", "same",
     "और", "फिर", "वहाँ", "आणि", "मग", "तिथे",
@@ -241,6 +257,11 @@ def extract(query: str, *, language: str = "en", known_location: str | None = No
     )
     if not in_scope and location is not None and (day_offset > 0 or user_type is not None):
         # "I'm a farmer near Warangal, should I harvest tomorrow?"
+        in_scope = True
+    if not in_scope and _contains(text, ACTION_TERMS) and (known_location or location is not None):
+        # "What precautions should I take?" — a safety question about the place
+        # already on screen. Answered as current conditions, which is what the
+        # risk engine and the action checklist are built to speak to.
         in_scope = True
     if not in_scope and known_location and (day_offset > 0 or _contains(text, FOLLOWUP_TERMS)):
         # A bare follow-up ("and tomorrow?", "మరి ఎల్లుండి?") continues the

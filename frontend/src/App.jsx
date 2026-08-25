@@ -5,7 +5,7 @@ import { useAlertsSocket } from './hooks/useAlertsSocket'
 import { t } from './i18n/ui'
 import { useStore } from './store/useStore'
 import WeatherScene from './scene/WeatherScene'
-import { applyTheme, resolveTheme, sceneForCondition } from './theme/weatherTheme'
+import { THEMES, applyTheme, resolveTheme, sceneForCondition } from './theme/weatherTheme'
 
 import AlertsPanel from './components/AlertsPanel'
 import ChatPanel from './components/ChatPanel'
@@ -251,16 +251,22 @@ export default function App() {
     [shown?.weather_code, shownRisk?.risk_level, shownRisk?.detected_hazard],
   )
 
-  useEffect(() => {
-    applyTheme(
+  const themeKey = useMemo(
+    () =>
       resolveTheme({
         weatherCode: shown?.weather_code,
         isDay: shown?.is_day,
         riskLevel: shownRisk?.risk_level,
         hazard: shownRisk?.detected_hazard,
       }),
-    )
-  }, [shown?.weather_code, shown?.is_day, shownRisk?.risk_level, shownRisk?.detected_hazard])
+    [shown?.weather_code, shown?.is_day, shownRisk?.risk_level, shownRisk?.detected_hazard],
+  )
+
+  useEffect(() => {
+    applyTheme(themeKey)
+  }, [themeKey])
+
+  const lightTheme = THEMES[themeKey]?.scheme === 'light'
 
   // An answer only counts for the place currently selected.
   const answerHere =
@@ -276,7 +282,7 @@ export default function App() {
 
   return (
     <>
-      <WeatherScene scene={scene} intensity={stage === 'app' ? 0.75 : 1} />
+      <WeatherScene scene={scene} light={lightTheme} intensity={stage === 'app' ? 0.75 : 1} />
 
       <AnimatePresence mode="wait">
         {stage === 'splash' && <SplashScreen key="splash" onDone={() => setStage('landing')} />}
@@ -372,8 +378,8 @@ export default function App() {
                 <button
                   type="button"
                   onClick={() => setDemoOpen(true)}
-                  className="rounded-[var(--radius-pill)] border border-white/12 bg-white/[0.05] px-4 py-2
-                             text-xs font-medium text-ink transition hover:border-white/28 hover:bg-white/[0.1]"
+                  className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] px-4 py-2
+                             text-xs font-medium text-ink transition hover:border-[rgb(var(--wx-tint)/0.28)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
                 >
                   ◧ {t(language, 'demoMode')}
                 </button>

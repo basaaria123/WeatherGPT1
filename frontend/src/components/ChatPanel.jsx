@@ -143,8 +143,8 @@ export default function ChatPanel({
           placeholder={t(language, 'placeholder')}
           aria-label={t(language, 'placeholder')}
           disabled={pending}
-          className="max-h-28 min-h-[2.75rem] min-w-0 flex-1 resize-none rounded-xl border border-white/12
-                     bg-white/[0.05] px-3 py-3 text-sm text-ink placeholder:text-faint
+          className="max-h-28 min-h-[2.75rem] min-w-0 flex-1 resize-none rounded-xl border border-[rgb(var(--wx-tint)/0.12)]
+                     bg-[rgb(var(--wx-tint)/0.05)] px-3 py-3 text-sm text-ink placeholder:text-faint
                      focus:border-primary/50 focus:outline-none disabled:opacity-60"
         />
 
@@ -159,7 +159,7 @@ export default function ChatPanel({
                         disabled:opacity-45 ${
                           recorder.recording
                             ? 'border-danger/60 bg-danger/20 text-danger'
-                            : 'border-white/12 bg-white/[0.05] text-ink-soft hover:border-white/28 hover:bg-white/[0.1]'
+                            : 'border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] text-ink-soft hover:border-[rgb(var(--wx-tint)/0.28)] hover:bg-[rgb(var(--wx-tint)/0.1)]'
                         }`}
           >
             {recorder.recording && (
@@ -212,7 +212,7 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
           className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
             isUser
               ? 'rounded-br-md bg-primary/15 text-ink'
-              : 'rounded-bl-md border border-white/[0.08] bg-white/[0.05] text-ink-soft'
+              : 'rounded-bl-md border border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.05)] text-ink-soft'
           }`}
         >
           {message.transcript && isUser && (
@@ -221,7 +221,7 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
           <p className="whitespace-pre-wrap break-words">{message.text}</p>
 
           {message.actions?.length > 0 && (
-            <ul className="mt-2.5 space-y-1.5 border-t border-white/[0.08] pt-2.5">
+            <ul className="mt-2.5 space-y-1.5 border-t border-[rgb(var(--wx-tint)/0.08)] pt-2.5">
               {message.actions.map((action, index) => (
                 <li key={index} className="flex gap-2 text-[13px] text-ink">
                   <span aria-hidden="true" className="mt-[3px] text-primary">▸</span>
@@ -241,8 +241,8 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
               <button
                 type="button"
                 onClick={() => onPlay(message)}
-                className="rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.04] px-2 py-0.5
-                           text-[11px] text-ink-soft transition hover:border-white/25"
+                className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] px-2 py-0.5
+                           text-[11px] text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.25)]"
               >
                 {playing ? `◼ ${t(language, 'stopAudio')}` : `▶ ${t(language, 'playAnswer')}`}
               </button>
@@ -260,7 +260,7 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
       {isUser && (
         <span
           aria-hidden="true"
-          className="order-2 mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-white/[0.07] text-[11px] text-muted"
+          className="order-2 mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[rgb(var(--wx-tint)/0.07)] text-[11px] text-muted"
         >
           ●
         </span>
@@ -278,8 +278,8 @@ function WhyDisclosure({ explanation, language }) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.04] px-2 py-0.5
-                   text-[11px] text-ink-soft transition hover:border-white/25"
+        className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] px-2 py-0.5
+                   text-[11px] text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.25)]"
       >
         {t(language, 'whyThis')} {open ? '▴' : '▾'}
       </button>
@@ -290,7 +290,7 @@ function WhyDisclosure({ explanation, language }) {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             transition={{ duration: 0.2 }}
-            className="w-full overflow-hidden rounded-lg border border-white/[0.08] bg-white/[0.03] px-2.5 py-2
+            className="w-full overflow-hidden rounded-lg border border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.03)] px-2.5 py-2
                        text-[11px] leading-relaxed text-muted"
           >
             {explanation}
@@ -310,7 +310,7 @@ function TypingIndicator({ label }) {
       >
         ◈
       </span>
-      <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-white/[0.08] bg-white/[0.05] px-3.5 py-2.5">
+      <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.05)] px-3.5 py-2.5">
         <span className="flex gap-1" aria-hidden="true">
           {[0, 1, 2].map((index) => (
             <motion.span
@@ -348,7 +348,7 @@ function MicIcon() {
 function InsightBanner({ insight, loading, language }) {
   if (loading && !insight) {
     return (
-      <div className="mb-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3">
+      <div className="mb-3 rounded-xl border border-[rgb(var(--wx-tint)/0.07)] bg-[rgb(var(--wx-tint)/0.03)] px-3.5 py-3">
         <p className="text-[12px] text-faint">{t(language, 'insightLoading')}</p>
       </div>
     )
@@ -365,8 +365,8 @@ function InsightBanner({ insight, loading, language }) {
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
       className="mb-3 rounded-xl border px-3.5 py-3"
       style={{
-        borderColor: urgent ? 'rgb(251 146 60 / 0.42)' : 'rgb(255 255 255 / 0.09)',
-        background: urgent ? 'rgb(251 146 60 / 0.09)' : 'rgb(255 255 255 / 0.035)',
+        borderColor: urgent ? 'rgb(251 146 60 / 0.42)' : 'rgb(var(--wx-tint) / 0.09)',
+        background: urgent ? 'rgb(251 146 60 / 0.09)' : 'rgb(var(--wx-tint) / 0.035)',
       }}
     >
       <p className="text-[14px] font-medium leading-relaxed text-ink">{insight.headline}</p>
@@ -378,7 +378,7 @@ function InsightBanner({ insight, loading, language }) {
           {insight.factors.map((factor) => (
             <span
               key={factor}
-              className="rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.05]
+              className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)]
                          px-1.5 py-0.5 text-[11px] text-muted"
             >
               {factor}

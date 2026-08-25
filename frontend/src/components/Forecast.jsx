@@ -44,7 +44,7 @@ export default function Forecast({ data, loading, error }) {
               transition={{ duration: 0.3, delay: index * 0.04 }}
               title={`${day.condition ?? ''} · ${day.risk_level} risk`}
               className={`flex w-[4.6rem] shrink-0 flex-col items-center gap-1 rounded-xl border p-2 text-center sm:w-auto ${
-                isToday ? 'border-primary/45 bg-primary/[0.08]' : 'border-white/[0.07] bg-white/[0.03]'
+                isToday ? 'border-primary/45 bg-primary/[0.08]' : 'border-[rgb(var(--wx-tint)/0.07)] bg-[rgb(var(--wx-tint)/0.03)]'
               }`}
             >
               <span className={`text-[11px] font-semibold ${isToday ? 'text-primary' : 'text-muted'}`}>

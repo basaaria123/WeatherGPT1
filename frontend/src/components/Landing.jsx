@@ -104,8 +104,8 @@ export default function Landing({ onEnter, onDemo }) {
           <button
             type="button"
             onClick={onDemo}
-            className="rounded-[var(--radius-pill)] border border-white/15 bg-white/[0.05] px-6 py-3
-                       text-sm font-medium text-ink transition hover:border-white/30 hover:bg-white/[0.1]"
+            className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.15)] bg-[rgb(var(--wx-tint)/0.05)] px-6 py-3
+                       text-sm font-medium text-ink transition hover:border-[rgb(var(--wx-tint)/0.30)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
           >
             {t(language, 'heroSecondary')}
           </button>

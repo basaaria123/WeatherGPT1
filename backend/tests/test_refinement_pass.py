@@ -188,3 +188,86 @@ def test_a_detected_hazard_does_not_imply_an_issued_warning(tmp_path, monkeypatc
     # Mumbai's fixture is a thunderstorm: a real hazard, with no alert scanned.
     assert payload["risk"]["detected_hazard"] != "None"
     assert payload["official_alert_count"] == 0
+
+
+# ---------------------------------------------------------------------------
+# Reported regressions: action queries, local time, honest capabilities
+# ---------------------------------------------------------------------------
+def test_safety_questions_are_in_scope_when_a_place_is_selected():
+    """"What should I do?" is the question this product exists to answer; it
+    was being redirected as off-topic because it names no weather noun."""
+    from app.services import nlp_fallback
+
+    for query in (
+        "what should I do today?",
+        "what precautions should I take?",
+        "is it safe to go out?",
+        "क्या करें?",
+        "ఏం చేయాలి?",
+    ):
+        assert nlp_fallback.extract(query, known_location="Guwahati")["in_scope"], query
+
+
+def test_the_guardrail_still_redirects_genuinely_off_topic_questions():
+    from app.services import nlp_fallback
+
+    for query in ("who won the cricket match?", "write me a poem", "what is 2+2", "book me a flight"):
+        assert not nlp_fallback.extract(query, known_location="Guwahati")["in_scope"], query
+
+
+def test_a_contextless_action_question_is_not_answered_about_nowhere():
+    from app.services import nlp_fallback
+
+    assert not nlp_fallback.extract("what should I do?", known_location=None)["in_scope"]
+
+
+def test_every_profile_gets_its_own_leading_precaution():
+    b = bundle_for("Guwahati", "flood")
+    risk = risk_engine.assess(b)
+    leads = {}
+    for profile in ("farmer", "fisherman", "traveler", "commuter"):
+        actions = advisory.action_checklist(risk, profile, "en")
+        assert actions, profile
+        leads[profile] = actions[0]
+    # Each profession leads with advice written for it, not a shared sentence.
+    assert len(set(leads.values())) == 4, leads
+
+
+def test_fixture_hours_follow_the_location_clock_not_utc():
+    """The offline demo must not show hours that disagree with the user's own
+    clock; Open-Meteo returns location-local times and the fixture matches."""
+    from datetime import datetime
+    from zoneinfo import ZoneInfo
+
+    b = bundle_for("Guwahati", "rain")
+    first = b.hourly[0]["time"]
+    expected_hour = datetime.now(ZoneInfo("Asia/Kolkata")).hour
+    assert int(first[11:13]) == expected_hour, f"{first} vs local hour {expected_hour}"
+
+
+def test_speech_capability_reports_false_once_it_has_actually_failed(monkeypatch):
+    """A library that imports is not a working engine. Advertising speech that
+    then produces silence is what made voice look broken.
+
+    The suite runs with TTS disabled, so synthesis is enabled here explicitly —
+    otherwise the latch would be masked by the disabled flag and the test would
+    pass without exercising anything.
+    """
+    from app.config import reset_settings
+    from app.services import speech
+
+    monkeypatch.setenv("TTS_ENABLED", "true")
+    reset_settings()
+    try:
+        speech.note_synthesis_result(True)
+        assert speech.synthesis_available() is True, "should be available before any failure"
+
+        speech.note_synthesis_result(False)
+        assert speech.synthesis_available() is False, "a real failure must retract the claim"
+    finally:
+        speech.note_synthesis_result(True)
+        reset_settings()
+
+    speech.note_transcription_result(False)
+    assert speech.transcription_available() is False
+    speech.note_transcription_result(True)

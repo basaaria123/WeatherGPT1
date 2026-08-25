@@ -37,7 +37,7 @@ export default function HistoricalNote({ comparison }) {
 
         <p className="text-[13px] leading-relaxed text-ink-soft">{comparison.sentence}</p>
 
-        <p className="mt-2.5 border-t border-white/[0.09] pt-2 text-[11px] leading-relaxed text-faint">
+        <p className="mt-2.5 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2 text-[11px] leading-relaxed text-faint">
           {comparison.event_name} · {comparison.region} · {comparison.source_note}
         </p>
       </motion.div>

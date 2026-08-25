@@ -1,4 +1,5 @@
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
+import { useState } from 'react'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { statusOf } from './ui/severity'
@@ -24,6 +25,9 @@ const ICONS = {
 export default function ImpactGrid({ impacts, loading }) {
   const language = useStore((s) => s.language)
   const userType = useStore((s) => s.userType)
+  // Guidance was being clipped to three lines with the rest only reachable as a
+  // title tooltip — useless on touch. One card opens at a time.
+  const [openCategory, setOpenCategory] = useState(null)
 
   return (
     <Panel title={t(language, 'weatherImpact')}>
@@ -38,28 +42,57 @@ export default function ImpactGrid({ impacts, loading }) {
             {impacts.map((impact, index) => {
               const tone = statusOf(impact.status)
               const leads = index === 0 && userType && userType !== 'general'
+              const isOpen = openCategory === impact.category
               return (
                 <motion.article
                   key={impact.category}
+                  layout
                   initial={{ opacity: 0, y: 10 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.35, delay: index * 0.06 }}
-                  title={impact.detail}
-                  className="rounded-xl border p-3"
-                  style={{ borderColor: 'rgb(255 255 255 / 0.07)', background: tone.tint }}
+                  className={`rounded-xl border ${isOpen ? 'sm:col-span-2 lg:col-span-2' : ''}`}
+                  style={{
+                    borderColor: isOpen ? tone.color : 'rgb(var(--wx-tint) / 0.07)',
+                    background: tone.tint,
+                  }}
                 >
-                  <div className="mb-1.5 flex items-center gap-1.5">
-                    <span aria-hidden="true" className="text-sm">{ICONS[impact.category] ?? '◆'}</span>
-                    <h3 className="min-w-0 truncate text-[12px] font-semibold text-ink">{impact.category}</h3>
-                    {leads && (
-                      <span className="ml-auto shrink-0 rounded-[var(--radius-pill)] border border-primary/40
-                                       bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
-                        {t(language, 'forYou')}
-                      </span>
-                    )}
-                  </div>
-                  <StatusPill status={impact.status} label={impact.headline} />
-                  <p className="mt-1.5 line-clamp-3 text-[11px] leading-relaxed text-muted">{impact.detail}</p>
+                  <button
+                    type="button"
+                    onClick={() => setOpenCategory(isOpen ? null : impact.category)}
+                    aria-expanded={isOpen}
+                    className="w-full cursor-pointer p-3 text-left"
+                  >
+                    <div className="mb-1.5 flex items-center gap-1.5">
+                      <span aria-hidden="true" className="text-sm">{ICONS[impact.category] ?? '◆'}</span>
+                      <h3 className="min-w-0 truncate text-[12px] font-semibold text-ink">{impact.category}</h3>
+                      {leads && (
+                        <span className="ml-auto shrink-0 rounded-[var(--radius-pill)] border border-primary/40
+                                         bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
+                          {t(language, 'forYou')}
+                        </span>
+                      )}
+                    </div>
+                    <StatusPill status={impact.status} label={impact.headline} />
+
+                    <AnimatePresence initial={false} mode="wait">
+                      <motion.p
+                        key={isOpen ? 'full' : 'clamped'}
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        exit={{ opacity: 0 }}
+                        transition={{ duration: 0.18 }}
+                        className={`mt-1.5 text-[11px] leading-relaxed text-muted ${
+                          isOpen ? '' : 'line-clamp-3'
+                        }`}
+                      >
+                        {impact.detail}
+                      </motion.p>
+                    </AnimatePresence>
+
+                    <span className="mt-1.5 inline-block text-[10px] font-medium text-primary">
+                      {isOpen ? t(language, 'showLess') : t(language, 'showMore')} {isOpen ? '▴' : '▾'}
+                    </span>
+                  </button>
                 </motion.article>
               )
             })}

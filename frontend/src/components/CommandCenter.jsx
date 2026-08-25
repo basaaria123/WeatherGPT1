@@ -72,7 +72,7 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
         <button
           type="button"
           onClick={onRetry}
-          className="mt-3 rounded-[var(--radius-pill)] border border-white/15 bg-white/[0.06] px-3 py-1.5 text-xs text-ink"
+          className="mt-3 rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.15)] bg-[rgb(var(--wx-tint)/0.06)] px-3 py-1.5 text-xs text-ink"
         >
           {t(language, 'retry')}
         </button>
@@ -127,7 +127,7 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
           are shown as two separate statements rather than one badge. */}
       {risk && <HazardVsAlerts risk={risk} officialCount={officialCount} language={language} />}
 
-      <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3.5 border-t border-white/[0.07] pt-4 sm:grid-cols-3 lg:grid-cols-4">
+      <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3.5 border-t border-[rgb(var(--wx-tint)/0.07)] pt-4 sm:grid-cols-3 lg:grid-cols-4">
         <Metric
           label={t(language, 'feelsLike')}
           value={current.apparent_temperature_c?.toFixed?.(0)}
@@ -191,7 +191,7 @@ function RiskExplainer({ risk, language }) {
           </button>
 
           {open && (
-            <div className="mt-2 rounded-xl border border-white/[0.09] bg-black/15 p-2.5 text-left">
+            <div className="mt-2 rounded-xl border border-[rgb(var(--wx-tint)/0.09)] bg-black/15 p-2.5 text-left">
               {risk.drivers?.length > 0 && (
                 <ul className="mb-2 space-y-1">
                   {risk.drivers.map((driver, index) => (
@@ -214,7 +214,7 @@ function RiskExplainer({ risk, language }) {
                         <span className="w-[7.5rem] shrink-0 truncate text-[11px] text-muted">
                           {hazardLabel(language, hazard)}
                         </span>
-                        <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-white/[0.07]">
+                        <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[rgb(var(--wx-tint)/0.07)]">
                           <span
                             className="block h-full rounded-full"
                             style={{ width: `${score}%`, background: severityOf(levelFor(score)).color }}
@@ -256,7 +256,7 @@ function HazardVsAlerts({ risk, officialCount, language }) {
   const hasHazard = risk.detected_hazard && risk.detected_hazard !== 'None'
 
   return (
-    <div className="mt-4 grid gap-2 border-t border-white/[0.07] pt-3.5 sm:grid-cols-2">
+    <div className="mt-4 grid gap-2 border-t border-[rgb(var(--wx-tint)/0.07)] pt-3.5 sm:grid-cols-2">
       <div>
         <div className="text-[11px] uppercase tracking-[0.12em] text-faint">
           {t(language, 'hazardRisk')}

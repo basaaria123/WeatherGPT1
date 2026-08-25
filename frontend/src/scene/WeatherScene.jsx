@@ -187,15 +187,19 @@ function HeatHaze({ count = 220 }) {
   )
 }
 
-function SceneContents({ scene }) {
+function SceneContents({ scene, light = false }) {
   const palette = paletteFor(scene)
+  // Pale clouds vanish against a bright sky, so a light theme darkens them and
+  // leans on opacity instead. Counts and motion are unchanged.
+  const cloudColor = light ? '#8fa8bd' : palette.cloud
+  const cloudOpacity = light ? Math.min(0.5, palette.cloudOpacity + 0.22) : palette.cloudOpacity
   return (
     <>
       <ambientLight intensity={0.35} />
       <Clouds
         count={palette.clouds}
-        color={palette.cloud}
-        opacity={palette.cloudOpacity}
+        color={cloudColor}
+        opacity={cloudOpacity}
         speed={scene === 'storm' ? 2.4 : 1}
       />
       {palette.rain > 0 && scene !== 'snow' && (
@@ -208,14 +212,22 @@ function SceneContents({ scene }) {
   )
 }
 
-export default function WeatherScene({ scene = 'clear', intensity = 1, className = '' }) {
+export default function WeatherScene({ scene = 'clear', intensity = 1, light = false, className = '' }) {
   const reduced = useReducedMotion()
   const [webglFailed, setWebglFailed] = useState(false)
   const palette = paletteFor(scene)
 
-  const gradient = {
-    background: `radial-gradient(120% 90% at 50% -10%, ${palette.top} 0%, ${palette.bottom} 62%, var(--color-bg-deep) 100%)`,
-  }
+  // On a light theme the scene's own dark palette would fight the interface,
+  // so the ground comes from the theme variables and only the weather motion
+  // (clouds, rain) stays scene-specific.
+  const gradient = light
+    ? {
+        background:
+          'radial-gradient(120% 90% at 50% -10%, var(--wx-bg-deep) 0%, var(--wx-bg) 58%, var(--wx-bg) 100%)',
+      }
+    : {
+        background: `radial-gradient(120% 90% at 50% -10%, ${palette.top} 0%, ${palette.bottom} 62%, var(--wx-bg-deep) 100%)`,
+      }
 
   return (
     <div className={`pointer-events-none fixed inset-0 -z-10 ${className}`} aria-hidden="true">
@@ -228,12 +240,12 @@ export default function WeatherScene({ scene = 'clear', intensity = 1, className
             camera={{ position: [0, 0, 12], fov: 55 }}
             dpr={[1, 1.6]}
             gl={{ antialias: false, alpha: true, powerPreference: 'low-power' }}
-            style={{ opacity: 0.85 * intensity }}
+            style={{ opacity: (light ? 0.6 : 0.85) * intensity }}
             onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
             fallback={null}
             onError={() => setWebglFailed(true)}
           >
-            <SceneContents scene={scene} />
+            <SceneContents scene={scene} light={light} />
           </Canvas>
         </Suspense>
       )}
@@ -241,10 +253,7 @@ export default function WeatherScene({ scene = 'clear', intensity = 1, className
       {/* Vignette keeps text legible over the busiest part of the scene. */}
       <div
         className="absolute inset-0"
-        style={{
-          background:
-            'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(3 8 20 / 0.55) 78%, rgb(3 8 20 / 0.85) 100%)',
-        }}
+        style={{ background: 'var(--wx-vignette)' }}
       />
     </div>
   )

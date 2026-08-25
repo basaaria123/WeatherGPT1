@@ -83,9 +83,13 @@ def understand(
     *,
     detected_language: str,
     degraded: DegradationInfo,
+    selected_location: str | None = None,
 ) -> dict[str, Any]:
     """Structured interpretation, LLM first with a rules fallback."""
-    known = state.location_name
+    # The place on the user's screen is context even on the first turn, before
+    # any session memory exists. Without it, "what precautions should I take?"
+    # has no location to attach to and the guardrail reads it as off-topic.
+    known = state.location_name or selected_location
     if llm.available():
         # llm.* already swallows provider errors, but this is the boundary where
         # a turn is either answered or lost, so it does not take that on trust.
@@ -256,7 +260,13 @@ def handle_chat(
             english_query = text
 
     # --- 3. Understand -----------------------------------------------------
-    extraction = understand(english_query, state, detected_language=detected, degraded=degraded)
+    extraction = understand(
+        english_query,
+        state,
+        detected_language=detected,
+        degraded=degraded,
+        selected_location=selected_location,
+    )
     if user_type:
         extraction["user_type"] = user_type if user_type in USER_TYPES else extraction["user_type"]
     elif state.user_type and extraction["user_type"] == "general":

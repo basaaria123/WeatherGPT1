@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { LANGUAGES, profileLabel, t } from '../i18n/ui'
+import { LOGO_SRC } from './SplashScreen'
 import { useStore } from '../store/useStore'
 
 /** Compact app bar: identity, location, language, profile, connection state. */
@@ -17,7 +18,7 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
   const dataSource = useStore((s) => s.dataSource)
 
   return (
-    <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-[rgb(5_13_26/0.72)] backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-[rgb(var(--wx-tint)/0.07)] bg-[rgb(var(--wx-scrim)/0.72)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-7xl px-4 py-2.5 sm:px-6">
         <div className="flex items-center justify-between gap-3">
           {/* The whole brand block is the home control, not just the mark.
@@ -62,9 +63,9 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
             <button
               type="button"
               onClick={onOpenLocation}
-              className="flex max-w-[30vw] items-center gap-1.5 sm:max-w-none rounded-[var(--radius-pill)] border border-white/10
-                         bg-white/[0.05] px-2.5 py-1.5 text-xs text-ink transition hover:border-white/25
-                         hover:bg-white/[0.1] sm:max-w-none"
+              className="flex max-w-[30vw] items-center gap-1.5 sm:max-w-none rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)]
+                         bg-[rgb(var(--wx-tint)/0.05)] px-2.5 py-1.5 text-xs text-ink transition hover:border-[rgb(var(--wx-tint)/0.25)]
+                         hover:bg-[rgb(var(--wx-tint)/0.1)] sm:max-w-none"
               title={t(language, 'changeLocation')}
             >
               <span aria-hidden="true" className="text-primary">◎</span>
@@ -95,8 +96,8 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
               disabled={refreshing}
               aria-label={t(language, 'refresh')}
               title={t(language, 'refresh')}
-              className="grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.05]
-                         text-sm text-ink-soft transition hover:border-white/25 hover:bg-white/[0.1]
+              className="grid h-8 w-8 place-items-center rounded-full border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)]
+                         text-sm text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.25)] hover:bg-[rgb(var(--wx-tint)/0.1)]
                          disabled:opacity-45"
             >
               <motion.span
@@ -122,7 +123,7 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
               className={`shrink-0 rounded-[var(--radius-pill)] border px-2.5 py-1 text-[11px] transition ${
                 userType === profile
                   ? 'border-primary/60 bg-primary/15 text-primary'
-                  : 'border-white/10 bg-white/[0.04] text-muted'
+                  : 'border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] text-muted'
               }`}
             >
               {profileLabel(language, profile)}
@@ -134,7 +135,35 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
   )
 }
 
+/**
+ * Brand mark.
+ *
+ * Uses the official artwork when present, scaled and clipped to its emblem so
+ * the wordmark beside it is not duplicated. Falls back to the built-in mark if
+ * the file is missing, so the header never shows a broken image.
+ */
 function Logo() {
+  const [failed, setFailed] = useState(false)
+
+  if (!failed) {
+    return (
+      <span className="grid h-[30px] w-[30px] shrink-0 place-items-center overflow-hidden rounded-lg">
+        <img
+          src={LOGO_SRC}
+          alt=""
+          aria-hidden="true"
+          onError={() => setFailed(true)}
+          className="h-[62px] w-[62px] max-w-none object-contain object-top"
+          draggable="false"
+        />
+      </span>
+    )
+  }
+
+  return <FallbackMark />
+}
+
+function FallbackMark() {
   return (
     <svg width="30" height="30" viewBox="0 0 64 64" fill="none" aria-hidden="true" className="shrink-0">
       <path
@@ -195,8 +224,8 @@ function Dropdown({ label, shortLabel, items, value, onSelect, ariaLabel, classN
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-1 rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.05]
-                   px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-white/25 hover:bg-white/[0.1]"
+        className="flex items-center gap-1 rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)]
+                   px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-[rgb(var(--wx-tint)/0.25)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
       >
         {shortLabel ? (
           <>
@@ -230,7 +259,7 @@ function Dropdown({ label, shortLabel, items, value, onSelect, ariaLabel, classN
                     setOpen(false)
                   }}
                   className={`flex w-full items-center justify-between gap-2 rounded-lg px-2.5 py-1.5 text-left
-                              text-xs transition hover:bg-white/[0.09] ${
+                              text-xs transition hover:bg-[rgb(var(--wx-tint)/0.09)] ${
                                 item.value === value ? 'text-primary' : 'text-ink-soft'
                               }`}
                 >
