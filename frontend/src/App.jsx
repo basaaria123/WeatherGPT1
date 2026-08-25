@@ -157,6 +157,9 @@ export default function App() {
           risk: data.risk,
           audio_base64: data.audio_base64,
           audio_mime: data.audio_mime,
+          // The language the answer was written in, so speech uses the right
+          // voice rather than reading Telugu with an English one.
+          lang: data.language ?? language,
           degradedNote: data.degraded?.fallback_reason || data.degraded?.tts_error || null,
         },
       ])

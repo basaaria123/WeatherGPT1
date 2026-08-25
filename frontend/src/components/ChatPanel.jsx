@@ -5,6 +5,26 @@ import { useStore } from '../store/useStore'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
 import { Chip, SeverityPill } from './ui/Primitives'
 
+/** BCP-47 voices for the six supported languages. */
+const SPEECH_LOCALE = {
+  en: 'en-IN', hi: 'hi-IN', te: 'te-IN', bn: 'bn-IN', mr: 'mr-IN', as: 'as-IN',
+}
+
+const browserSpeechSupported = () =>
+  typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
+
+/**
+ * Can this answer be read aloud at all?
+ *
+ * Server audio when the backend produced it, otherwise the browser's own
+ * synthesiser. `audioAvailable === false` only rules out the server path, which
+ * is why it no longer hides the control outright.
+ */
+const canSpeak = (message, audioAvailable) => {
+  if (message.audio_base64 && audioAvailable !== false) return true
+  return browserSpeechSupported() && Boolean(message.text?.trim())
+}
+
 /**
  * Conversation panel.
  *
@@ -39,7 +59,14 @@ export default function ChatPanel({
     if (node) node.scrollTop = node.scrollHeight
   }, [messages, pending])
 
-  useEffect(() => () => audioRef.current?.pause(), [])
+  // Leaving the panel must not leave a voice talking.
+  useEffect(
+    () => () => {
+      audioRef.current?.pause()
+      if (browserSpeechSupported()) window.speechSynthesis.cancel()
+    },
+    [],
+  )
 
   const submit = (event) => {
     event?.preventDefault()
@@ -58,19 +85,50 @@ export default function ChatPanel({
     await recorder.start()
   }
 
+  const stopSpeaking = () => {
+    audioRef.current?.pause()
+    audioRef.current = null
+    if (browserSpeechSupported()) window.speechSynthesis.cancel()
+    setPlayingId(null)
+  }
+
+  /**
+   * Speak the answer that is on screen.
+   *
+   * Server-rendered audio is preferred when it exists. When it does not — gTTS
+   * needs to reach Google, which a locked-down or serverless host often cannot —
+   * the browser's own synthesiser reads the same displayed text rather than the
+   * feature quietly disappearing. Either way the spoken words are exactly the
+   * words shown, never a UI label.
+   */
   const playAudio = (message) => {
-    if (!message.audio_base64) return
     if (playingId === message.id) {
-      audioRef.current?.pause()
-      setPlayingId(null)
+      stopSpeaking()
       return
     }
-    audioRef.current?.pause()
-    const audio = new Audio(`data:${message.audio_mime ?? 'audio/mpeg'};base64,${message.audio_base64}`)
-    audioRef.current = audio
-    audio.onended = () => setPlayingId(null)
-    audio.onerror = () => setPlayingId(null)
-    audio.play().then(() => setPlayingId(message.id)).catch(() => setPlayingId(null))
+    stopSpeaking()
+
+    if (message.audio_base64) {
+      const audio = new Audio(`data:${message.audio_mime ?? 'audio/mpeg'};base64,${message.audio_base64}`)
+      audioRef.current = audio
+      audio.onended = () => setPlayingId(null)
+      audio.onerror = () => setPlayingId(null)
+      audio.play().then(() => setPlayingId(message.id)).catch(() => setPlayingId(null))
+      return
+    }
+
+    if (!browserSpeechSupported() || !message.text?.trim()) return
+    try {
+      const utterance = new window.SpeechSynthesisUtterance(message.text)
+      utterance.lang = SPEECH_LOCALE[message.lang ?? language] ?? SPEECH_LOCALE.en
+      utterance.rate = 0.98
+      utterance.onend = () => setPlayingId(null)
+      utterance.onerror = () => setPlayingId(null)
+      window.speechSynthesis.speak(utterance)
+      setPlayingId(message.id)
+    } catch {
+      setPlayingId(null)
+    }
   }
 
   return (
@@ -103,7 +161,14 @@ export default function ChatPanel({
 
         <AnimatePresence initial={false}>
           {messages.map((message) => (
-            <Message key={message.id} message={message} onPlay={playAudio} playing={playingId === message.id} audioAvailable={audioAvailable} language={language} />
+            <Message
+              key={message.id}
+              message={message}
+              onPlay={playAudio}
+              playing={playingId === message.id}
+              audioAvailable={audioAvailable}
+              language={language}
+            />
           ))}
         </AnimatePresence>
 
@@ -237,7 +302,7 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
             {message.risk && (
               <SeverityPill level={message.risk.risk_level} score={message.risk.risk_score} compact />
             )}
-            {message.audio_base64 && audioAvailable !== false && (
+            {canSpeak(message, audioAvailable) && (
               <button
                 type="button"
                 onClick={() => onPlay(message)}
