@@ -271,3 +271,84 @@ def test_speech_capability_reports_false_once_it_has_actually_failed(monkeypatch
     speech.note_transcription_result(False)
     assert speech.transcription_available() is False
     speech.note_transcription_result(True)
+
+
+# ---------------------------------------------------------------------------
+# The 24-hour window must start at the user's current hour
+# ---------------------------------------------------------------------------
+def _live_payload(tz_name: str = "Asia/Kolkata", span: int = 72):
+    """A payload shaped exactly like Open-Meteo's: naive timestamps already in
+    the location's timezone, and a `current.time` at minute precision."""
+    from datetime import datetime, timedelta
+    from zoneinfo import ZoneInfo
+
+    now_local = datetime.now(ZoneInfo(tz_name))
+    midnight = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
+    times = [(midnight + timedelta(hours=i)).strftime("%Y-%m-%dT%H:00") for i in range(span)]
+    return now_local, {
+        "current": {"time": now_local.strftime("%Y-%m-%dT%H:%M"), "temperature_2m": 27, "weather_code": 3},
+        "hourly": {
+            "time": times, "temperature_2m": [25] * span, "precipitation": [0] * span,
+            "precipitation_probability": [10] * span, "weather_code": [3] * span,
+            "wind_speed_10m": [10] * span, "wind_gusts_10m": [15] * span, "cape": [100] * span,
+            "relative_humidity_2m": [60] * span, "visibility": [10000] * span,
+        },
+        "daily": {"time": []},
+    }
+
+
+def test_live_timeline_starts_at_the_current_local_hour_not_utc():
+    """Provider timestamps are local-naive. Comparing them against UTC shifted
+    the window by the zone offset, showing hours that had already passed."""
+    from datetime import datetime
+
+    now_local, payload = _live_payload()
+    bundle = weather._normalise_openmeteo(weather.gazetteer_lookup("Guwahati"), payload)
+    first = datetime.fromisoformat(bundle.hourly[0]["time"])
+    drift_hours = (first - now_local.replace(tzinfo=None)).total_seconds() / 3600
+    assert -1.0 <= drift_hours <= 0.0, f"window starts {drift_hours:+.2f}h from now"
+
+
+def test_current_time_at_minute_precision_still_anchors():
+    """Open-Meteo reports `current.time` on the quarter hour, so an exact string
+    match against the on-the-hour series never succeeded."""
+    now_local, payload = _live_payload()
+    assert payload["current"]["time"] not in payload["hourly"]["time"]
+    bundle = weather._normalise_openmeteo(weather.gazetteer_lookup("Guwahati"), payload)
+    assert bundle.hourly[0]["time"][:13] == now_local.strftime("%Y-%m-%dT%H")
+
+
+def test_a_cached_bundle_re_anchors_as_time_passes(monkeypatch):
+    """Bundles are cached for minutes. A window frozen at fetch time drifts;
+    this one is computed on access."""
+    from datetime import timedelta
+
+    _, payload = _live_payload()
+    bundle = weather._normalise_openmeteo(weather.gazetteer_lookup("Guwahati"), payload)
+    first_now = bundle.hourly[0]["time"]
+
+    real = weather._local_now
+    monkeypatch.setattr(weather, "_local_now", lambda loc: real(loc) + timedelta(hours=4))
+    assert bundle.hourly[0]["time"] != first_now
+    assert len(bundle.hourly[:24]) == 24
+
+
+def test_window_degrades_instead_of_emptying_when_the_series_has_passed(monkeypatch):
+    from datetime import timedelta
+
+    _, payload = _live_payload()
+    bundle = weather._normalise_openmeteo(weather.gazetteer_lookup("Guwahati"), payload)
+    real = weather._local_now
+    monkeypatch.setattr(weather, "_local_now", lambda loc: real(loc) + timedelta(days=30))
+    assert len(bundle.hourly) >= 1
+
+
+def test_risk_is_scored_over_the_forward_window_so_the_map_agrees():
+    """The map, the alerts and the timeline all read the same engine over the
+    same window; a mis-anchored window corrupted every one of them."""
+    _, payload = _live_payload()
+    bundle = weather._normalise_openmeteo(weather.gazetteer_lookup("Guwahati"), payload)
+    scored = risk_engine.inputs_from_bundle(bundle, hours=24)
+    window = bundle.hourly[:24]
+    expected = round(sum(h["precipitation_mm"] or 0.0 for h in window), 1)
+    assert scored.precipitation_24h_mm == expected

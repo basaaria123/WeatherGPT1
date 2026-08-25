@@ -62,13 +62,26 @@ class Location:
 
 @dataclass
 class WeatherBundle:
+    """A location's weather.
+
+    ``hourly_all`` holds the provider's full series; ``hourly`` is the forward
+    window from the current local hour and is computed on *access*, not on
+    fetch. That matters because bundles are cached: a window frozen at fetch
+    time drifts as the cache ages, and every consumer here means "the next N
+    hours from now" rather than "N hours from whenever this was fetched".
+    """
+
     location: Location
     current: dict[str, Any]
-    hourly: list[dict[str, Any]]
+    hourly_all: list[dict[str, Any]]
     daily: list[dict[str, Any]]
     source: str
     fetched_at: str
     raw: dict[str, Any] = field(default_factory=dict)
+
+    @property
+    def hourly(self) -> list[dict[str, Any]]:
+        return upcoming_hours(self.hourly_all, self.location)
 
 
 # ---------------------------------------------------------------------------
@@ -333,23 +346,10 @@ def _normalise_openmeteo(location: Location, payload: dict[str, Any]) -> Weather
     daily_block = payload.get("daily") or {}
 
     times = _series(hourly_block, "time")
-    # Align the hourly window to "now" rather than to midnight.
-    now_iso = cur.get("time")
-    start = 0
-    if now_iso and now_iso in times:
-        start = times.index(now_iso)
-    elif times:
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-        for idx, t in enumerate(times):
-            try:
-                if datetime.fromisoformat(t) >= now - timedelta(hours=1):
-                    start = idx
-                    break
-            except ValueError:
-                continue
-
+    # The whole series is kept; the forward window is chosen on access so the
+    # cache cannot serve a stale anchor.
     hourly: list[dict[str, Any]] = []
-    for i in range(start, min(start + 48, len(times))):
+    for i in range(len(times)):
         code = _at(_series(hourly_block, "weather_code"), i)
         visibility_m = _at(_series(hourly_block, "visibility"), i)
         hourly.append(
@@ -388,6 +388,9 @@ def _normalise_openmeteo(location: Location, payload: dict[str, Any]) -> Weather
             }
         )
 
+    # Nowcast fields come from the hour we are actually in, not from index 0 of
+    # the raw series (which is midnight).
+    ahead = upcoming_hours(hourly, location)
     code = cur.get("weather_code")
     current = {
         "temperature_c": cur.get("temperature_2m"),
@@ -404,14 +407,14 @@ def _normalise_openmeteo(location: Location, payload: dict[str, Any]) -> Weather
         "is_day": bool(cur.get("is_day")) if cur.get("is_day") is not None else None,
         "observed_at": cur.get("time"),
         # Nowcast probability/visibility come from the aligned first hourly step.
-        "precipitation_probability_pct": hourly[0]["precipitation_probability_pct"] if hourly else None,
-        "visibility_km": hourly[0]["visibility_km"] if hourly else None,
+        "precipitation_probability_pct": ahead[0]["precipitation_probability_pct"] if ahead else None,
+        "visibility_km": ahead[0]["visibility_km"] if ahead else None,
     }
 
     return WeatherBundle(
         location=location,
         current=current,
-        hourly=hourly,
+        hourly_all=hourly,
         daily=daily,
         source="live",
         fetched_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -470,6 +473,27 @@ def _scenario_for(location: Location) -> str:
         return pinned
     digest = hashlib.sha256(f"{location.name}|{round(location.latitude,2)}".encode()).digest()
     return _SCENARIO_ORDER[digest[0] % len(_SCENARIO_ORDER)]
+
+
+def upcoming_hours(series: list[dict[str, Any]], location: Location) -> list[dict[str, Any]]:
+    """The slice of an hourly series starting at the current local hour.
+
+    Provider timestamps are naive and already expressed in the location's
+    timezone, so "now" has to be evaluated there too — comparing them against
+    UTC silently shifts the window by the zone offset (5h30m for India), which
+    shows the user hours that have already passed.
+    """
+    if not series:
+        return []
+    key = _local_now(location).strftime("%Y-%m-%dT%H")
+    for index, entry in enumerate(series):
+        stamp = str(entry.get("time") or "")
+        # Fixed-width ISO strings compare correctly as text.
+        if stamp[:13] >= key:
+            return series[index:]
+    # The whole series is behind us (a stale payload); keep the last hour rather
+    # than returning nothing, so panels degrade instead of emptying.
+    return series[-1:]
 
 
 def _local_now(location: Location) -> datetime:
@@ -565,7 +589,7 @@ def _fixture_bundle(location: Location) -> WeatherBundle:
     return WeatherBundle(
         location=location,
         current=current,
-        hourly=hourly,
+        hourly_all=hourly,
         daily=daily,
         source="fixture",
         fetched_at=datetime.now(timezone.utc).isoformat(timespec="seconds"),
