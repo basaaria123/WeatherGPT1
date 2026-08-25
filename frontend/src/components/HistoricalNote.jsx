@@ -27,17 +27,17 @@ export default function HistoricalNote({ comparison }) {
           >
             ⏱
           </span>
-          <h2 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-accent">
+          <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-accent">
             Historical context — not a forecast
           </h2>
-          <span className="ml-auto text-[10px] text-muted">
+          <span className="ml-auto text-[11px] text-muted">
             {comparison.similarity_score}% similarity
           </span>
         </div>
 
         <p className="text-[13px] leading-relaxed text-ink-soft">{comparison.sentence}</p>
 
-        <p className="mt-2.5 border-t border-white/[0.09] pt-2 text-[10px] leading-relaxed text-faint">
+        <p className="mt-2.5 border-t border-white/[0.09] pt-2 text-[11px] leading-relaxed text-faint">
           {comparison.event_name} · {comparison.region} · {comparison.source_note}
         </p>
       </motion.div>

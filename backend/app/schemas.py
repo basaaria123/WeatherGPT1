@@ -137,6 +137,10 @@ class HistoricalComparison(BaseModel):
 class ChatRequest(BaseModel):
     query: str = Field(..., min_length=1)
     session_id: str | None = None
+    # The place the client is currently showing. Used only when the question
+    # does not name one, so the answer cannot describe a different city from
+    # the dashboard around it.
+    location: str | None = None
     user_type: UserType | None = None
     language: str | None = Field(default=None, description="ISO code; omit to auto-detect")
     response_mode: ResponseMode | None = None
@@ -246,6 +250,16 @@ class ForecastResponse(BaseModel):
     days: list[DayPoint]
 
 
+class InsightOut(BaseModel):
+    """The "what should I know?" answer, derived from measured values only."""
+
+    headline: str
+    supporting: str = ""
+    factors: list[str] = Field(default_factory=list)
+    user_type: str = "general"
+    actionable: bool = False
+
+
 class CurrentWeatherResponse(BaseModel):
     location: LocationOut
     generated_at: str
@@ -253,6 +267,11 @@ class CurrentWeatherResponse(BaseModel):
     current: CurrentWeatherOut
     risk: RiskOutput
     impacts: list[ImpactCard] = Field(default_factory=list)
+    insight: InsightOut | None = None
+    # Official alerts are a separate concept from a detected hazard: this counts
+    # warnings actually issued and stored for this location, which may be zero
+    # while risk is high.
+    official_alert_count: int = 0
 
 
 class RiskMapEntry(BaseModel):

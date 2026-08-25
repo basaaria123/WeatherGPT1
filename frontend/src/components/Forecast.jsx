@@ -47,7 +47,7 @@ export default function Forecast({ data, loading, error }) {
                 isToday ? 'border-primary/45 bg-primary/[0.08]' : 'border-white/[0.07] bg-white/[0.03]'
               }`}
             >
-              <span className={`text-[10px] font-semibold ${isToday ? 'text-primary' : 'text-muted'}`}>
+              <span className={`text-[11px] font-semibold ${isToday ? 'text-primary' : 'text-muted'}`}>
                 {isToday ? 'Today' : dayLabel(day.date)}
               </span>
               <WeatherGlyph code={day.weather_code} size={26} />
@@ -55,12 +55,12 @@ export default function Forecast({ data, loading, error }) {
                 {day.temp_max_c !== null && day.temp_max_c !== undefined ? `${Math.round(day.temp_max_c)}°` : '—'}
               </span>
               {day.temp_min_c !== null && day.temp_min_c !== undefined && (
-                <span className="text-[10px] text-faint">{Math.round(day.temp_min_c)}°</span>
+                <span className="text-[11px] text-faint">{Math.round(day.temp_min_c)}°</span>
               )}
               {day.precipitation_sum_mm > 0 && (
-                <span className="text-[10px] text-accent">{day.precipitation_sum_mm.toFixed(0)}mm</span>
+                <span className="text-[11px] text-accent">{day.precipitation_sum_mm.toFixed(0)}mm</span>
               )}
-              <span className="text-[9px]" style={{ color: tone.color }} aria-label={`${day.risk_level} risk`}>
+              <span className="text-[10px]" style={{ color: tone.color }} aria-label={`${day.risk_level} risk`}>
                 <span aria-hidden="true">{tone.icon}</span>
               </span>
             </motion.div>

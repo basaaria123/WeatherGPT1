@@ -113,8 +113,15 @@ def resolve_location(
     latitude: float | None = None,
     longitude: float | None = None,
     original_query: str = "",
+    selected: str | None = None,
 ) -> Location | None:
-    """Work out which place the question is about."""
+    """Work out which place the question is about.
+
+    Order matters. A place named in the question always wins. Failing that the
+    client's currently-selected location wins, ahead of session memory: the user
+    can see that location on screen, so answering about a different one — even
+    one they asked about earlier — reads as a bug, not as continuity.
+    """
     name = extraction.get("location") or ""
     if name:
         found = weather.geocode(name)
@@ -122,6 +129,11 @@ def resolve_location(
             return found
         # The model named a place we cannot resolve; try the raw text before giving up.
         found = nlp_fallback.detect_location(original_query)
+        if found is not None:
+            return found
+
+    if selected:
+        found = weather.geocode(selected)
         if found is not None:
             return found
 
@@ -204,6 +216,7 @@ def handle_chat(
     voice_response: bool = False,
     latitude: float | None = None,
     longitude: float | None = None,
+    selected_location: str | None = None,
     transcript: str | None = None,
 ) -> ChatResponse:
     settings = get_settings()
@@ -277,7 +290,12 @@ def handle_chat(
 
     # --- 5. Location -------------------------------------------------------
     location = resolve_location(
-        extraction, state, latitude=latitude, longitude=longitude, original_query=text
+        extraction,
+        state,
+        latitude=latitude,
+        longitude=longitude,
+        original_query=text,
+        selected=selected_location,
     )
     if location is None:
         answer = i18n.sentence("no_location", out_lang)

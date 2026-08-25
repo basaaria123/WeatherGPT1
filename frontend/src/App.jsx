@@ -5,7 +5,7 @@ import { useAlertsSocket } from './hooks/useAlertsSocket'
 import { t } from './i18n/ui'
 import { useStore } from './store/useStore'
 import WeatherScene from './scene/WeatherScene'
-import { sceneForCode } from './components/ui/WeatherGlyph'
+import { applyTheme, resolveTheme, sceneForCondition } from './theme/weatherTheme'
 
 import AlertsPanel from './components/AlertsPanel'
 import ChatPanel from './components/ChatPanel'
@@ -86,10 +86,14 @@ export default function App() {
   }, [setCapabilities, setDataSource])
 
   // --- Weather for the selected location ----------------------------------
+  // `location` in the store is the single source of truth. Every panel below
+  // renders from data fetched for it, and `requestSeq` drops any response that
+  // arrives after the selection has moved on — so a slow request for the
+  // previous city can never repaint the new one's dashboard.
   const loadAll = useCallback(async () => {
     if (!location?.name) return
     const seq = ++requestSeq.current
-    const params = { location: location.name, language }
+    const params = { location: location.name, language, user_type: userType }
     setLoading({ current: true, timeline: true, forecast: true, map: true })
     setErrors({})
 
@@ -119,7 +123,7 @@ export default function App() {
       settle('forecast', api.forecast({ location: location.name, days: 7 }), setForecastData),
       settle('map', api.riskMap({ limit: 16 }), setMapData),
     ])
-  }, [location?.name, language, setConditions, setDataSource])
+  }, [location?.name, language, userType, setConditions, setDataSource])
 
   useEffect(() => {
     loadAll()
@@ -135,7 +139,12 @@ export default function App() {
   const applyAnswer = useCallback(
     (data, { transcript } = {}) => {
       if (data.session_id) setSessionId(data.session_id)
-      const record = { ...data, id: nextId() }
+      // Stamp the answer with the place it actually describes. Panels below
+      // compare this against the selected location and drop the answer when it
+      // no longer matches, which is what stops a Guwahati reading surviving a
+      // switch to Mumbai.
+      const describes = data.location?.name ?? location?.name ?? ''
+      const record = { ...data, id: nextId(), describesLocation: describes }
       setAnswer(record)
       setMessages((prev) => [
         ...prev,
@@ -179,6 +188,9 @@ export default function App() {
         const data = await api.chat({
           query: text,
           session_id: sessionId,
+          // The dashboard's selection travels with the question, so an answer
+          // can never describe a different place from the one on screen.
+          location: location?.name,
           user_type: userType,
           language,
           voice_response: Boolean(capabilities?.voice_output_available),
@@ -190,7 +202,7 @@ export default function App() {
         setChatPending(false)
       }
     },
-    [chatPending, sessionId, userType, language, capabilities, applyAnswer],
+    [chatPending, sessionId, userType, language, capabilities, applyAnswer, location?.name],
   )
 
   const sendVoice = useCallback(
@@ -206,6 +218,7 @@ export default function App() {
         form.append('audio', blob, 'question.webm')
         if (sessionId) form.append('session_id', sessionId)
         if (userType) form.append('user_type', userType)
+        if (location?.name) form.append('location', location.name)
         if (language) form.append('lang', language)
         if (clientTranscript) form.append('client_transcript', clientTranscript)
         form.append('voice_response', String(Boolean(capabilities?.voice_output_available)))
@@ -219,17 +232,39 @@ export default function App() {
         setVoicePending(false)
       }
     },
-    [sessionId, userType, language, capabilities, applyAnswer],
+    [sessionId, userType, language, capabilities, applyAnswer, location?.name],
   )
 
-  // --- Background scene ---------------------------------------------------
-  const current = useStore((s) => s.current)
-  const risk = useStore((s) => s.risk)
-  const scene = useMemo(() => {
-    if (risk?.detected_hazard === 'Extreme Heat') return 'heat'
-    if (risk?.risk_level === 'Severe' || risk?.detected_hazard === 'Lightning/Storm') return 'storm'
-    return sceneForCode(current?.weather_code)
-  }, [current?.weather_code, risk])
+  // --- One resolved weather state drives scene, theme and every label ------
+  // Read from `currentData` rather than the store mirror so the atmosphere can
+  // never lag a location change by a render.
+  const shown = currentData?.current
+  const shownRisk = currentData?.risk
+
+  const scene = useMemo(
+    () =>
+      sceneForCondition({
+        weatherCode: shown?.weather_code,
+        riskLevel: shownRisk?.risk_level,
+        hazard: shownRisk?.detected_hazard,
+      }),
+    [shown?.weather_code, shownRisk?.risk_level, shownRisk?.detected_hazard],
+  )
+
+  useEffect(() => {
+    applyTheme(
+      resolveTheme({
+        weatherCode: shown?.weather_code,
+        isDay: shown?.is_day,
+        riskLevel: shownRisk?.risk_level,
+        hazard: shownRisk?.detected_hazard,
+      }),
+    )
+  }, [shown?.weather_code, shown?.is_day, shownRisk?.risk_level, shownRisk?.detected_hazard])
+
+  // An answer only counts for the place currently selected.
+  const answerHere =
+    answer && answer.describesLocation === (location?.name ?? '') ? answer : null
 
   const viewArea = useCallback(
     (alert) => {
@@ -238,15 +273,6 @@ export default function App() {
     },
     [setMapFocus],
   )
-
-  const landingCondition = currentData
-    ? {
-        label: currentData.location?.name,
-        temperature_c: currentData.current?.temperature_c,
-        conditionText: currentData.current?.condition,
-        weather_code: currentData.current?.weather_code,
-      }
-    : null
 
   return (
     <>
@@ -263,11 +289,11 @@ export default function App() {
             exit={{ opacity: 0, y: -16 }}
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
           >
+            {/* The landing page introduces the product; it deliberately shows no
+                live condition, temperature or location. */}
             <Landing
               onEnter={() => setStage('app')}
               onDemo={() => { setStage('app'); setTimeout(() => setDemoOpen(true), 500) }}
-              scene={scene}
-              condition={landingCondition}
             />
           </motion.div>
         )}
@@ -280,7 +306,10 @@ export default function App() {
             transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
             className="min-h-dvh"
           >
+            {/* Straight back to the landing page — never via the splash, which
+                belongs to first load only. */}
             <Header
+              onHome={() => setStage('landing')}
               onOpenLocation={() => setLocationOpen(true)}
               onRefresh={refresh}
               refreshing={refreshing}
@@ -298,6 +327,8 @@ export default function App() {
                   the dashboard, and a live alert stays visible while you type. */}
               <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
                 <ChatPanel
+                  insight={currentData?.insight}
+                  insightLoading={loading.current}
                   messages={messages}
                   onSend={send}
                   onVoice={sendVoice}
@@ -309,17 +340,33 @@ export default function App() {
                 <AlertsPanel onViewArea={viewArea} />
               </div>
 
-              <PipelinePanel answer={answer} />
+              <PipelinePanel answer={answerHere} />
 
-              <HistoricalNote comparison={answer?.historical_comparison} />
+              <HistoricalNote comparison={answerHere?.historical_comparison} />
 
               <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
 
               <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
 
-              <ImpactGrid impacts={answer?.impacts?.length ? answer.impacts : currentData?.impacts} />
+              <ImpactGrid
+                impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
+                loading={loading.current}
+              />
 
-              <RiskMap data={mapData} loading={loading.map} error={errors.map} onRetry={refresh} />
+              <RiskMap
+                data={mapData}
+                loading={loading.map}
+                error={errors.map}
+                onRetry={refresh}
+                onSelect={(entry) =>
+                  useStore.getState().setLocation({
+                    name: entry.location,
+                    admin1: entry.admin1,
+                    latitude: entry.latitude,
+                    longitude: entry.longitude,
+                  })
+                }
+              />
 
               <footer className="flex flex-wrap items-center justify-between gap-3 pt-2">
                 <button
@@ -330,9 +377,7 @@ export default function App() {
                 >
                   ◧ {t(language, 'demoMode')}
                 </button>
-                <p className="text-[10px] text-faint">
-                  SIH26068 · Ministry of Earth Sciences / IMD · Data: Open-Meteo
-                </p>
+                <DataProvenance generatedAt={currentData?.generated_at} />
               </footer>
             </main>
           </motion.div>
@@ -340,7 +385,36 @@ export default function App() {
       </AnimatePresence>
 
       <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />
-      <DemoMode answer={answer} />
+      <DemoMode answer={answerHere} />
     </>
+  )
+}
+
+/**
+ * Data provenance.
+ *
+ * Names the provider actually in use and when this reading was taken. In
+ * fixture mode it says so plainly rather than dressing simulated numbers up as
+ * a live feed.
+ */
+function DataProvenance({ generatedAt }) {
+  const language = useStore((s) => s.language)
+  const dataSource = useStore((s) => s.dataSource)
+  const simulated = dataSource === 'fixture'
+
+  const stamp = (() => {
+    if (!generatedAt) return null
+    const at = new Date(generatedAt)
+    if (Number.isNaN(at.getTime())) return null
+    return at.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  })()
+
+  return (
+    <p className="text-[11px] leading-relaxed text-faint">
+      <span className={simulated ? 'text-caution' : ''}>
+        {simulated ? t(language, 'sourceSimulated') : t(language, 'sourceLive')}
+      </span>
+      {stamp && <> · {t(language, 'updated')} {stamp}</>}
+    </p>
   )
 }

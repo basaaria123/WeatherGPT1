@@ -51,6 +51,7 @@ def chat(payload: ChatRequest) -> ChatResponse:
         response_mode=payload.response_mode,
         latitude=payload.latitude,
         longitude=payload.longitude,
+        selected_location=payload.location,
     )
     return _attach_audio(response, wanted=payload.voice_response)
 
@@ -65,6 +66,7 @@ async def voice_chat(
     voice_response: bool = Form(default=True),
     latitude: float | None = Form(default=None),
     longitude: float | None = Form(default=None),
+    location: str | None = Form(default=None),
     client_transcript: str | None = Form(
         default=None,
         description=(
@@ -131,6 +133,7 @@ async def voice_chat(
         response_mode=response_mode,
         latitude=latitude,
         longitude=longitude,
+        selected_location=location,
     )
     response = _attach_audio(response, wanted=voice_response and settings.tts_enabled)
 

@@ -12,10 +12,12 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 
 from ..config import get_settings
+from ..db import fetch_alerts
 from ..schemas import (
     ClimateTrendResponse,
     CurrentWeatherResponse,
     CurrentWeatherOut,
+    InsightOut,
     DayPoint,
     ForecastResponse,
     HourPoint,
@@ -75,16 +77,42 @@ def geocode(q: str = Query(..., min_length=1, description="Place name to resolve
     return {"location": _location_out(found).model_dump()}
 
 
+@router.get("/geocode/reverse")
+def reverse_geocode(
+    lat: float = Query(..., ge=-90, le=90),
+    lon: float = Query(..., ge=-180, le=180),
+) -> dict:
+    """Nearest covered city to a device coordinate.
+
+    Returned as ``nearest``, not as the caller's position: the app covers a
+    fixed set of places and this is the closest of them, which the UI says
+    plainly rather than implying pinpoint accuracy.
+    """
+    found = weather.nearest_location(lat, lon)
+    if found is None:
+        raise HTTPException(status_code=404, detail="No covered location is near that position.")
+    return {"location": _location_out(found).model_dump(), "nearest": True}
+
+
 @router.get("/weather/current", response_model=CurrentWeatherResponse)
 def current_weather(
     location: str | None = None,
     latitude: float | None = None,
     longitude: float | None = None,
     language: str = "en",
+    user_type: str | None = Query(None, description="Tailors ordering and emphasis, never the facts"),
 ) -> CurrentWeatherResponse:
     resolved = _resolve(location, latitude, longitude)
     bundle = _bundle(resolved)
     risk = risk_engine.assess(bundle)
+
+    # Warnings actually issued for this place — deliberately not derived from
+    # the risk score, so the UI can say "hazard detected, no warning issued".
+    try:
+        official = len(fetch_alerts(location=bundle.location.name, limit=20))
+    except Exception:  # noqa: BLE001 - an alert-store hiccup must not blank the dashboard
+        official = 0
+
     return CurrentWeatherResponse(
         location=_location_out(bundle.location),
         generated_at=_now(),
@@ -93,7 +121,9 @@ def current_weather(
             k: v for k, v in (bundle.current or {}).items() if k in CurrentWeatherOut.model_fields
         }),
         risk=risk,
-        impacts=advisory.impact_cards(bundle, risk, language),
+        impacts=advisory.impact_cards(bundle, risk, language, user_type),
+        insight=InsightOut(**advisory.headline_insight(bundle, risk, user_type, language)),
+        official_alert_count=official,
     )
 
 

@@ -16,27 +16,34 @@ export default function AlertsPanel({ onViewArea }) {
   const lastAlertId = useStore((s) => s.lastAlertId)
   const location = useStore((s) => s.location)
 
-  // Alerts for the current location first; the rest still matter for the map.
-  const sorted = [...alerts].sort((a, b) => {
-    const here = (name) => (location?.name && name?.includes(location.name) ? 0 : 1)
-    return here(a.location) - here(b.location)
+  // Warnings issued for the selected place are the panel's subject; the rest of
+  // the country is context, kept visually separate so the two are never read as
+  // one list. This is also what keeps the panel consistent with the location
+  // the rest of the dashboard is showing.
+  const here = []
+  const elsewhere = []
+  const selected = location?.name?.trim().toLowerCase() ?? ''
+  alerts.forEach((alert) => {
+    const name = alert.location?.trim().toLowerCase() ?? ''
+    const matches = selected && name && (name.includes(selected) || selected.includes(name))
+    ;(matches ? here : elsewhere).push(alert)
   })
 
   return (
     <Panel
-      title={t(language, 'activeAlerts')}
+      title={t(language, 'officialAlerts')}
       action={
-        alerts.length > 0 ? (
-          <span className="text-[10px] font-semibold text-muted">{alerts.length}</span>
+        here.length > 0 ? (
+          <span className="text-[11px] font-semibold text-muted">{here.length}</span>
         ) : null
       }
     >
-      {sorted.length === 0 ? (
-        <EmptyState icon="✓" message={t(language, 'noAlerts')} />
+      {here.length === 0 ? (
+        <EmptyState icon="✓" message={t(language, 'noOfficialAlerts')} />
       ) : (
         <ul className="scroll-y -mx-1 max-h-[22rem] space-y-2 px-1">
           <AnimatePresence initial={false}>
-            {sorted.map((alert) => (
+            {here.map((alert) => (
               <AlertCard
                 key={alert.id}
                 alert={alert}
@@ -47,6 +54,25 @@ export default function AlertsPanel({ onViewArea }) {
             ))}
           </AnimatePresence>
         </ul>
+      )}
+
+      {elsewhere.length > 0 && (
+        <details className="mt-2.5 border-t border-white/[0.07] pt-2.5">
+          <summary className="cursor-pointer list-none text-[11px] text-muted transition hover:text-ink">
+            {t(language, 'elsewhere')} · {elsewhere.length} ▾
+          </summary>
+          <ul className="scroll-y -mx-1 mt-2 max-h-[16rem] space-y-2 px-1">
+            {elsewhere.map((alert) => (
+              <AlertCard
+                key={alert.id}
+                alert={alert}
+                language={language}
+                isNew={alert.id === lastAlertId}
+                onViewArea={onViewArea}
+              />
+            ))}
+          </ul>
+        </details>
       )}
     </Panel>
   )
@@ -97,7 +123,7 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
               compact
             />
           </div>
-          <p className="mt-0.5 truncate text-[11px] text-muted">{alert.location}</p>
+          <p className="mt-0.5 truncate text-[12px] text-muted">{alert.location}</p>
         </div>
       </div>
 
@@ -115,14 +141,14 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
       )}
 
       {alert.historical_comparison && (
-        <p className="relative mt-2 rounded-lg border border-white/[0.09] bg-black/20 px-2 py-1.5 text-[10px] leading-relaxed text-muted">
+        <p className="relative mt-2 rounded-lg border border-white/[0.09] bg-black/20 px-2 py-1.5 text-[11px] leading-relaxed text-muted">
           <span className="font-semibold text-ink-soft">Historical context · </span>
           {alert.historical_comparison.sentence}
         </p>
       )}
 
       <div className="relative mt-2 flex items-center justify-between gap-2">
-        <time className="text-[10px] text-faint" dateTime={alert.timestamp}>
+        <time className="text-[11px] text-faint" dateTime={alert.timestamp}>
           {formatTime(alert.timestamp)}
         </time>
         {alert.latitude !== null && alert.latitude !== undefined && (
@@ -130,7 +156,7 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
             type="button"
             onClick={() => onViewArea?.(alert)}
             className="rounded-[var(--radius-pill)] border border-white/12 bg-white/[0.05] px-2 py-0.5
-                       text-[10px] text-ink-soft transition hover:border-white/28"
+                       text-[11px] text-ink-soft transition hover:border-white/28"
           >
             {t(language, 'viewArea')} →
           </button>

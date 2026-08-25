@@ -21,18 +21,23 @@ const ICONS = {
   কৃষি: '🌾', 'মাছ ধৰা': '🎣', যাত্ৰা: '🚗', 'ঘৰুৱা কাম': '🏠', 'বাহিৰৰ কাম': '🚶',
 }
 
-export default function ImpactGrid({ impacts }) {
+export default function ImpactGrid({ impacts, loading }) {
   const language = useStore((s) => s.language)
+  const userType = useStore((s) => s.userType)
 
   return (
     <Panel title={t(language, 'weatherImpact')}>
       {!impacts?.length ? (
-        <EmptyState icon="◵" message="Impact guidance appears once conditions have loaded." />
+        <EmptyState
+          icon="◵"
+          message={loading ? t(language, 'insightLoading') : t(language, 'loading')}
+        />
       ) : (
         <>
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
             {impacts.map((impact, index) => {
               const tone = statusOf(impact.status)
+              const leads = index === 0 && userType && userType !== 'general'
               return (
                 <motion.article
                   key={impact.category}
@@ -45,15 +50,21 @@ export default function ImpactGrid({ impacts }) {
                 >
                   <div className="mb-1.5 flex items-center gap-1.5">
                     <span aria-hidden="true" className="text-sm">{ICONS[impact.category] ?? '◆'}</span>
-                    <h3 className="min-w-0 truncate text-[11px] font-semibold text-ink">{impact.category}</h3>
+                    <h3 className="min-w-0 truncate text-[12px] font-semibold text-ink">{impact.category}</h3>
+                    {leads && (
+                      <span className="ml-auto shrink-0 rounded-[var(--radius-pill)] border border-primary/40
+                                       bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary">
+                        {t(language, 'forYou')}
+                      </span>
+                    )}
                   </div>
                   <StatusPill status={impact.status} label={impact.headline} />
-                  <p className="mt-1.5 line-clamp-3 text-[10px] leading-relaxed text-muted">{impact.detail}</p>
+                  <p className="mt-1.5 line-clamp-3 text-[11px] leading-relaxed text-muted">{impact.detail}</p>
                 </motion.article>
               )
             })}
           </div>
-          <p className="mt-3 text-[10px] leading-relaxed text-faint">{t(language, 'disclaimer')}</p>
+          <p className="mt-3 text-[11px] leading-relaxed text-faint">{t(language, 'disclaimer')}</p>
         </>
       )}
     </Panel>

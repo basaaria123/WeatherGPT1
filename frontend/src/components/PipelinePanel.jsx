@@ -67,7 +67,7 @@ export default function PipelinePanel({ answer }) {
               <dt className="truncate text-[11px] text-faint">{row.label}</dt>
               <dd className="shrink-0 font-mono text-[12px] font-semibold text-ink">
                 {typeof row.value === 'number' ? row.value.toFixed(row.unit === 'mm' || row.unit === '°C' ? 1 : 0) : row.value}
-                <span className="ml-0.5 text-[10px] font-normal text-muted">{row.unit}</span>
+                <span className="ml-0.5 text-[11px] font-normal text-muted">{row.unit}</span>
               </dd>
             </div>
           ))}
@@ -142,7 +142,7 @@ export default function PipelinePanel({ answer }) {
                   >
                     {stage.icon}
                   </span>
-                  <h3 className="text-[10px] font-semibold uppercase tracking-[0.12em] text-muted">
+                  <h3 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
                     {stage.label}
                   </h3>
                 </header>

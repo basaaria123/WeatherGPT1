@@ -50,7 +50,7 @@ export default function Timeline({ data, loading, error }) {
       title={t(language, 'next24')}
       action={
         isActionable(peak.risk_level) ? (
-          <span className="text-[10px] text-muted">
+          <span className="text-[11px] text-muted">
             Peak {peak.risk_level.toLowerCase()} risk at {formatHour(peak.time)}
           </span>
         ) : null
@@ -81,7 +81,7 @@ function HourCard({ hour, index }) {
         background: risky ? tone.tint : 'rgb(255 255 255 / 0.03)',
       }}
     >
-      <span className="text-[10px] font-medium text-muted">{formatHour(hour.time)}</span>
+      <span className="text-[11px] font-medium text-muted">{formatHour(hour.time)}</span>
       <WeatherGlyph code={hour.weather_code} size={26} />
       <span className="text-sm font-semibold text-ink">
         {hour.temperature_c !== null && hour.temperature_c !== undefined
@@ -89,10 +89,10 @@ function HourCard({ hour, index }) {
           : '—'}
       </span>
       {hour.precipitation_probability_pct !== null && hour.precipitation_probability_pct !== undefined && (
-        <span className="text-[10px] text-accent">{Math.round(hour.precipitation_probability_pct)}%</span>
+        <span className="text-[11px] text-accent">{Math.round(hour.precipitation_probability_pct)}%</span>
       )}
       {/* Icon + colour together, so risk is not conveyed by colour alone. */}
-      <span className="text-[9px] font-semibold" style={{ color: tone.color }}>
+      <span className="text-[10px] font-semibold" style={{ color: tone.color }}>
         <span aria-hidden="true">{tone.icon}</span> {hour.risk_score}
       </span>
     </motion.div>

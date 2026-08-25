@@ -11,10 +11,12 @@ const SUGGESTIONS = ['Vijayawada', 'Guwahati', 'Mumbai', 'Chennai', 'Kolkata', '
 export default function LocationDialog({ open, onClose }) {
   const language = useStore((s) => s.language)
   const setLocation = useStore((s) => s.setLocation)
+  const selectedName = useStore((s) => s.location?.name)
   const [query, setQuery] = useState('')
-  const [status, setStatus] = useState('idle') // idle | loading | error
+  const [status, setStatus] = useState('idle') // idle | loading | locating | error
   const [error, setError] = useState(null)
   const inputRef = useRef(null)
+  const canLocate = typeof navigator !== 'undefined' && 'geolocation' in navigator
 
   useEffect(() => {
     if (open) {
@@ -49,6 +51,38 @@ export default function LocationDialog({ open, onClose }) {
       setStatus('error')
       setError(err.message)
     }
+  }
+
+  /**
+   * Resolve the device position to the nearest city the app actually covers.
+   *
+   * Presented as "nearest covered city" rather than "your location", because
+   * that is what it is — the backend has a fixed gazetteer, not a reverse
+   * geocoder. Permission denial is a normal outcome, not an error state.
+   */
+  const useMyLocation = () => {
+    if (!canLocate) return
+    setStatus('locating')
+    setError(null)
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords
+          const result = await api.reverseGeocode(latitude, longitude)
+          setLocation(result.location)
+          setStatus('idle')
+          onClose()
+        } catch (err) {
+          setStatus('error')
+          setError(err.message)
+        }
+      },
+      () => {
+        setStatus('error')
+        setError(t(language, 'locationDenied'))
+      },
+      { timeout: 10000, maximumAge: 300000 },
+    )
   }
 
   return (
@@ -107,16 +141,35 @@ export default function LocationDialog({ open, onClose }) {
               </p>
             )}
 
+            {canLocate && (
+              <button
+                type="button"
+                onClick={useMyLocation}
+                disabled={status === 'locating'}
+                className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border
+                           border-white/12 bg-white/[0.05] px-3 py-2 text-xs font-medium text-ink
+                           transition hover:border-white/28 hover:bg-white/[0.1] disabled:opacity-50"
+              >
+                <span aria-hidden="true" className="text-primary">◎</span>
+                {status === 'locating' ? t(language, 'locating') : t(language, 'useMyLocation')}
+              </button>
+            )}
+
             <div className="mt-4">
-              <p className="mb-2 text-[10px] uppercase tracking-[0.14em] text-faint">Popular</p>
+              <p className="mb-2 text-[11px] uppercase tracking-[0.14em] text-faint">
+                {t(language, 'popular')}
+              </p>
               <div className="flex flex-wrap gap-1.5">
                 {SUGGESTIONS.map((name) => (
                   <button
                     key={name}
                     type="button"
                     onClick={() => resolve(name)}
-                    className="rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.04] px-2.5 py-1
-                               text-[11px] text-ink-soft transition hover:border-white/25 hover:bg-white/[0.1]"
+                    className={`rounded-[var(--radius-pill)] border px-2.5 py-1 text-[12px] transition ${
+                      name === selectedName
+                        ? 'border-primary/50 bg-primary/12 text-primary'
+                        : 'border-white/10 bg-white/[0.04] text-ink-soft hover:border-white/25 hover:bg-white/[0.1]'
+                    }`}
                   >
                     {name}
                   </button>

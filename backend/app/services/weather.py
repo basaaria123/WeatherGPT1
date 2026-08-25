@@ -128,6 +128,36 @@ def native_lookup(query: str) -> Location | None:
     return None
 
 
+def nearest_location(latitude: float, longitude: float) -> Location | None:
+    """Closest gazetteer entry to a coordinate.
+
+    Open-Meteo's geocoder is forward-only, so a device coordinate is resolved to
+    the nearest place the app actually covers. The caller is expected to present
+    it as the nearest known city, not as the user's exact position.
+    """
+    entries = _gazetteer()
+    if not entries:
+        return None
+
+    def distance_km(entry: dict[str, Any]) -> float:
+        # Equirectangular approximation: accurate enough at city separation and
+        # far cheaper than haversine over a few dozen candidates.
+        lat1, lon1 = math.radians(latitude), math.radians(longitude)
+        lat2, lon2 = math.radians(float(entry["latitude"])), math.radians(float(entry["longitude"]))
+        x = (lon2 - lon1) * math.cos((lat1 + lat2) / 2)
+        y = lat2 - lat1
+        return math.sqrt(x * x + y * y) * 6371.0
+
+    best = min(entries, key=distance_km)
+    return Location(
+        name=best["name"],
+        latitude=float(best["latitude"]),
+        longitude=float(best["longitude"]),
+        admin1=best.get("admin1"),
+        timezone=best.get("timezone", "Asia/Kolkata"),
+    )
+
+
 def gazetteer_lookup(query: str, cutoff: float = 0.72) -> Location | None:
     """Offline geocoding with misspelling tolerance ('Vijaywada' -> Vijayawada)
     and native-script support ('గువాహటిలో' -> Guwahati).

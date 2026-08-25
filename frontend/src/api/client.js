@@ -91,6 +91,7 @@ export const api = {
     request('/voice-chat', { method: 'POST', form: formData, timeout: 60000, ...options }),
 
   geocode: (q) => request(`/geocode${qs({ q })}`),
+  reverseGeocode: (lat, lon) => request(`/geocode/reverse${qs({ lat, lon })}`),
   current: (params) => request(`/weather/current${qs(params)}`),
   timeline: (params) => request(`/weather/timeline${qs(params)}`),
   forecast: (params) => request(`/weather/forecast${qs(params)}`),

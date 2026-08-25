@@ -14,6 +14,8 @@ import { Chip, SeverityPill } from './ui/Primitives'
  */
 
 export default function ChatPanel({
+  insight,
+  insightLoading,
   messages,
   onSend,
   onVoice,
@@ -72,7 +74,7 @@ export default function ChatPanel({
   }
 
   return (
-    <section className="glass flex h-full min-h-[26rem] min-w-0 flex-col p-4 sm:p-5">
+    <section className="glass flex h-full min-h-[22rem] min-w-0 flex-col p-4 sm:p-5">
       <header className="mb-3 flex items-center justify-between gap-2">
         <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
           {t(language, 'askAnything')}
@@ -85,15 +87,16 @@ export default function ChatPanel({
         )}
       </header>
 
+      <InsightBanner insight={insight} loading={insightLoading} language={language} />
+
       <div ref={listRef} className="scroll-y -mx-1 min-w-0 flex-1 space-y-3 px-1" aria-live="polite">
         {messages.length === 0 && !pending && !voicePending && (
-          <div className="flex h-full flex-col items-center justify-center gap-2 py-8 text-center">
-            <span aria-hidden="true" className="text-2xl text-primary/70">◈</span>
-            <p className="max-w-[30ch] text-xs leading-relaxed text-muted">
+          <div className="flex flex-col items-center gap-1.5 py-5 text-center">
+            <p className="max-w-[32ch] text-[13px] leading-relaxed text-muted">
               {t(language, 'placeholder')}
             </p>
-            <p className="max-w-[32ch] text-[11px] leading-relaxed text-faint">
-              Ask in any supported language, or tap the microphone.
+            <p className="max-w-[34ch] text-[11px] leading-relaxed text-faint">
+              {t(language, 'askHint')}
             </p>
           </div>
         )}
@@ -213,7 +216,7 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
           }`}
         >
           {message.transcript && isUser && (
-            <p className="mb-1 text-[10px] uppercase tracking-wider text-faint">🎙 {t(language, 'voice')}</p>
+            <p className="mb-1 text-[11px] uppercase tracking-wider text-faint">🎙 {t(language, 'voice')}</p>
           )}
           <p className="whitespace-pre-wrap break-words">{message.text}</p>
 
@@ -239,14 +242,14 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
                 type="button"
                 onClick={() => onPlay(message)}
                 className="rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.04] px-2 py-0.5
-                           text-[10px] text-ink-soft transition hover:border-white/25"
+                           text-[11px] text-ink-soft transition hover:border-white/25"
               >
                 {playing ? `◼ ${t(language, 'stopAudio')}` : `▶ ${t(language, 'playAnswer')}`}
               </button>
             )}
             {message.explanation && <WhyDisclosure explanation={message.explanation} language={language} />}
             {message.degradedNote && (
-              <span title={message.degradedNote} className="text-[10px] text-faint">
+              <span title={message.degradedNote} className="text-[11px] text-faint">
                 ⓘ
               </span>
             )}
@@ -276,7 +279,7 @@ function WhyDisclosure({ explanation, language }) {
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
         className="rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.04] px-2 py-0.5
-                   text-[10px] text-ink-soft transition hover:border-white/25"
+                   text-[11px] text-ink-soft transition hover:border-white/25"
       >
         {t(language, 'whyThis')} {open ? '▴' : '▾'}
       </button>
@@ -330,5 +333,59 @@ function MicIcon() {
       <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
     </svg>
+  )
+}
+
+
+/**
+ * "What should I know?" answered before anything is asked.
+ *
+ * The sentences come from /weather/current's insight, which the backend builds
+ * from measured values for the selected location and orders by the reader's
+ * profile. Nothing here is generated in the browser, so the panel cannot drift
+ * from the data the rest of the dashboard is showing.
+ */
+function InsightBanner({ insight, loading, language }) {
+  if (loading && !insight) {
+    return (
+      <div className="mb-3 rounded-xl border border-white/[0.07] bg-white/[0.03] px-3.5 py-3">
+        <p className="text-[12px] text-faint">{t(language, 'insightLoading')}</p>
+      </div>
+    )
+  }
+  if (!insight?.headline) return null
+
+  const urgent = insight.actionable
+
+  return (
+    <motion.div
+      key={insight.headline}
+      initial={{ opacity: 0, y: -6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+      className="mb-3 rounded-xl border px-3.5 py-3"
+      style={{
+        borderColor: urgent ? 'rgb(251 146 60 / 0.42)' : 'rgb(255 255 255 / 0.09)',
+        background: urgent ? 'rgb(251 146 60 / 0.09)' : 'rgb(255 255 255 / 0.035)',
+      }}
+    >
+      <p className="text-[14px] font-medium leading-relaxed text-ink">{insight.headline}</p>
+      {insight.supporting && (
+        <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">{insight.supporting}</p>
+      )}
+      {insight.factors?.length > 0 && (
+        <div className="mt-2 flex flex-wrap gap-1">
+          {insight.factors.map((factor) => (
+            <span
+              key={factor}
+              className="rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.05]
+                         px-1.5 py-0.5 text-[11px] text-muted"
+            >
+              {factor}
+            </span>
+          ))}
+        </div>
+      )}
+    </motion.div>
   )
 }

@@ -38,9 +38,10 @@ function FocusController({ focus }) {
   return null
 }
 
-export default function RiskMap({ data, loading, error, onRetry }) {
+export default function RiskMap({ data, loading, error, onRetry, onSelect }) {
   const language = useStore((s) => s.language)
   const mapFocus = useStore((s) => s.mapFocus)
+  const selectedName = useStore((s) => s.location?.name)
   const [mounted, setMounted] = useState(false)
 
   // Leaflet needs a sized container; mounting after paint avoids a 0-height map.
@@ -68,6 +69,8 @@ export default function RiskMap({ data, loading, error, onRetry }) {
         <EmptyState icon="!" message={error} />
       ) : (
         <>
+          <p className="mb-2 text-[11px] leading-relaxed text-muted">{t(language, 'mapHint')}</p>
+
           <div className="relative h-[19rem] overflow-hidden rounded-xl border border-white/[0.08] sm:h-[23rem]">
             {mounted && (
               <MapContainer
@@ -83,28 +86,47 @@ export default function RiskMap({ data, loading, error, onRetry }) {
                 <FocusController focus={mapFocus} />
                 {locations.map((entry) => {
                   const tone = severityOf(entry.risk_level)
+                  // The place the dashboard is showing gets a heavier ring, so
+                  // the map and the rest of the page visibly agree.
+                  const isSelected = entry.location === selectedName
                   return (
                     <CircleMarker
                       key={`${entry.location}-${entry.latitude}`}
                       center={[entry.latitude, entry.longitude]}
-                      radius={radiusFor(entry.risk_score)}
+                      radius={radiusFor(entry.risk_score) + (isSelected ? 3 : 0)}
                       pathOptions={{
-                        color: tone.color,
+                        color: isSelected ? '#ffffff' : tone.color,
                         fillColor: tone.color,
-                        fillOpacity: 0.36,
-                        weight: 1.6,
+                        fillOpacity: isSelected ? 0.6 : 0.36,
+                        weight: isSelected ? 3 : 1.6,
                       }}
                     >
                       <Popup>
                         <div className="min-w-[9rem]">
                           <p className="text-[13px] font-semibold text-ink">{entry.location}</p>
-                          {entry.admin1 && <p className="text-[10px] text-muted">{entry.admin1}</p>}
+                          {entry.admin1 && <p className="text-[11px] text-muted">{entry.admin1}</p>}
                           <p className="mt-1.5 text-[11px] text-ink-soft">
                             <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>{' '}
                             {entry.risk_level} · {entry.risk_score}/100
                           </p>
                           {entry.detected_hazard !== 'None' && (
                             <p className="text-[11px] text-muted">{entry.detected_hazard}</p>
+                          )}
+                          {onSelect && !isSelected && (
+                            <button
+                              type="button"
+                              onClick={() => onSelect(entry)}
+                              className="mt-2 w-full rounded-lg border border-white/15 bg-white/[0.06]
+                                         px-2 py-1 text-[11px] font-medium text-ink transition
+                                         hover:border-white/30 hover:bg-white/[0.12]"
+                            >
+                              {t(language, 'openLocalDetail')} →
+                            </button>
+                          )}
+                          {isSelected && (
+                            <p className="mt-1.5 text-[11px] font-semibold text-primary">
+                              {t(language, 'shownAbove')}
+                            </p>
                           )}
                         </div>
                       </Popup>
@@ -120,19 +142,19 @@ export default function RiskMap({ data, loading, error, onRetry }) {
             {['Low', 'Moderate', 'High', 'Severe'].map((level) => {
               const tone = severityOf(level)
               return (
-                <span key={level} className="flex items-center gap-1 text-[10px] text-muted">
+                <span key={level} className="flex items-center gap-1 text-[11px] text-muted">
                   <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>
                   {level}
                 </span>
               )
             })}
             {data?.errors?.length > 0 && (
-              <span className="ml-auto text-[10px] text-caution">
+              <span className="ml-auto text-[11px] text-caution">
                 {data.errors.length} location(s) unavailable
               </span>
             )}
             {onRetry && (
-              <button type="button" onClick={onRetry} className="ml-auto text-[10px] text-muted underline">
+              <button type="button" onClick={onRetry} className="ml-auto text-[11px] text-muted underline">
                 {t(language, 'retry')}
               </button>
             )}

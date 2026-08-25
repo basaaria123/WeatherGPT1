@@ -98,12 +98,12 @@ export default function DemoMode({ answer }) {
               <div className="flex items-center gap-2">
                 {dataSource === 'fixture' ? (
                   <span className="rounded-[var(--radius-pill)] border border-caution/40 bg-caution/12 px-2 py-0.5
-                                   text-[9px] font-bold tracking-wider text-caution">
+                                   text-[10px] font-bold tracking-wider text-caution">
                     {t(language, 'demoLabel')} · {t(language, 'simulated')}
                   </span>
                 ) : (
                   <span className="rounded-[var(--radius-pill)] border border-safe/40 bg-safe/12 px-2 py-0.5
-                                   text-[9px] font-bold tracking-wider text-safe">
+                                   text-[10px] font-bold tracking-wider text-safe">
                     {t(language, 'live')}
                   </span>
                 )}
@@ -126,7 +126,7 @@ export default function DemoMode({ answer }) {
                 transition={{ duration: 0.45, delay: 0.1 }}
                 className="rounded-xl border border-white/[0.09] bg-black/35 p-4"
               >
-                <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
+                <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
                   {t(language, 'demoBulletin')}
                 </h3>
                 <pre className="scroll-x whitespace-pre font-mono text-[11px] leading-[1.7] text-muted">
@@ -146,7 +146,7 @@ export default function DemoMode({ answer }) {
                   transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
                   className="hidden items-center gap-1.5 lg:flex"
                 >
-                  <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-primary">
+                  <span className="text-[11px] font-semibold uppercase tracking-[0.1em] text-primary">
                     WeatherGPT
                   </span>
                   <span className="text-xl text-primary">→</span>
@@ -166,7 +166,7 @@ export default function DemoMode({ answer }) {
                 transition={{ duration: 0.45, delay: 0.55 }}
                 className="rounded-xl border border-primary/25 bg-primary/[0.06] p-4"
               >
-                <h3 className="mb-2.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-primary">
+                <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-primary">
                   {t(language, 'demoPlain')}
                 </h3>
                 {answer ? (
@@ -200,7 +200,7 @@ export default function DemoMode({ answer }) {
               </motion.div>
             </div>
 
-            <p className="mt-4 text-[10px] leading-relaxed text-faint">{t(language, 'disclaimer')}</p>
+            <p className="mt-4 text-[11px] leading-relaxed text-faint">{t(language, 'disclaimer')}</p>
           </motion.div>
         </motion.div>
       )}

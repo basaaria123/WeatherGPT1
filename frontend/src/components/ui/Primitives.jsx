@@ -35,7 +35,7 @@ export function SeverityPill({ level, label, score, compact = false }) {
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-semibold ${
-        compact ? 'px-2 py-0.5 text-[10px]' : 'px-2.5 py-1 text-[11px]'
+        compact ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-[11px]'
       }`}
       style={{ background: tone.tint, borderColor: tone.ring, color: tone.color }}
     >
@@ -52,7 +52,7 @@ export function StatusPill({ status, label }) {
   const tone = statusOf(status)
   return (
     <span
-      className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-2 py-0.5 text-[10px] font-semibold"
+      className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-2 py-0.5 text-[11px] font-semibold"
       style={{ background: tone.tint, color: tone.color }}
     >
       <span aria-hidden="true">{tone.icon}</span>
@@ -87,7 +87,7 @@ export function Metric({ label, value, unit }) {
   if (value === null || value === undefined || value === '') return null
   return (
     <div className="min-w-0">
-      <div className="truncate text-[10px] uppercase tracking-[0.1em] text-faint">{label}</div>
+      <div className="truncate text-[11px] uppercase tracking-[0.1em] text-faint">{label}</div>
       <div className="mt-0.5 truncate text-sm font-semibold text-ink">
         {value}
         {unit ? <span className="ml-0.5 text-[11px] font-normal text-muted">{unit}</span> : null}

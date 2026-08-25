@@ -7,7 +7,7 @@ import { useStore } from '../store/useStore'
 
 const PROFILES = ['general', 'farmer', 'fisherman', 'traveler', 'commuter']
 
-export default function Header({ onOpenLocation, onRefresh, refreshing }) {
+export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }) {
   const language = useStore((s) => s.language)
   const setLanguage = useStore((s) => s.setLanguage)
   const userType = useStore((s) => s.userType)
@@ -20,25 +20,39 @@ export default function Header({ onOpenLocation, onRefresh, refreshing }) {
     <header className="sticky top-0 z-30 border-b border-white/[0.07] bg-[rgb(5_13_26/0.72)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-7xl px-4 py-2.5 sm:px-6">
         <div className="flex items-center justify-between gap-3">
-          <div className="flex min-w-0 items-center gap-2.5">
+          {/* The whole brand block is the home control, not just the mark.
+              It returns to the landing page directly — the splash belongs to
+              first load and is never replayed from here. */}
+          <button
+            type="button"
+            onClick={onHome}
+            aria-label={t(language, 'goHome')}
+            title={t(language, 'goHome')}
+            className="group flex min-w-0 flex-1 cursor-pointer items-center gap-2.5 rounded-xl px-1 py-0.5
+                       text-left transition hover:opacity-90 active:scale-[0.99]"
+          >
             <Logo />
-            <div className="min-w-0 leading-tight">
-              <div className="text-[15px] font-semibold tracking-tight" style={{ fontFamily: 'var(--font-display)' }}>
+            <div className="hidden min-w-0 leading-tight min-[380px]:block">
+              <div
+                className="truncate text-[15px] font-semibold tracking-tight transition-colors
+                           group-hover:text-primary"
+                style={{ fontFamily: 'var(--font-display)' }}
+              >
                 Weather<span className="text-primary">GPT</span>
               </div>
-              <div className="hidden truncate text-[10px] uppercase tracking-[0.16em] text-faint sm:block">
+              <div className="hidden truncate text-[11px] uppercase tracking-[0.16em] text-faint sm:block">
                 {t(language, 'tagline')}
               </div>
             </div>
-          </div>
+          </button>
 
-          <div className="flex items-center gap-1.5 sm:gap-2">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <ConnectionDot state={socketState} language={language} />
             {dataSource === 'fixture' && (
               <span
                 title={t(language, 'simulatedNote')}
                 className="rounded-[var(--radius-pill)] border border-caution/40 bg-caution/12
-                           px-1.5 py-0.5 text-[9px] font-bold tracking-wider text-caution sm:px-2"
+                           px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-caution sm:px-2"
               >
                 <span className="sm:hidden" aria-label={t(language, 'simulated')}>SIM</span>
                 <span className="hidden sm:inline">{t(language, 'simulated')}</span>
@@ -48,7 +62,7 @@ export default function Header({ onOpenLocation, onRefresh, refreshing }) {
             <button
               type="button"
               onClick={onOpenLocation}
-              className="flex max-w-[38vw] items-center gap-1.5 rounded-[var(--radius-pill)] border border-white/10
+              className="flex max-w-[30vw] items-center gap-1.5 sm:max-w-none rounded-[var(--radius-pill)] border border-white/10
                          bg-white/[0.05] px-2.5 py-1.5 text-xs text-ink transition hover:border-white/25
                          hover:bg-white/[0.1] sm:max-w-none"
               title={t(language, 'changeLocation')}
@@ -58,7 +72,8 @@ export default function Header({ onOpenLocation, onRefresh, refreshing }) {
             </button>
 
             <Dropdown
-              label={LANGUAGES.find((l) => l.code === language)?.label ?? 'EN'}
+              label={LANGUAGES.find((l) => l.code === language)?.label ?? 'English'}
+              shortLabel={LANGUAGES.find((l) => l.code === language)?.short ?? 'EN'}
               ariaLabel={t(language, 'language')}
               items={LANGUAGES.map((l) => ({ value: l.code, label: l.label, hint: l.name }))}
               value={language}
@@ -154,7 +169,7 @@ function ConnectionDot({ state, language }) {
   )
 }
 
-function Dropdown({ label, items, value, onSelect, ariaLabel, className = '' }) {
+function Dropdown({ label, shortLabel, items, value, onSelect, ariaLabel, className = '' }) {
   const [open, setOpen] = useState(false)
   const ref = useRef(null)
 
@@ -183,8 +198,15 @@ function Dropdown({ label, items, value, onSelect, ariaLabel, className = '' }) 
         className="flex items-center gap-1 rounded-[var(--radius-pill)] border border-white/10 bg-white/[0.05]
                    px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-white/25 hover:bg-white/[0.1]"
       >
-        {label}
-        <span aria-hidden="true" className="text-[9px] text-faint">▾</span>
+        {shortLabel ? (
+          <>
+            <span className="sm:hidden">{shortLabel}</span>
+            <span className="hidden sm:inline">{label}</span>
+          </>
+        ) : (
+          label
+        )}
+        <span aria-hidden="true" className="text-[10px] text-faint">▾</span>
       </button>
 
       <AnimatePresence>
@@ -213,7 +235,7 @@ function Dropdown({ label, items, value, onSelect, ariaLabel, className = '' }) 
                               }`}
                 >
                   <span>{item.label}</span>
-                  {item.hint && <span className="text-[9px] text-faint">{item.hint}</span>}
+                  {item.hint && <span className="text-[10px] text-faint">{item.hint}</span>}
                 </button>
               </li>
             ))}

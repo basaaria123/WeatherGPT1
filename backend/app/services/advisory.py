@@ -26,6 +26,44 @@ STRONG_WIND_KMH = 35
 HOT_FEELS_C = 36
 
 
+# Which sector card leads for each profile, and which factors that reader
+# cares about first. Both are presentation-order only: no profile unlocks a
+# weather fact another profile cannot see.
+PROFILE_LEAD_CATEGORY: dict[str, str] = {
+    "farmer": "farming",
+    "fisherman": "fishing",
+    "traveler": "travel",
+    "commuter": "travel",
+    "general": "",
+}
+
+# What each reader wants to hear first. "hazard" is not in these lists: an
+# actionable hazard always leads regardless of profile, and a non-actionable one
+# is appended after the profile's own concerns rather than crowding them out.
+PROFILE_FACTOR_ORDER: dict[str, tuple[str, ...]] = {
+    "farmer": ("rain", "heat", "wind", "visibility"),
+    "fisherman": ("wind", "rain", "visibility", "heat"),
+    "traveler": ("visibility", "rain", "heat", "wind"),
+    "commuter": ("rain", "visibility", "wind", "heat"),
+    "general": ("rain", "wind", "heat", "visibility"),
+}
+
+# How far ahead each reader is actually planning. A commuter cares about the
+# next couple of hours; a farmer is planning the working day.
+PROFILE_HORIZON_HOURS: dict[str, int] = {
+    "farmer": 12,
+    "fisherman": 12,
+    "traveler": 12,
+    "commuter": 6,
+    "general": 12,
+}
+
+# Below this, a forecast hour does not count as "rain is coming".
+RAIN_ONSET_PROB = 55
+RAIN_ONSET_MM = 0.4
+LOW_VISIBILITY_KM = 2.0
+
+
 def _num(value: Any) -> float | None:
     if isinstance(value, bool) or value is None:
         return None
@@ -168,7 +206,12 @@ def _status(score: float) -> str:
     return "Safe"
 
 
-def impact_cards(bundle: Any, risk: RiskOutput, lang: str = "en") -> list[ImpactCard]:
+def impact_cards(
+    bundle: Any,
+    risk: RiskOutput,
+    lang: str = "en",
+    user_type: str | None = None,
+) -> list[ImpactCard]:
     """Sector impact cards derived from real values and the shared risk score.
 
     Each category is scored from the hazard sub-scores that genuinely bear on
@@ -189,21 +232,52 @@ def impact_cards(bundle: Any, risk: RiskOutput, lang: str = "en") -> list[Impact
     rain24 = sum(_num(h.get("precipitation_mm")) or 0.0 for h in bundle.hourly[:24])
     vis = _num(cur.get("visibility_km"))
 
-    def detail_for(kind: str) -> str:
-        bits: list[str] = []
-        if kind in {"farming", "travel", "household", "outdoor"} and rain24 >= 1.0:
-            bits.append(i18n.sentence("rain_24", lang, mm=_r(rain24, 1)))
-        if kind in {"fishing", "travel", "outdoor"} and wind_kmh is not None:
-            bits.append(
-                i18n.sentence("wind_strong", lang, wind=_r(gust_kmh or wind_kmh))
-                if (gust_kmh or wind_kmh) >= STRONG_WIND_KMH
-                else i18n.sentence("wind_calm", lang, wind=_r(wind_kmh))
-            )
-        if kind in {"farming", "outdoor", "household"} and feels is not None and feels >= HOT_FEELS_C:
-            bits.append(i18n.sentence("heat_note", lang, feels=_r(feels, 1)))
-        if not bits:
-            bits.append(i18n.sentence("calm_tail", lang))
-        return " ".join(bits)
+    def detail_for(kind: str, score: float) -> str:
+        """One sentence per sector, chosen from what actually bears on it.
+
+        Categories deliberately do not share a sentence: telling a farmer and a
+        traveller the same thing about the same rain is what made the old cards
+        feel generic, and it wastes the one line each card gets.
+        """
+        hot = feels is not None and feels >= HOT_FEELS_C
+        gust_or_wind = gust_kmh if gust_kmh is not None else wind_kmh
+
+        if kind == "farming":
+            if rain24 >= 1.0:
+                return f"{i18n.sentence('impact_farming_rain', lang)} " + i18n.sentence(
+                    "rain_24", lang, mm=_r(rain24, 1)
+                )
+            if hot:
+                return i18n.sentence("heat_note", lang, feels=_r(feels, 1))
+            return i18n.sentence("impact_farming_clear", lang)
+
+        if kind == "fishing":
+            if gust_or_wind is not None and (gust_or_wind >= STRONG_WIND_KMH or storm >= 40):
+                return i18n.sentence("insight_small_boat", lang, wind=_r(gust_or_wind))
+            if wind_kmh is not None:
+                return i18n.sentence("impact_fishing_calm", lang, wind=_r(wind_kmh))
+            return i18n.sentence("calm_tail", lang)
+
+        if kind == "travel":
+            if vis is not None and vis <= 2.0:
+                return i18n.sentence("insight_visibility_low", lang, vis=_r(vis, 1))
+            if rain24 >= 1.0:
+                return i18n.sentence("impact_travel_rain", lang)
+            return i18n.sentence("impact_travel_clear", lang)
+
+        if kind == "household":
+            if flood >= 31 or storm >= 40 or wind >= 40:
+                return i18n.sentence("impact_household_risk", lang)
+            return i18n.sentence("impact_household_calm", lang)
+
+        # outdoor
+        if score >= 61:
+            return i18n.sentence("impact_outdoor_risk", lang)
+        if hot:
+            return i18n.sentence("heat_note", lang, feels=_r(feels, 1))
+        if rain24 >= 1.0:
+            return i18n.sentence("rain_24", lang, mm=_r(rain24, 1))
+        return i18n.sentence("impact_outdoor_clear", lang)
 
     spec: list[tuple[str, float]] = [
         ("farming", max(flood, rain * 0.9, heat * 0.9, storm * 0.8)),
@@ -212,6 +286,12 @@ def impact_cards(bundle: Any, risk: RiskOutput, lang: str = "en") -> list[Impact
         ("household", max(flood, storm * 0.7, heat * 0.8, wind * 0.6)),
         ("outdoor", max(rain, storm, heat, wind * 0.9)),
     ]
+
+    # The reader's own sector leads. Ordering only — every card still shows,
+    # and none of their content changes with the profile.
+    lead = PROFILE_LEAD_CATEGORY.get(i18n.canonical_profile(user_type))
+    if lead:
+        spec.sort(key=lambda item: 0 if item[0] == lead else 1)
 
     cards: list[ImpactCard] = []
     for key, score in spec:
@@ -224,7 +304,7 @@ def impact_cards(bundle: Any, risk: RiskOutput, lang: str = "en") -> list[Impact
                 category=i18n.category_label(key, lang),
                 status=status,  # type: ignore[arg-type]
                 headline=i18n.status_label(status, lang),
-                detail=detail_for(key),
+                detail=detail_for(key, score),
             )
         )
     return cards
@@ -319,3 +399,137 @@ def templated_answer(
     if intent == "alert_check":
         return alerts_answer(bundle, alerts or [], lang)
     return smart_explanation(bundle, risk, lang, mode=mode)
+
+
+# ---------------------------------------------------------------------------
+# "What should I know?" — the single most important thing, right now
+# ---------------------------------------------------------------------------
+def _clock(iso: str | None) -> str | None:
+    """HH:MM from a provider timestamp. Deliberately not localised into words:
+    a digit clock reads the same in all six languages."""
+    if not iso or "T" not in iso:
+        return None
+    return iso.split("T", 1)[1][:5]
+
+
+def headline_insight(
+    bundle: Any,
+    risk: RiskOutput,
+    user_type: str | None = None,
+    lang: str = "en",
+    *,
+    horizon_hours: int | None = None,
+) -> dict[str, Any]:
+    """The one thing worth knowing, plus at most two supporting lines.
+
+    Every candidate sentence below is built from a measured value; if the value
+    is missing the sentence is simply not offered. The profile reorders which
+    candidates surface first — it never adds one.
+    """
+    lang = i18n.normalise_lang(lang)
+    profile = i18n.canonical_profile(user_type)
+    horizon = horizon_hours or PROFILE_HORIZON_HOURS.get(profile, 12)
+    cur = bundle.current or {}
+    window = list(bundle.hourly[:horizon])
+
+    feels = _num(cur.get("apparent_temperature_c"))
+    vis = _num(cur.get("visibility_km"))
+    wind_now = _num(cur.get("wind_speed_kmh"))
+
+    candidates: dict[str, str] = {}
+    factors: list[str] = []
+
+    # --- Rain: when does it start, if at all? -----------------------------
+    onset = None
+    for hour in window:
+        prob = _num(hour.get("precipitation_probability_pct")) or 0.0
+        mm = _num(hour.get("precipitation_mm")) or 0.0
+        if prob >= RAIN_ONSET_PROB or mm >= RAIN_ONSET_MM:
+            onset = (hour, prob)
+            break
+
+    if onset is not None:
+        hour, prob = onset
+        clock = _clock(hour.get("time"))
+        if clock:
+            candidates["rain"] = i18n.sentence("insight_rain_from", lang, time=clock, prob=_r(prob))
+            factors.append("rainfall")
+    elif window:
+        candidates["rain"] = i18n.sentence("insight_rain_clear", lang, hours=len(window))
+        factors.append("rainfall")
+
+    # --- Wind -------------------------------------------------------------
+    winds = [_num(h.get("wind_speed_kmh")) for h in window]
+    peak_wind = max([w for w in winds if w is not None], default=wind_now)
+    if peak_wind is not None and peak_wind >= STRONG_WIND_KMH:
+        # A fisherman's threshold for "difficult" is lower than a commuter's.
+        candidates["wind"] = (
+            i18n.sentence("insight_small_boat", lang, wind=_r(peak_wind))
+            if profile == "fisherman"
+            else i18n.sentence("insight_wind_later", lang, wind=_r(peak_wind))
+        )
+        factors.append("wind")
+    elif profile == "fisherman" and wind_now is not None:
+        candidates["wind"] = i18n.sentence("impact_fishing_calm", lang, wind=_r(wind_now))
+        factors.append("wind")
+
+    # --- Visibility -------------------------------------------------------
+    if vis is not None and vis <= LOW_VISIBILITY_KM:
+        candidates["visibility"] = i18n.sentence("insight_visibility_low", lang, vis=_r(vis, 1))
+        factors.append("visibility")
+
+    # --- Heat -------------------------------------------------------------
+    if feels is not None and feels >= HOT_FEELS_C:
+        candidates["heat"] = i18n.sentence("heat_note", lang, feels=_r(feels, 1))
+        factors.append("temperature")
+
+    # --- Hazard, straight from the shared engine --------------------------
+    if risk.detected_hazard != "None" and risk.risk_score >= 31:
+        candidates["hazard"] = i18n.sentence(
+            "insight_hazard_active", lang,
+            hazard=i18n.hazard_label(risk.detected_hazard, lang),
+            level=i18n.level_label(risk.risk_level, lang),
+        )
+        factors.append("hazard indicators")
+
+    order = PROFILE_FACTOR_ORDER.get(profile, PROFILE_FACTOR_ORDER["general"])
+    # A hazard the engine calls actionable outranks everything; below that the
+    # profile's own priorities lead and the hazard follows as context.
+    if risk_engine.is_actionable(risk):
+        order = ("hazard",) + order
+    else:
+        order = order + ("hazard",)
+    chosen = [candidates[key] for key in order if key in candidates]
+    # Anything the profile ordering did not name still beats an empty panel.
+    chosen += [value for key, value in candidates.items() if key not in order]
+
+    # --- Closing line: what this reader can actually do about it ----------
+    # Each branch is gated on the value it talks about, so the closing can never
+    # contradict a line above it (no "conditions are good" under 1 km fog).
+    if not risk_engine.is_actionable(risk):
+        vis_ok = vis is None or vis > LOW_VISIBILITY_KM
+        if profile == "farmer":
+            clock = _clock(onset[0].get("time")) if onset else None
+            if clock:
+                chosen.append(i18n.sentence("insight_window_until", lang, time=clock))
+            elif onset is None:
+                chosen.append(i18n.sentence("impact_farming_clear", lang))
+        elif profile in {"traveler", "commuter"}:
+            if onset is None and vis_ok:
+                chosen.append(i18n.sentence("impact_travel_clear", lang))
+        elif profile == "fisherman":
+            if onset is None and (peak_wind is None or peak_wind < STRONG_WIND_KMH):
+                chosen.append(i18n.sentence("impact_outdoor_clear", lang))
+        elif onset is None and vis_ok:
+            chosen.append(i18n.sentence("insight_safe_now", lang))
+
+    if not chosen:
+        chosen = [smart_explanation(bundle, risk, lang, mode="simple")]
+
+    return {
+        "headline": chosen[0],
+        "supporting": " ".join(chosen[1:3]),
+        "factors": sorted(set(factors)),
+        "user_type": profile,
+        "actionable": risk_engine.is_actionable(risk),
+    }

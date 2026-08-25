@@ -1,7 +1,6 @@
 import { motion } from 'framer-motion'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
-import WeatherGlyph from './ui/WeatherGlyph'
 
 /**
  * Landing page.
@@ -21,9 +20,8 @@ const fadeUp = {
   }),
 }
 
-export default function Landing({ onEnter, onDemo, scene, condition }) {
+export default function Landing({ onEnter, onDemo }) {
   const language = useStore((s) => s.language)
-  const risk = useStore((s) => s.risk)
 
   const pillars = [
     { key: 'data', title: t(language, 'pillarDataTitle'), body: t(language, 'pillarDataBody'), icon: '◵' },
@@ -44,9 +42,6 @@ export default function Landing({ onEnter, onDemo, scene, condition }) {
             Weather<span className="text-primary">GPT</span>
           </span>
         </div>
-        <span className="hidden text-[10px] uppercase tracking-[0.2em] text-faint sm:block">
-          SIH26068 · Ministry of Earth Sciences / IMD
-        </span>
       </motion.header>
 
       <div className="flex flex-1 flex-col justify-center py-12 sm:py-16">
@@ -116,27 +111,6 @@ export default function Landing({ onEnter, onDemo, scene, condition }) {
           </button>
         </motion.div>
 
-        {/* Live proof the background is not decorative: it reflects real conditions. */}
-        {condition && (
-          <motion.div
-            variants={fadeUp}
-            initial="hidden"
-            animate="show"
-            custom={0.5}
-            className="mt-10 inline-flex w-fit items-center gap-3 rounded-[var(--radius-pill)]
-                       border border-white/10 bg-white/[0.04] py-2 pl-2 pr-4"
-          >
-            <WeatherGlyph code={condition.weather_code} size={30} />
-            <span className="text-xs text-muted">
-              <span className="font-semibold text-ink">{condition.label}</span>
-              {condition.temperature_c !== null && condition.temperature_c !== undefined && (
-                <> · {Math.round(condition.temperature_c)}°C</>
-              )}
-              {condition.conditionText && <> · {condition.conditionText}</>}
-              {risk?.risk_level && <> · {risk.risk_level} risk</>}
-            </span>
-          </motion.div>
-        )}
       </div>
 
       <motion.div
@@ -168,7 +142,7 @@ export default function Landing({ onEnter, onDemo, scene, condition }) {
         ))}
       </motion.div>
 
-      <p className="mt-8 text-center text-[10px] leading-relaxed text-faint">
+      <p className="mt-8 text-center text-[11px] leading-relaxed text-faint">
         {t(language, 'disclaimer')}
       </p>
     </main>
