@@ -21,7 +21,7 @@ from ..schemas import HistoricalComparison, RiskOutput
 
 log = logging.getLogger("weathergpt.history")
 
-MIN_SIMILARITY = 60
+MIN_SIMILARITY = 70
 
 _EVENTS: list[dict[str, Any]] | None = None
 
@@ -180,3 +180,94 @@ def all_events() -> list[dict[str, Any]]:
         {k: v for k, v in event.items() if k != "criteria"}
         for event in _events()
     ]
+
+
+# ---------------------------------------------------------------------------
+# Show the working (Feature C)
+#
+# A similarity score nobody can inspect reads as a guess. These report which
+# dimensions matched and by how much, so a reader — or a judge — can check the
+# comparison rather than taking it on trust.
+# ---------------------------------------------------------------------------
+DIMENSION_LABELS = {
+    "rain_24h_min_mm": ("24-hour rainfall", "mm"),
+    "rain_72h_min_mm": ("72-hour rainfall accumulation", "mm"),
+    "wind_gust_min_kmh": ("peak wind gust", "km/h"),
+}
+
+
+def matching_dimensions(
+    event: dict[str, Any],
+    *,
+    rain_24h_mm: float | None,
+    rain_72h_mm: float | None,
+    wind_gust_kmh: float | None,
+) -> list[dict[str, Any]]:
+    """Per-dimension comparison between now and the stored event."""
+    current_values = {
+        "rain_24h_min_mm": rain_24h_mm,
+        "rain_72h_min_mm": rain_72h_mm,
+        "wind_gust_min_kmh": wind_gust_kmh,
+    }
+    criteria = event.get("criteria", {})
+    out: list[dict[str, Any]] = []
+    for key, (label, unit) in DIMENSION_LABELS.items():
+        reference = criteria.get(key)
+        current = current_values.get(key)
+        if reference is None or current is None:
+            continue
+        # Capped at 100: exceeding the reference is still "matched", not 140%.
+        closeness = int(round(min(1.0, current / reference) * 100)) if reference else 0
+        out.append(
+            {
+                "dimension": label,
+                "current": round(float(current), 1),
+                "historical": float(reference),
+                "unit": unit,
+                "closeness_pct": closeness,
+            }
+        )
+    return sorted(out, key=lambda d: d["closeness_pct"], reverse=True)
+
+
+def similarity_for_bundle(bundle: Any, risk: RiskOutput) -> dict[str, Any]:
+    """Full similarity payload, including the dimensions behind the score.
+
+    Always returns a dict so the client has a stable shape; ``matched`` is False
+    when nothing clears the threshold, and no event is named in that case.
+    """
+    rain_24h = round(sum(float(h.get("precipitation_mm") or 0.0) for h in bundle.hourly[:24]), 1)
+    rain_72h = round(sum(float(d.get("precipitation_sum_mm") or 0.0) for d in (bundle.daily or [])[:3]), 1)
+    rain_72h = max(rain_72h, rain_24h)
+    gusts = [float(h["wind_gust_kmh"]) for h in bundle.hourly[:24] if isinstance(h.get("wind_gust_kmh"), (int, float))]
+    gust = max(gusts) if gusts else None
+
+    comparison = find_comparison(
+        risk=risk,
+        rain_24h_mm=rain_24h,
+        rain_72h_mm=rain_72h,
+        wind_gust_kmh=gust,
+        state=bundle.location.admin1,
+    )
+    if comparison is None:
+        return {"matched": False, "framing": "context"}
+
+    event = next((e for e in _events() if e["name"] == comparison.event_name), {})
+    return {
+        "matched": True,
+        "similarity_score": comparison.similarity_score,
+        "event": {
+            "name": event.get("name", comparison.event_name),
+            "date_range": event.get("date", comparison.event_date),
+            "region": event.get("region", comparison.region),
+            "impact_summary": event.get("summary", ""),
+            "source": event.get("source", ""),
+            "source_url": event.get("source_url", ""),
+        },
+        "matching_dimensions": matching_dimensions(
+            event, rain_24h_mm=rain_24h, rain_72h_mm=rain_72h, wind_gust_kmh=gust
+        ),
+        "sentence": comparison.sentence,
+        # Never "forecast", never "prediction". The UI keys its heading off this.
+        "framing": "context",
+    }

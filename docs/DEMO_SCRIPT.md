@@ -257,3 +257,156 @@ then re-ask `Will it rain in Guwahati today?`
 | 4 | `POST /voice-chat` |
 | 5 | `POST /alerts/scan`, `WS /ws/alerts`, `GET /alerts` |
 | 6 | `POST /chat` (with `user_type`) |
+
+---
+
+# Depth-pass sequence — decision support
+
+Run this after the core walkthrough. It lands the three features that separate
+WeatherGPT from a weather app: **the same forecast producing different
+decisions**, an interface that changes state under danger, and grounded
+historical context.
+
+Total: **~3 min 30 s**. The pause in step 2 is the point of the whole sequence —
+do not rush it.
+
+### Step 1 — A calm baseline (~25 s)
+
+**Do:** Location → **Bengaluru**. Type *"What should I know today?"*
+
+**On screen:** Plain answer. **No emergency banner, no advisory card, no
+historical panel.** The dashboard looks exactly as it always does.
+
+**Say:** *"Nothing is firing here, and that matters — these features are
+additive. On a calm day the app gets out of the way."*
+
+> Showing the silent state first is what makes the next step land. Skip it and
+> the emergency looks like decoration rather than a state change.
+
+### Step 2 — One forecast, five decisions (~60 s) ← **the moment**
+
+**Do:** Location → **Guwahati**. Set persona to **Farmer**. Read the advisory
+card. Then switch to **Fisherman** — advice changes without re-asking anything.
+Now press **Compare all roles**.
+
+**On screen:** The shared condition stated once at the top, then five cards:
+
+| | |
+|---|---|
+| 🌾 Farmer | Drain standing water; move harvested grain to raised storage |
+| 🎣 Fisherman | Do not venture out to sea; secure boat and nets on high ground |
+| 🧳 Traveller | Expect waterlogging and delays; check road and rail before starting |
+| 🚌 Commuter | Leave earlier; avoid underpasses that flood quickly |
+| 🏠 General | Keep your phone charged; follow local advisories |
+
+Each carries **why**. Shared flood safety appears once beneath, not five times.
+
+**Say:** *"One weather fact. Five different decisions. And these come from a
+rules table a domain expert can review — not from a model improvising disaster
+advice."*
+
+**Pause here for three seconds.** Let them read across the row.
+
+> If a judge asks where the advice comes from, open
+> `backend/app/services/i18n.py` — `HAZARD_ACTIONS` and `PROFILE_ACTIONS`. That
+> answer is far stronger than "the model generated it."
+
+### Step 3 — The interface changes state (~40 s)
+
+**On screen (already active at Guwahati):** A pinned banner above everything —
+severity as **icon + the word SEVERE**, hazard named, headline, then
+**what is happening → why it matters → what to do now**, numbered. The
+persona actions have moved *above* the conditions card. Nothing is hidden;
+it is reordered.
+
+**Say:** *"The trigger is the risk engine, never the interface. React cannot
+talk itself into an emergency — if it could, the screen and the score could
+disagree, and they would disagree in front of you."*
+
+**Optional:** press **Dismiss**. A compact strip remains: *"Emergency conditions
+still active."* A dismissed warning must never look like a resolved one.
+
+### Step 4 — Emergency instructions aloud, in language (~30 s)
+
+**Do:** Switch language to **తెలుగు**. Press **🔊 Listen to emergency
+instructions**.
+
+**On screen / audio:** Banner and instructions in Telugu; speech in a Telugu
+voice. Roughly 30 seconds — short enough that someone frightened will hear it
+out.
+
+**Say:** *"Written for speech, not reading — no bullet symbols, no
+'precipitation probability 87 percent'. And it never falls back to English."*
+
+### Step 5 — Historical context, said out loud as similarity (~45 s)
+
+**Do:** Switch back to **English**. Ask *"what precautions should I take?"*
+Scroll to **Historical context** (below the answer and below any live alert —
+never above them).
+
+**On screen:**
+
+```
+Historical context                              100% similar
+June 2025 Assam floods · Assam, Brahmaputra valley
+
+Matched on
+  24-hour rainfall               260.9mm  vs 90mm    100%
+  72-hour rainfall accumulation  591mm    vs 220mm   100%
+
+A pattern-similarity signal, not a prediction. Similar conditions do
+not mean a similar outcome.
+Source: Assam State Disaster Management Authority (ASDMA)
+```
+
+**Say — unprompted, this is important:** *"This is similarity, not prediction.
+We show which dimensions matched and both values, so you can check it rather
+than trust it. And the panel is styled unlike an alert on purpose — historical
+context must never be mistaken for an active warning."*
+
+> Saying the caveat before anyone asks is what makes a technical panel trust the
+> rest of your claims.
+
+### Step 6 — Clean exit (~20 s)
+
+**Do:** Location → **Bengaluru**.
+
+**On screen:** Banner gone, advisory gone, historical panel gone. Calm dashboard.
+
+**Say:** *"Risk drops, the mode exits. It doesn't linger, and it never invents
+an emergency that isn't in the data."*
+
+---
+
+## Forcing the severe state
+
+The fixture provider pins Guwahati to a flood scenario, so step 2 works offline
+with no setup:
+
+```bash
+WEATHER_DATA_MODE=fixture uvicorn app.main:app
+```
+
+A simulated emergency carries `is_simulated: true`, which renders an unmissable
+**DEMO / SIMULATED DATA** badge *inside the banner*. It can never appear in live
+mode — the flag comes from the data source, not from a UI toggle.
+
+## Endpoints exercised
+
+| Step | Endpoint |
+|---|---|
+| 1 | `GET /weather/current` |
+| 2 | `GET /weather/current` (`user_type`), `GET /advisory/personas` |
+| 3 | `GET /weather/current` → `emergency.active` |
+| 4 | browser speech synthesis over `emergency.spoken_instructions` |
+| 5 | `POST /chat` → `historical_similarity` |
+| 6 | `GET /weather/current` → `emergency.active: false` |
+
+## If something misbehaves
+
+- **No emergency banner at Guwahati** — check `/weather/current` returns
+  `emergency.active: true`. The frontend only mirrors it.
+- **Compare panel empty** — `/advisory/personas?location=Guwahati` should list
+  five personas.
+- **No historical panel** — it appears once per session per event by design.
+  Reload to show it again.

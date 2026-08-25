@@ -284,3 +284,18 @@
   color: var(--color-ink) !important;
   border-color: var(--color-border) !important;
 }
+
+/* Emergency indicator: a slow opacity breath, never a flash. Anything faster
+   is a seizure risk, and this is exactly the screen where that matters. */
+.pulse-emergency {
+  animation: pulse-emergency 2.6s ease-in-out infinite;
+}
+
+@keyframes pulse-emergency {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pulse-emergency { animation: none !important; opacity: 1 !important; }
+}

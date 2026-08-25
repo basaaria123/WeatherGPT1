@@ -101,6 +101,7 @@ export const api = {
   subscribe: (payload) => request('/alerts/subscribe', { method: 'POST', body: payload }),
   scanAlerts: () => request('/alerts/scan', { method: 'POST', timeout: 60000 }),
 
+  advisoryPersonas: (params) => request(`/advisory/personas${qs(params)}`, { timeout: 45000 }),
   risk: (params) => request(`/risk${qs(params)}`),
   riskMap: (params) => request(`/risk-map${qs(params)}`, { timeout: 45000 }),
 

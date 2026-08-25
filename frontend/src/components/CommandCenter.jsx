@@ -160,6 +160,7 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
  */
 function RiskExplainer({ risk, language }) {
   const [open, setOpen] = useState(false)
+  const bands = useStore((s) => s.capabilities?.risk_bands)
   const tone = severityOf(risk.risk_level)
 
   const contributors = Object.entries(risk.hazard_scores ?? {})
@@ -217,7 +218,7 @@ function RiskExplainer({ risk, language }) {
                         <span className="h-1.5 min-w-0 flex-1 overflow-hidden rounded-full bg-[rgb(var(--wx-tint)/0.07)]">
                           <span
                             className="block h-full rounded-full"
-                            style={{ width: `${score}%`, background: severityOf(levelFor(score)).color }}
+                            style={{ width: `${score}%`, background: severityOf(levelFor(score, bands)).color }}
                           />
                         </span>
                         <span className="w-6 shrink-0 text-right text-[11px] tabular-nums text-ink-soft">
@@ -236,13 +237,26 @@ function RiskExplainer({ risk, language }) {
   )
 }
 
-/** Mirrors the engine's bands so a bar is coloured like the score it shows. */
-function levelFor(score) {
-  if (score <= 30) return 'Low'
-  if (score <= 60) return 'Moderate'
-  if (score <= 80) return 'High'
-  return 'Severe'
+/**
+ * Band for a sub-score, read from the engine's own bands.
+ *
+ * /config publishes `risk_bands`, so this reads them rather than restating the
+ * boundaries. Re-declaring them here would be a second source of truth for
+ * severity, which is exactly what the risk engine exists to prevent — the
+ * literals below are only a last resort if /config has not loaded yet.
+ */
+function levelFor(score, bands) {
+  const table = bands?.length ? bands : FALLBACK_BANDS
+  const band = table.find((b) => score >= b.min && score <= b.max)
+  return band?.level ?? 'Low'
 }
+
+const FALLBACK_BANDS = [
+  { level: 'Low', min: 0, max: 30 },
+  { level: 'Moderate', min: 31, max: 60 },
+  { level: 'High', min: 61, max: 80 },
+  { level: 'Severe', min: 81, max: 100 },
+]
 
 /**
  * Two separate statements, never one.

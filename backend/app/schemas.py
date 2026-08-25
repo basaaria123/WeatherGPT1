@@ -122,6 +122,50 @@ class ImpactCard(BaseModel):
     detail: str
 
 
+class AdvisoryAction(BaseModel):
+    """One recommended action, sourced from the advisory rules table."""
+
+    action: str
+    reason: str | None = None
+    priority: int = 1
+
+
+class AdvisoryOut(BaseModel):
+    """Persona-specific guidance for the detected hazard.
+
+    ``source`` is "rules" whenever the actions came from the deterministic
+    table, which is every case today — it exists so a reader can tell at a
+    glance that nothing here was improvised.
+    """
+
+    user_type: str = "general"
+    hazard: str = "None"
+    risk_level: RiskLevel = "Low"
+    actions: list[AdvisoryAction] = Field(default_factory=list)
+    disclaimer: str = ""
+    source: str = "rules"
+
+
+class EmergencyOut(BaseModel):
+    """Set only when the risk engine reports High or Severe.
+
+    The frontend reads ``active``; it never decides for itself. ``valid_until``
+    is derived from the forecast — the end of the run of hours that stay at an
+    actionable level — so it is a real horizon rather than an invented expiry.
+    """
+
+    active: bool = False
+    risk_level: RiskLevel = "Low"
+    hazard: str = "None"
+    headline: str = ""
+    what_is_happening: str = ""
+    why_it_matters: str = ""
+    immediate_actions: list[str] = Field(default_factory=list)
+    spoken_instructions: str = ""
+    valid_until: str | None = None
+    is_simulated: bool = False
+
+
 class HistoricalComparison(BaseModel):
     event_name: str
     event_date: str
@@ -184,6 +228,11 @@ class ChatResponse(BaseModel):
     risk: RiskOutput | None = None
     impacts: list[ImpactCard] = Field(default_factory=list)
     historical_comparison: HistoricalComparison | None = None
+    advisory: AdvisoryOut | None = None
+    emergency: EmergencyOut | None = None
+    # Kept as a plain mapping: the shape is documented in history.py and this
+    # stays additive without pinning the client to a stricter model.
+    historical_similarity: dict[str, Any] | None = None
     audio_base64: str | None = None
     audio_mime: str | None = None
     data_source: str = "live"
@@ -268,6 +317,8 @@ class CurrentWeatherResponse(BaseModel):
     risk: RiskOutput
     impacts: list[ImpactCard] = Field(default_factory=list)
     insight: InsightOut | None = None
+    advisory: AdvisoryOut | None = None
+    emergency: EmergencyOut | None = None
     # Official alerts are a separate concept from a detected hazard: this counts
     # warnings actually issued and stored for this location, which may be zero
     # while risk is high.

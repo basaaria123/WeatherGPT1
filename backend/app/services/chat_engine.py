@@ -26,6 +26,8 @@ from typing import Any
 
 from ..config import get_settings
 from ..schemas import (
+    AdvisoryOut,
+    EmergencyOut,
     USER_TYPES,
     ChatResponse,
     CurrentWeatherOut,
@@ -429,6 +431,20 @@ def handle_chat(
     answer, explanation, degraded = _ensure_language(answer, explanation, out_lang, degraded)
 
     comparison = history.comparison_for_bundle(bundle, risk)
+
+    # --- Feature payloads, all driven by the one risk output ---------------
+    advisory_block = advisory.build_advisory(risk, extraction["user_type"], out_lang)
+    emergency_block = advisory.build_emergency(bundle, risk, extraction["user_type"], out_lang)
+
+    similarity = history.similarity_for_bundle(bundle, risk)
+    if similarity.get("matched"):
+        event_name = similarity["event"]["name"]
+        if event_name in state.seen_events:
+            # Already shown this conversation: keep the payload shape, drop the
+            # repeat so it reads as context rather than a recurring alarm.
+            similarity = {"matched": False, "framing": "context"}
+        else:
+            state.seen_events.append(event_name)
     impacts = advisory.impact_cards(bundle, risk, out_lang)
 
     # --- 12. Remember ------------------------------------------------------
@@ -458,6 +474,9 @@ def handle_chat(
         risk=risk,
         impacts=impacts,
         historical_comparison=comparison,
+        advisory=AdvisoryOut(**advisory_block),
+        emergency=EmergencyOut(**emergency_block),
+        historical_similarity=similarity,
         data_source=bundle.source,
         raw_weather=payload,
         verification=verification_info,

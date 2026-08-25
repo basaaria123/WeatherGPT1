@@ -7,7 +7,11 @@ import { useStore } from './store/useStore'
 import WeatherScene from './scene/WeatherScene'
 import { THEMES, applyTheme, resolveTheme, sceneForCondition } from './theme/weatherTheme'
 
+import AdvisoryCard from './components/AdvisoryCard'
 import AlertsPanel from './components/AlertsPanel'
+import EmergencyBanner from './components/EmergencyBanner'
+import HistoricalContext from './components/HistoricalContext'
+import PersonaCompare from './components/PersonaCompare'
 import ChatPanel from './components/ChatPanel'
 import CommandCenter from './components/CommandCenter'
 import DemoMode from './components/DemoMode'
@@ -49,6 +53,7 @@ export default function App() {
   const capabilities = useStore((s) => s.capabilities)
 
   const [locationOpen, setLocationOpen] = useState(false)
+  const [compareOpen, setCompareOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
   const [currentData, setCurrentData] = useState(null)
@@ -275,6 +280,13 @@ export default function App() {
   const answerHere =
     answer && answer.describesLocation === (location?.name ?? '') ? answer : null
 
+  // All three depth features read the same risk output. The dashboard's own
+  // reading leads; a chat answer for this location can supply it before the
+  // dashboard has finished loading.
+  const advisory = currentData?.advisory ?? answerHere?.advisory ?? null
+  const emergency = currentData?.emergency ?? answerHere?.emergency ?? null
+  const similarity = answerHere?.historical_similarity ?? null
+
   const viewArea = useCallback(
     (alert) => {
       setMapFocus({ latitude: alert.latitude, longitude: alert.longitude, at: Date.now() })
@@ -325,6 +337,19 @@ export default function App() {
             />
 
             <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-16 pt-3 sm:px-6 sm:pt-5">
+              {/* Level 0 when it fires: what is happening now, above all else. */}
+              <EmergencyBanner
+                emergency={emergency}
+                audioBase64={answerHere?.audio_base64}
+                audioMime={answerHere?.audio_mime}
+              />
+
+              {/* Under an active emergency the actions come before the reading;
+                  nothing is hidden, it is reprioritised. */}
+              {emergency?.active && (
+                <AdvisoryCard advisory={advisory} onCompare={() => setCompareOpen(true)} />
+              )}
+
               <CommandCenter
                 data={currentData}
                 loading={loading.current}
@@ -349,9 +374,15 @@ export default function App() {
                 <AlertsPanel onViewArea={viewArea} />
               </div>
 
+              {!emergency?.active && (
+                <AdvisoryCard advisory={advisory} onCompare={() => setCompareOpen(true)} />
+              )}
+
               <PipelinePanel answer={answerHere} />
 
-              <HistoricalNote comparison={answerHere?.historical_comparison} />
+              <HistoricalContext similarity={similarity} />
+
+              <HistoricalNote comparison={similarity?.matched ? null : answerHere?.historical_comparison} />
 
               <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
 
@@ -393,6 +424,11 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      <PersonaCompare
+        open={compareOpen}
+        onClose={() => setCompareOpen(false)}
+        location={location?.name}
+      />
       <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />
       <DemoMode answer={answerHere} />
     </>

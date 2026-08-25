@@ -26,7 +26,9 @@
           9
         ]
       },
-      "source_note": "Approximate figure from contemporaneous reporting on the June 2025 Assam flood situation."
+      "source_note": "Approximate figure from contemporaneous reporting on the June 2025 Assam flood situation.",
+      "source": "Assam State Disaster Management Authority (ASDMA)",
+      "source_url": "https://asdma.assam.gov.in/"
     },
     {
       "id": "kerala_floods_2018_08",
@@ -52,7 +54,9 @@
           9
         ]
       },
-      "source_note": "Figures from Kerala State Disaster Management Authority and central government reporting on the 2018 floods."
+      "source_note": "Figures from Kerala State Disaster Management Authority and central government reporting on the 2018 floods.",
+      "source": "Kerala State Disaster Management Authority (KSDMA)",
+      "source_url": "https://sdma.kerala.gov.in/"
     },
     {
       "id": "cyclone_amphan_2020_05",
@@ -79,7 +83,9 @@
           12
         ]
       },
-      "source_note": "Wind figures from India Meteorological Department bulletins issued during Cyclone Amphan."
+      "source_note": "Wind figures from India Meteorological Department bulletins issued during Cyclone Amphan.",
+      "source": "India Meteorological Department — RSMC New Delhi",
+      "source_url": "https://mausam.imd.gov.in/"
     },
     {
       "id": "chennai_floods_2015_12",
@@ -105,7 +111,9 @@
           1
         ]
       },
-      "source_note": "Rainfall figure from India Meteorological Department records for the December 2015 Chennai event."
+      "source_note": "Rainfall figure from India Meteorological Department records for the December 2015 Chennai event.",
+      "source": "India Meteorological Department",
+      "source_url": "https://mausam.imd.gov.in/"
     },
     {
       "id": "mumbai_deluge_2005_07",
@@ -133,7 +141,9 @@
           9
         ]
       },
-      "source_note": "Rainfall figure from the India Meteorological Department Santacruz observatory record for 26 July 2005."
+      "source_note": "Rainfall figure from the India Meteorological Department Santacruz observatory record for 26 July 2005.",
+      "source": "India Meteorological Department",
+      "source_url": "https://mausam.imd.gov.in/"
     }
   ]
 }

@@ -43,6 +43,9 @@ class SessionState:
     response_mode: str = "normal"
     last_intent: str | None = None
     last_day_offset: int = 0
+    # Historical comparisons already surfaced in this conversation. A pattern
+    # match is context, and context repeated every turn becomes noise.
+    seen_events: list[str] = field(default_factory=list)
     turns: list[Turn] = field(default_factory=list)
     updated_at: float = field(default_factory=time.time)
 

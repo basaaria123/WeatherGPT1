@@ -16,7 +16,9 @@ from ..db import fetch_alerts
 from ..schemas import (
     ClimateTrendResponse,
     CurrentWeatherResponse,
+    AdvisoryOut,
     CurrentWeatherOut,
+    EmergencyOut,
     InsightOut,
     DayPoint,
     ForecastResponse,
@@ -123,8 +125,40 @@ def current_weather(
         risk=risk,
         impacts=advisory.impact_cards(bundle, risk, language, user_type),
         insight=InsightOut(**advisory.headline_insight(bundle, risk, user_type, language)),
+        # The dashboard reaches emergency mode without anyone having to ask a
+        # question, and carries the same advisory the chat would give.
+        advisory=AdvisoryOut(**advisory.build_advisory(risk, user_type, language)),
+        emergency=EmergencyOut(**advisory.build_emergency(bundle, risk, user_type, language)),
         official_alert_count=official,
     )
+
+
+@router.get("/advisory/personas")
+def advisory_personas(
+    location: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    language: str = "en",
+) -> dict:
+    """The same conditions read by every persona at once.
+
+    One weather fact fanning out into five different decisions is the clearest
+    statement of what this product does, so it gets its own endpoint rather than
+    five round trips.
+    """
+    resolved = _resolve(location, latitude, longitude)
+    bundle = _bundle(resolved)
+    risk = risk_engine.assess(bundle)
+    return {
+        "location": _location_out(bundle.location).model_dump(),
+        "generated_at": _now(),
+        "data_source": bundle.source,
+        "risk": risk.model_dump(),
+        # The shared fact, stated once, above the differing advice.
+        "shared_condition": advisory.smart_explanation(bundle, risk, language, mode="simple"),
+        "personas": advisory.advisory_for_every_persona(risk, language),
+        "disclaimer": advisory.disclaimer(language),
+    }
 
 
 @router.get("/weather/timeline", response_model=TimelineResponse)

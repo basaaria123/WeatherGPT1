@@ -533,3 +533,174 @@ def headline_insight(
         "user_type": profile,
         "actionable": risk_engine.is_actionable(risk),
     }
+
+
+# ---------------------------------------------------------------------------
+# Structured persona advisory (Feature A)
+#
+# Deterministic: the action text comes from the rules tables in i18n, selected
+# by (hazard, user_type). The risk level decides *how many* actions surface and
+# how urgently they are framed — it does not select a different body of advice,
+# because "High rain" and "Severe rain" call for the same actions with
+# different urgency, and duplicating the text per level would treble a
+# translated corpus for no safety gain.
+#
+# An LLM never chooses these. Where one is available it may rephrase them into
+# the reader's language and response mode; it does not decide what they are.
+# ---------------------------------------------------------------------------
+ACTIONS_BY_LEVEL: dict[str, int] = {"Severe": 4, "High": 3, "Moderate": 2, "Low": 1}
+
+
+def build_advisory(
+    risk: RiskOutput,
+    user_type: str | None = None,
+    lang: str = "en",
+) -> dict[str, Any]:
+    """Ordered, sourced actions for one persona under one hazard.
+
+    Fallback chain: the persona's own lead action for this hazard, then the
+    hazard's shared actions, then — if a hazard is somehow unnamed while risk is
+    actionable — a safe generic advisory. A High or Severe situation never
+    returns an empty action list.
+    """
+    lang = i18n.normalise_lang(lang)
+    profile = i18n.canonical_profile(user_type)
+    hazard = risk.detected_hazard
+    wanted = ACTIONS_BY_LEVEL.get(risk.risk_level, 1)
+
+    actions: list[dict[str, Any]] = []
+
+    # 1 — the persona's own action leads, and is the one carrying a reason.
+    lead = i18n.profile_action(profile, hazard, lang)
+    if lead:
+        actions.append(
+            {
+                "action": lead,
+                "reason": i18n.profile_reason(profile, hazard, lang),
+                "priority": 1,
+            }
+        )
+
+    # 2 — the hazard's shared safety actions.
+    for text in i18n.hazard_actions(hazard, lang):
+        if len(actions) >= wanted:
+            break
+        if any(existing["action"] == text for existing in actions):
+            continue
+        actions.append({"action": text, "reason": None, "priority": len(actions) + 1})
+
+    # 3 — never leave a dangerous situation without guidance.
+    if not actions and risk_engine.is_actionable(risk):
+        actions = [
+            {
+                "action": i18n.sentence("advisory_generic", lang),
+                "reason": None,
+                "priority": 1,
+            }
+        ]
+
+    return {
+        "user_type": profile,
+        "hazard": hazard,
+        "risk_level": risk.risk_level,
+        "actions": actions[:wanted],
+        "disclaimer": disclaimer(lang),
+        "source": "rules",
+    }
+
+
+def advisory_for_every_persona(risk: RiskOutput, lang: str = "en") -> list[dict[str, Any]]:
+    """The same conditions read by each persona — one weather fact, several
+    decisions. Backs the comparison view and the demo."""
+    return [build_advisory(risk, profile, lang) for profile in PERSONAS]
+
+
+PERSONAS: tuple[str, ...] = ("farmer", "fisherman", "traveler", "commuter", "general")
+
+
+# ---------------------------------------------------------------------------
+# Emergency mode (Feature B)
+#
+# The trigger is the risk engine and nothing else: this returns an inactive
+# block below High, so a client cannot talk itself into an emergency. The
+# content follows the order official emergency communication uses — what is
+# happening, why it matters, what to do now.
+# ---------------------------------------------------------------------------
+def _voice_friendly(text: str) -> str:
+    """Speech-shaped text. Imported lazily: the speech stack is optional, and a
+    missing TTS dependency must not stop an emergency from rendering."""
+    try:
+        from .speech import voice_friendly
+
+        return voice_friendly(text)
+    except Exception:  # noqa: BLE001
+        return text
+
+
+def _valid_until(bundle: Any, hours: int = 24) -> str | None:
+    """End of the run of hours that stay at an actionable level.
+
+    Derived from the forecast the engine already scores, so the horizon is a
+    real one. Open-Meteo publishes no expiry, and inventing a precise one would
+    be a fabricated number.
+    """
+    run_end = None
+    for hour in risk_engine.timeline(bundle, hours=hours):
+        if hour["risk_level"] in {"High", "Severe"}:
+            run_end = hour["time"]
+        elif run_end is not None:
+            break
+    return run_end
+
+
+def build_emergency(
+    bundle: Any,
+    risk: RiskOutput,
+    user_type: str | None = None,
+    lang: str = "en",
+    *,
+    is_simulated: bool = False,
+) -> dict[str, Any]:
+    """Structured emergency payload. Inactive unless the engine says otherwise."""
+    lang = i18n.normalise_lang(lang)
+    if not risk_engine.is_actionable(risk):
+        return {
+            "active": False,
+            "risk_level": risk.risk_level,
+            "hazard": risk.detected_hazard,
+            "is_simulated": is_simulated,
+        }
+
+    hazard = i18n.hazard_label(risk.detected_hazard, lang)
+    level = i18n.level_label(risk.risk_level, lang)
+    end = i18n.terminator(lang)
+
+    drivers = i18n.driver_labels(risk.driver_details, lang)
+    what = "; ".join(drivers[:2]) if drivers else smart_explanation(bundle, risk, lang, mode="simple")
+
+    advisory = build_advisory(risk, user_type, lang)
+    immediate = [item["action"] for item in advisory["actions"]]
+
+    # Written to be heard, not read: no bullets, no raw field names, short
+    # sentences, and short enough to finish before someone stops listening.
+    spoken = " ".join(
+        [
+            i18n.sentence("emg_headline", lang, loc=bundle.location.label, hazard=hazard),
+            f"{what}{end}",
+            i18n.sentence("emg_why_text", lang, level=level, score=risk.risk_score),
+        ]
+        + immediate[:3]
+    )
+
+    return {
+        "active": True,
+        "risk_level": risk.risk_level,
+        "hazard": risk.detected_hazard,
+        "headline": i18n.sentence("emg_headline", lang, loc=bundle.location.label, hazard=hazard),
+        "what_is_happening": f"{what}{end}",
+        "why_it_matters": i18n.sentence("emg_why_text", lang, level=level, score=risk.risk_score),
+        "immediate_actions": immediate,
+        "spoken_instructions": _voice_friendly(spoken),
+        "valid_until": _valid_until(bundle),
+        "is_simulated": is_simulated,
+    }
