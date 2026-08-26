@@ -98,7 +98,8 @@ ACTION_TERMS: tuple[str, ...] = (
     "काय करावे", "खबरदार", "सुरक्षित", "प्रवास",
     "ఏం చేయాలి", "జాగ్రత్త", "భద్రత", "సలహా", "సురక్షిత", "ప్రయాణం", "బయటికి",
     "কী করব", "কি করব", "সতর্কতা অবলম্বন", "নিরাপ", "পরামর্শ", "ভ্রমণ",
-    "কি কৰিব", "সাৱধান", "নিৰাপ", "পৰামৰ্শ", "যাত্ৰা",
+    "কি কৰিব", "সাৱধান", "নিৰাপ", "পৰামৰ্শ", "যাত্ৰা", "বাহিৰ", "ওলাব",
+    "বাইরে", "বেরোব",
 )
 
 FOLLOWUP_TERMS: tuple[str, ...] = (
@@ -278,6 +279,18 @@ def extract(query: str, *, language: str = "en", known_location: str | None = No
         "day_offset": day_offset,
         "user_type": user_type or "general",
         "response_mode": "simple" if _contains(text, SIMPLE_TERMS) else "normal",
+        "advice_question": is_advice_question(text),
         "language": normalise_lang(language),
         "_source": "rules",
     }
+
+
+def is_advice_question(query: str) -> bool:
+    """Is this asking what to do, rather than what the weather is?
+
+    "Is it safe to travel?" used to be widened into scope by these same terms
+    and then answered as a plain observation, because nothing downstream knew
+    the question had been about safety. Naming it lets the answer lead with
+    guidance instead.
+    """
+    return _contains((query or "").strip(), ACTION_TERMS)

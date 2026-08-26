@@ -74,6 +74,7 @@ def _sanitise_extraction(raw: dict[str, Any] | None, *, fallback_language: str) 
         "user_type": user_type,
         # The model never gets to declare an emergency; measured risk does.
         "response_mode": "normal" if mode == "emergency" else mode,
+        "advice_question": bool(raw.get("advice_question", False)),
         "language": i18n.normalise_lang(raw.get("language") or fallback_language),
         "_source": "llm",
     }
@@ -269,6 +270,13 @@ def handle_chat(
         degraded=degraded,
         selected_location=selected_location,
     )
+    # "Is it safe to travel?" is an advice question whichever path read it, and
+    # the rules detector is the one that actually knows the phrasings in all six
+    # languages — so it has the final say rather than the model's guess.
+    extraction["advice_question"] = bool(
+        extraction.get("advice_question") or nlp_fallback.is_advice_question(text)
+    )
+
     if user_type:
         extraction["user_type"] = user_type if user_type in USER_TYPES else extraction["user_type"]
     elif state.user_type and extraction["user_type"] == "general":
@@ -416,6 +424,7 @@ def handle_chat(
             lang=out_lang,
             mode=mode,
             day_offset=day_offset,
+            advice_question=extraction["advice_question"],
         )
         explanation = explanation or advisory.smart_explanation(bundle, risk, out_lang, mode="simple")
 
@@ -433,7 +442,7 @@ def handle_chat(
     comparison = history.comparison_for_bundle(bundle, risk)
 
     # --- Feature payloads, all driven by the one risk output ---------------
-    advisory_block = advisory.build_advisory(risk, extraction["user_type"], out_lang)
+    advisory_block = advisory.build_advisory(risk, extraction["user_type"], out_lang, bundle=bundle)
     emergency_block = advisory.build_emergency(bundle, risk, extraction["user_type"], out_lang)
 
     similarity = history.similarity_for_bundle(bundle, risk)

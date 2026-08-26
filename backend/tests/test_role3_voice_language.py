@@ -159,3 +159,116 @@ def test_explanation_only_quotes_values_the_provider_returned():
 
     for number in re.findall(r"\d+\.?\d*", text):
         assert number in allowed, f"unsupported number {number!r} in: {text}"
+
+
+# ---------------------------------------------------------------------------
+# Regressions found by tracing the Role 3 features end to end.
+#
+# Each of these failed before the fix, in the no-LLM path that a demo actually
+# runs on. They are written against ``handle_chat`` rather than the helpers so
+# they cover the wiring, which is where all four bugs lived.
+# ---------------------------------------------------------------------------
+PERSONAS = ("general", "farmer", "fisherman", "traveler", "commuter")
+
+
+def _answers_by_persona(scenario: str, question: str = "What is the weather in Vijayawada today?"):
+    os.environ["WEATHER_FIXTURE_SCENARIO"] = scenario
+    # Bundles are cached for ten minutes, so a scenario switch inside one
+    # process would otherwise re-read the previous scenario's weather.
+    weather.clear_cache()
+    from app.services import chat_engine
+
+    out = {}
+    for persona in PERSONAS:
+        response = chat_engine.handle_chat(
+            query=question, user_type=persona, session_id=f"reg-{scenario}-{persona}"
+        )
+        out[persona] = response
+    return out
+
+
+@pytest.mark.parametrize("scenario", ["calm", "rain", "storm", "flood", "heat", "wind"])
+def test_selected_role_changes_the_answer_at_every_risk_level(scenario):
+    """The role reached the advisory panel but not the answer.
+
+    Below the emergency threshold every persona was handed the same sentence,
+    which is precisely the calm-weather case a demo is most likely to hit.
+    """
+    answers = {p: r.answer for p, r in _answers_by_persona(scenario).items()}
+    assert len(set(answers.values())) == len(PERSONAS), (
+        f"{scenario}: personas share an answer -> {answers}"
+    )
+
+
+@pytest.mark.parametrize("scenario", ["calm", "rain", "storm", "flood", "heat", "wind"])
+def test_advisory_is_never_empty_and_differs_from_general(scenario):
+    """``build_advisory`` returned nothing when no hazard was named."""
+    responses = _answers_by_persona(scenario)
+    general = [a.action for a in responses["general"].advisory.actions]
+    assert general, f"{scenario}: general advisory is empty"
+    for persona in ("farmer", "fisherman", "traveler", "commuter"):
+        actions = [a.action for a in responses[persona].advisory.actions]
+        assert actions, f"{scenario}/{persona}: advisory is empty"
+        assert actions != general, f"{scenario}/{persona}: advisory matches general"
+
+
+def test_safety_follow_up_keeps_the_place_and_answers_about_safety():
+    """"Is it safe to travel?" kept Hyderabad but replied with a plain reading."""
+    os.environ["WEATHER_FIXTURE_SCENARIO"] = "rain"
+    weather.clear_cache()
+    from app.services import chat_engine
+
+    session = "reg-context"
+    first = chat_engine.handle_chat(
+        query="What is the weather in Hyderabad today?", user_type="traveler", session_id=session
+    )
+    assert first.location and first.location.name == "Hyderabad"
+
+    second = chat_engine.handle_chat(
+        query="Is it safe to travel?", user_type="traveler", session_id=session
+    )
+    assert second.location and second.location.name == "Hyderabad", "lost the running location"
+    assert second.answer != first.answer, "the safety question got the same generic answer"
+    # The travel-specific line from the rules table, not an invented one.
+    assert i18n.profile_action("traveler", second.risk.detected_hazard, "en") in second.answer
+
+    third = chat_engine.handle_chat(
+        query="What about tomorrow?", user_type="traveler", session_id=session
+    )
+    assert third.location and third.location.name == "Hyderabad"
+    assert third.intent == "forecast"
+
+
+def test_assamese_place_names_and_advice_questions_resolve():
+    """Assamese ৰ/ৱ never matched the Bengali র/ব stored in the gazetteer, and
+    "can I go outside?" in Assamese fell out of scope while Telugu did not."""
+    os.environ["WEATHER_FIXTURE_SCENARIO"] = "rain"
+    weather.clear_cache()
+    from app.services import chat_engine
+
+    assert weather.native_lookup("হায়দৰাবাদত").name == "Hyderabad"
+    assert weather.native_lookup("গুৱাহাটীত").name == "Guwahati"
+    assert nlp_fallback.is_advice_question("মই বাহিৰলৈ যাব পাৰোঁনে?")
+
+    response = chat_engine.handle_chat(
+        query="মই বাহিৰলৈ যাব পাৰোঁনে?",
+        user_type="traveler",
+        session_id="reg-as",
+        selected_location="Vijayawada",
+    )
+    assert response.in_scope, "Assamese advice question was redirected as off-topic"
+    assert response.language == "as"
+    assert re.search(SCRIPTS["as"], response.answer)
+
+
+def test_emergency_mode_still_only_fires_on_measured_risk():
+    """The persona wiring must not manufacture a warning on a calm day."""
+    calm = _answers_by_persona("calm")["farmer"]
+    assert calm.risk.risk_level == "Low"
+    assert calm.action_mode is False
+    assert calm.actions == []
+
+    severe = _answers_by_persona("flood")["farmer"]
+    assert severe.risk.risk_level in {"High", "Severe"}
+    assert severe.action_mode is True
+    assert severe.actions

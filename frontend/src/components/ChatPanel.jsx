@@ -49,6 +49,7 @@ export default function ChatPanel({
   const listRef = useRef(null)
   const audioRef = useRef(null)
   const [playingId, setPlayingId] = useState(null)
+  const [noSpeech, setNoSpeech] = useState(false)
 
   const recorder = useVoiceRecorder({ language })
   const quick = t(language, 'quick')
@@ -76,12 +77,26 @@ export default function ChatPanel({
     onSend(text)
   }
 
+  // A mis-tap on the microphone produces a blob of a few hundred bytes of
+  // container header and no speech. Below this, there is nothing to transcribe.
+  const MIN_AUDIO_BYTES = 1200
+
   const toggleRecording = async () => {
     if (recorder.recording) {
       const result = await recorder.stop()
-      if (result?.blob) onVoice(result.blob, result.transcript)
+      if (!result?.blob) return
+      const heardSomething =
+        Boolean(result.transcript?.trim()) || result.blob.size >= MIN_AUDIO_BYTES
+      if (!heardSomething) {
+        // Say so here rather than spending a round trip to be told the same.
+        setNoSpeech(true)
+        return
+      }
+      setNoSpeech(false)
+      onVoice(result.blob, result.transcript)
       return
     }
+    setNoSpeech(false)
     await recorder.start()
   }
 
@@ -180,6 +195,12 @@ export default function ChatPanel({
           </div>
         )}
       </div>
+
+      {noSpeech && !recorder.error && (
+        <p className="mt-2 text-xs text-muted" role="status">
+          {t(language, 'noSpeech')}
+        </p>
+      )}
 
       {recorder.error && (
         <p role="alert" className="mt-2 text-[11px] text-caution">

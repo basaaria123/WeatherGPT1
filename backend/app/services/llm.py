@@ -123,6 +123,13 @@ EXTRACTION_TOOL: dict[str, Any] = {
             },
             "user_type": {"type": "string", "enum": list(USER_TYPES)},
             "response_mode": {"type": "string", "enum": ["normal", "simple", "emergency"]},
+            "advice_question": {
+                "type": "boolean",
+                "description": (
+                    "True when the user is asking what to do rather than what the weather is — "
+                    "safety, precautions, whether to travel, go out, harvest or sail."
+                ),
+            },
             "language": {
                 "type": "string",
                 "description": "ISO 639-1 code of the language the user wrote in, e.g. en, hi, te, bn, mr, as.",
@@ -130,7 +137,7 @@ EXTRACTION_TOOL: dict[str, Any] = {
         },
         "required": [
             "in_scope", "intent", "location", "use_previous_location",
-            "day_offset", "user_type", "response_mode", "language",
+            "day_offset", "user_type", "response_mode", "advice_question", "language",
         ],
         "additionalProperties": False,
     },
@@ -185,6 +192,8 @@ Call extract_weather_query exactly once. Guidance:
   (farming, fishing, travelling, commuting, flying, city life). Otherwise use "general".
 - Set response_mode "simple" only when the user asks for simpler or shorter wording.
   Never set "emergency" yourself: severity is decided from measured data, not from wording.
+- Set advice_question true when the user asks what to do rather than what the weather is:
+  "is it safe to travel?", "should I harvest today?", "can I go out?", "what precautions?".
 - Greetings and thanks about weather remain in scope. Anything unrelated to weather
   (recipes, politics, code, general trivia) is out_of_scope with in_scope false."""
 

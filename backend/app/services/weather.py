@@ -122,6 +122,17 @@ def _entry_to_location(entry: dict[str, Any]) -> Location:
     )
 
 
+# Assamese and Bengali share a script but not every letter: Assamese writes ra
+# as ৰ and wa as ৱ where Bengali uses র and ব. Folding those pairs lets a name
+# stored in one of the two match a question typed in the other, which is why
+# "গুৱাহাটী" and "গুয়াহাটি" both resolve.
+_INDIC_FOLD = str.maketrans({"\u09f0": "\u09b0", "\u09f1": "\u09ac"})
+
+
+def _fold_script(text: str) -> str:
+    return text.translate(_INDIC_FOLD)
+
+
 def native_lookup(query: str) -> Location | None:
     """Match a place written in Devanagari/Telugu/Bengali/Assamese script.
 
@@ -131,12 +142,13 @@ def native_lookup(query: str) -> Location | None:
     raw = (query or "").strip()
     if not raw:
         return None
+    folded_raw = _fold_script(raw)
     candidates: list[tuple[str, dict[str, Any]]] = []
     for entry in _gazetteer():
         for native in entry.get("native", []):
             candidates.append((native, entry))
     for native, entry in sorted(candidates, key=lambda pair: -len(pair[0])):
-        if native in raw:
+        if native in raw or _fold_script(native) in folded_raw:
             return _entry_to_location(entry)
     return None
 

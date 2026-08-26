@@ -376,6 +376,87 @@ def alerts_answer(bundle: Any, alerts: list[dict[str, Any]], lang: str) -> str:
     return f"{lead} {detail}".strip()
 
 
+def _sentences(text: str) -> list[str]:
+    """Split on the sentence enders the six languages actually use.
+
+    Devanagari and Bengali/Assamese end a sentence with a danda, not a full
+    stop, so splitting on "." alone would treat a whole Hindi answer as one
+    sentence and defeat the de-duplication below.
+    """
+    out: list[str] = []
+    buf = ""
+    for char in text:
+        buf += char
+        if char in ".।॥৷!?":
+            stripped = buf.strip()
+            if stripped:
+                out.append(stripped)
+            buf = ""
+    if buf.strip():
+        out.append(buf.strip())
+    return out
+
+
+def persona_guidance(
+    bundle: Any,
+    risk: RiskOutput,
+    user_type: str | None,
+    lang: str,
+    *,
+    limit: int = 3,
+) -> list[str]:
+    """How this particular reader should read these particular measurements.
+
+    Delegates to ``headline_insight``, which orders candidate sentences by the
+    profile's own priorities and only offers one when the value behind it was
+    actually measured. That is what makes a farmer's answer differ from a
+    fisherman's without either of them being told something the data does not
+    support — the profile reorders and closes, it never invents.
+    """
+    profile = i18n.canonical_profile(user_type)
+    insight = headline_insight(bundle, risk, profile, lang)
+    joined = " ".join(
+        part.strip()
+        for part in (insight.get("headline"), insight.get("supporting"))
+        if part and str(part).strip()
+    )
+    lines = _sentences(joined)[:limit] if joined else []
+
+    # Once a hazard is named, the insight's three slots fill with rain and
+    # hazard sentences and the profile's own closing line is crowded out — which
+    # left a traveller and a commuter reading the same Moderate answer. The
+    # profile's lead action for that hazard is the same rules-table entry the
+    # advisory panel shows, so this adds no new claim, only the one sentence
+    # that is actually about this reader.
+    lead = i18n.profile_action(profile, risk.detected_hazard, lang)
+    if lead and lead not in lines:
+        lines.append(lead)
+    return lines
+
+
+def _with_persona_guidance(
+    base: str,
+    bundle: Any,
+    risk: RiskOutput,
+    user_type: str | None,
+    lang: str,
+    *,
+    lead: bool = False,
+) -> str:
+    """Attach the reader's own take to a general answer.
+
+    Sentences already present in ``base`` are dropped, so selecting a profile
+    changes what the answer emphasises rather than making it longer. When the
+    question was itself a safety or advice question, the guidance leads and the
+    observation follows.
+    """
+    fresh = [line for line in persona_guidance(bundle, risk, user_type, lang) if line not in base]
+    if not fresh:
+        return base
+    tail = " ".join(fresh)
+    return f"{tail} {base}".strip() if lead else f"{base} {tail}".strip()
+
+
 def templated_answer(
     bundle: Any,
     risk: RiskOutput,
@@ -386,6 +467,7 @@ def templated_answer(
     mode: str = "normal",
     day_offset: int = 1,
     alerts: list[dict[str, Any]] | None = None,
+    advice_question: bool = False,
 ) -> str:
     """The full no-LLM answer. Correct, multilingual, and impossible to
     hallucinate with, because every number is substituted from real data."""
@@ -393,12 +475,18 @@ def templated_answer(
     # Emergency wording is gated on the measured risk alone. `mode` cannot
     # promote a calm reading into a warning, only the risk engine can.
     if risk_engine.is_actionable(risk):
+        # The emergency brief is already written for the persona.
         return emergency_brief(bundle, risk, user_type, lang)
     if intent == "forecast":
-        return forecast_answer(bundle, lang, day_offset=day_offset)
-    if intent == "alert_check":
-        return alerts_answer(bundle, alerts or [], lang)
-    return smart_explanation(bundle, risk, lang, mode=mode)
+        base = forecast_answer(bundle, lang, day_offset=day_offset)
+    elif intent == "alert_check":
+        base = alerts_answer(bundle, alerts or [], lang)
+    else:
+        base = smart_explanation(bundle, risk, lang, mode=mode)
+    # Below the emergency threshold the observation is the same for everyone;
+    # what changes with the profile is which part of it matters. Without this
+    # the selected role reached the advisory panel but never the answer itself.
+    return _with_persona_guidance(base, bundle, risk, user_type, lang, lead=advice_question)
 
 
 # ---------------------------------------------------------------------------
@@ -555,6 +643,8 @@ def build_advisory(
     risk: RiskOutput,
     user_type: str | None = None,
     lang: str = "en",
+    *,
+    bundle: Any | None = None,
 ) -> dict[str, Any]:
     """Ordered, sourced actions for one persona under one hazard.
 
@@ -589,7 +679,18 @@ def build_advisory(
             continue
         actions.append({"action": text, "reason": None, "priority": len(actions) + 1})
 
-    # 3 — never leave a dangerous situation without guidance.
+    # 3 — calm conditions name no hazard, so there is no hazard action to give.
+    # An empty panel made every profile look identical on exactly the days a
+    # demo is most likely to run, so the reader still gets their own reading of
+    # the measurements — theirs, not a generic one, and still measured.
+    if not actions and bundle is not None:
+        guidance = persona_guidance(bundle, risk, profile, lang, limit=3)
+        if guidance:
+            # The profile's closing line is appended last by ``headline_insight``,
+            # so it is the sentence that speaks to this reader specifically.
+            actions.append({"action": guidance[-1], "reason": None, "priority": 1})
+
+    # 4 — never leave a dangerous situation without guidance.
     if not actions and risk_engine.is_actionable(risk):
         actions = [
             {
