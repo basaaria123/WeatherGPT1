@@ -43,6 +43,9 @@ class SessionState:
     response_mode: str = "normal"
     last_intent: str | None = None
     last_day_offset: int = 0
+    # True when the user named this place out loud rather than it coming from
+    # the dashboard selector. A follow-up continues the place they asked about.
+    location_was_named: bool = False
     # Historical comparisons already surfaced in this conversation. A pattern
     # match is context, and context repeated every turn becomes noise.
     seen_events: list[str] = field(default_factory=list)
@@ -118,11 +121,13 @@ def remember_turn(state: SessionState, role: str, text: str, **kwargs: Any) -> N
     state.turns.append(Turn(role=role, text=text, **kwargs))
 
 
-def set_location(state: SessionState, location: Any) -> None:
+def set_location(state: SessionState, location: Any, *, named: bool | None = None) -> None:
     state.location_name = location.name
     state.admin1 = location.admin1
     state.latitude = location.latitude
     state.longitude = location.longitude
+    if named is not None:
+        state.location_was_named = named
 
 
 def clear_cache() -> None:

@@ -39,12 +39,24 @@ come from one shared Weather Risk Engine, so they can never disagree.
 async def lifespan(app: FastAPI):
     settings = get_settings()
     init_db()
+    from .services import speech
+
+    stt = speech.transcription_engine()
     log.info(
-        "WeatherGPT starting | data=%s | llm=%s | model=%s",
+        "WeatherGPT starting | data=%s | llm=%s | model=%s | speech-to-text=%s",
         settings.weather_data_mode,
-        "configured" if settings.llm_configured else "fallback-only",
-        settings.anthropic_model if settings.llm_configured else "-",
+        settings.active_llm_provider or "fallback-only",
+        settings.active_llm_model or "-",
+        stt,
     )
+    if stt == "none":
+        # Say this at boot rather than letting it surface as a confusing error
+        # the first time somebody taps the microphone during a demo.
+        log.warning(
+            "No server-side speech-to-text. Voice input will work only in browsers "
+            "with speech recognition. Set ELEVENLABS_API_KEY (hosted, no download) "
+            "or install requirements-voice.txt (on-device) to enable it."
+        )
     if settings.use_fixtures:
         log.warning("WEATHER_DATA_MODE=fixture — responses use SIMULATED data, not live observations.")
     if settings.serverless:

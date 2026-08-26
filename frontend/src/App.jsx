@@ -370,6 +370,7 @@ export default function App() {
                   voicePending={voicePending}
                   error={chatError}
                   audioAvailable={capabilities?.voice_output_available}
+                  serverTranscribes={capabilities?.voice_input_available}
                 />
                 <AlertsPanel onViewArea={viewArea} />
               </div>

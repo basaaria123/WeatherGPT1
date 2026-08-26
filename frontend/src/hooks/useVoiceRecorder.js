@@ -22,6 +22,12 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
   const tickRef = useRef(null)
   const recognitionRef = useRef(null)
   const transcriptRef = useRef('')
+  const recognitionErrorRef = useRef(null)
+  const recognitionStartedRef = useRef(false)
+
+  const recognitionSupported =
+    typeof window !== 'undefined' &&
+    Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
 
   const supported =
     typeof navigator !== 'undefined' &&
@@ -59,17 +65,27 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
           .join(' ')
           .trim()
       }
-      recognition.onerror = () => {}
+      // Not a bonus any more: on a server with no speech-to-text configured,
+      // this transcript is the only thing that makes the microphone work. So
+      // record why it failed instead of discarding it — the caller uses this
+      // to tell the user to type rather than leaving them with a server error
+      // about a Python package they cannot install from a browser.
+      recognition.onerror = (event) => {
+        recognitionErrorRef.current = event?.error || 'unknown'
+      }
       recognition.start()
       recognitionRef.current = recognition
+      recognitionStartedRef.current = true
     } catch {
-      /* browser recognition is a bonus, never a requirement */
+      recognitionErrorRef.current = 'start-failed'
     }
   }, [language])
 
   const start = useCallback(async () => {
     setError(null)
     transcriptRef.current = ''
+    recognitionErrorRef.current = null
+    recognitionStartedRef.current = false
     if (!supported) {
       setError('Voice recording is not supported in this browser. Please type your question.')
       return false
@@ -90,7 +106,14 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
         cleanup()
         setRecording(false)
         setSeconds(0)
-        resolveRef.current?.({ blob, transcript: transcriptRef.current })
+        resolveRef.current?.({
+          blob,
+          transcript: transcriptRef.current,
+          // So the caller can distinguish "said nothing" from "the browser
+          // could not listen at all", which need different advice.
+          recognitionError: recognitionErrorRef.current,
+          recognitionRan: recognitionStartedRef.current,
+        })
         resolveRef.current = null
       }
       recorder.start()
@@ -148,5 +171,15 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
     setSeconds(0)
   }, [cleanup])
 
-  return { supported, recording, seconds, error, start, stop, cancel, maxSeconds: MAX_SECONDS }
+  return {
+    supported,
+    recognitionSupported,
+    recording,
+    seconds,
+    error,
+    start,
+    stop,
+    cancel,
+    maxSeconds: MAX_SECONDS,
+  }
 }

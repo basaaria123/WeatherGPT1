@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """Chat orchestration — the path every question travels.
 
-    detect language -> translate to English -> understand -> fetch weather
+    detect language -> understand (in the language asked) -> fetch weather
       -> score risk (shared engine) -> generate -> verify numbers
       -> emergency mode if warranted -> answer in the user's language
 
@@ -12,8 +12,8 @@ in favour of the deterministic template if it quotes a measurement the provider
 did not return. The template substitutes real values, so the fallback for a
 hallucination is a correct answer, not an apology.
 
-*Availability.* Every external dependency — Anthropic, Open-Meteo, the
-translator, TTS — has a defined degraded path. The response reports what
+*Availability.* Every external dependency — the LLM provider, Open-Meteo,
+speech-to-text, TTS — has a defined degraded path. The response reports what
 degraded in ``degraded`` instead of hiding it.
 
 Voice chat reuses this module wholesale; it does not reimplement any of it.
@@ -124,10 +124,13 @@ def resolve_location(
 ) -> Location | None:
     """Work out which place the question is about.
 
-    Order matters. A place named in the question always wins. Failing that the
-    client's currently-selected location wins, ahead of session memory: the user
-    can see that location on screen, so answering about a different one — even
-    one they asked about earlier — reads as a bug, not as continuity.
+    Order matters. A place named in the question always wins. After that the
+    conversation's own subject wins — but only when the user put it there by
+    naming it. Asking "what about Chennai?" while the dashboard shows Guwahati
+    and then "is it safe to travel?" used to snap back to Guwahati, which reads
+    as the assistant forgetting the question it just answered. The dashboard
+    selection still wins over a place the user never named, so a fresh question
+    with no subject yet is answered about what is on screen.
     """
     name = extraction.get("location") or ""
     if name:
@@ -139,19 +142,30 @@ def resolve_location(
         if found is not None:
             return found
 
+    def remembered() -> Location | None:
+        if not state.has_location():
+            return None
+        return Location(
+            name=state.location_name or "your area",
+            latitude=float(state.latitude),  # type: ignore[arg-type]
+            longitude=float(state.longitude),  # type: ignore[arg-type]
+            admin1=state.admin1,
+        )
+
+    if state.location_was_named:
+        found = remembered()
+        if found is not None:
+            return found
+
     if selected:
         found = weather.geocode(selected)
         if found is not None:
             return found
 
     if not name or extraction.get("use_previous_location"):
-        if state.has_location():
-            return Location(
-                name=state.location_name or "your area",
-                latitude=float(state.latitude),  # type: ignore[arg-type]
-                longitude=float(state.longitude),  # type: ignore[arg-type]
-                admin1=state.admin1,
-            )
+        found = remembered()
+        if found is not None:
+            return found
 
     if latitude is not None and longitude is not None:
         return Location(name="Your location", latitude=latitude, longitude=longitude, admin1=None)
@@ -250,17 +264,18 @@ def handle_chat(
         )
     state.language = out_lang
 
-    # --- 2. Query into English (the pipeline's working language) -----------
+    # --- 2. The question travels as written --------------------------------
+    # This used to translate every non-English question into English before
+    # understanding it, which cost a whole extra provider round trip on exactly
+    # the turns that were already the slowest: a Telugu question took 17.1s
+    # against English's 3.0s, and users read that as "Telugu does not work".
+    #
+    # The trip bought nothing. Extraction is a tool call whose schema names the
+    # language field, and the model reads Telugu, Hindi, Bengali, Marathi and
+    # Assamese directly — it returns location "Vijayawada" and language "te"
+    # from the Telugu original. The rules-based fallback never used the
+    # translation either: it matches Indic terms against the raw text.
     english_query = text
-    if detection.language != "en" and detection.supported and llm.available():
-        try:
-            english_query = language.translate(text, detection.language, "en", llm=llm) or text
-        except language.TranslationError as exc:
-            degraded.translation_error = str(exc)
-            english_query = text  # rules-based extraction reads the original fine
-        except Exception as exc:  # noqa: BLE001
-            log.warning("inbound translation raised unexpectedly: %s", exc)
-            english_query = text
 
     # --- 3. Understand -----------------------------------------------------
     extraction = understand(
@@ -332,7 +347,9 @@ def handle_chat(
             data_source=settings.weather_data_mode,
             degraded=degraded,
         )
-    memory.set_location(state, location)
+    # Remember whether this place came from the question or from the dashboard,
+    # so the next follow-up knows which one the conversation is actually about.
+    memory.set_location(state, location, named=bool(extraction.get("location")))
 
     # --- 6. Weather --------------------------------------------------------
     try:
@@ -426,7 +443,23 @@ def handle_chat(
             day_offset=day_offset,
             advice_question=extraction["advice_question"],
         )
-        explanation = explanation or advisory.smart_explanation(bundle, risk, out_lang, mode="simple")
+        # "Why this answer?" has to add something. On a calm or moderate day the
+        # answer already *is* the plain reading of the data, so the templated
+        # explanation came back word for word identical and the panel showed the
+        # user their own answer twice. An empty explanation is better than an
+        # echo — the panel simply does not open.
+        if not explanation:
+            candidate = advisory.smart_explanation(bundle, risk, out_lang, mode="simple")
+            if not _adds_something(candidate, answer):
+                # Fall back to the evidence: the measured values the risk engine
+                # actually scored. Localised, real, and by definition not a
+                # restatement of the narrative above it. On a genuinely calm day
+                # there are no drivers, so the panel stays closed rather than
+                # inventing a reason.
+                drivers = i18n.driver_labels(risk.driver_details, out_lang)
+                end = i18n.terminator(out_lang)
+                candidate = "".join(f"{driver}{end} " for driver in drivers[:3]).strip()
+            explanation = candidate or None
 
     # --- 10. Actions and emergency mode ------------------------------------
     if risk_engine.is_actionable(risk):
@@ -491,6 +524,20 @@ def handle_chat(
         verification=verification_info,
         degraded=degraded,
     )
+
+
+def _adds_something(candidate: str, answer: str) -> bool:
+    """True when `candidate` says anything the answer has not already said.
+
+    Compared sentence by sentence rather than as whole strings: the templates
+    share their opening clause, so a substring test would keep an explanation
+    that only differs by its last few words.
+    """
+    candidate = (candidate or "").strip()
+    if not candidate:
+        return False
+    said = set(advisory._sentences(answer or ""))
+    return any(sentence not in said for sentence in advisory._sentences(candidate))
 
 
 def _extra_context(bundle: Any, risk: RiskOutput, mode: str, user_type: str, lang: str) -> str:

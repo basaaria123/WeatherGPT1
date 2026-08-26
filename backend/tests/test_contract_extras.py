@@ -121,12 +121,19 @@ def test_aviation_and_urban_alias_to_real_advice(scenario, bundle_for):
         assert actions, f"{profile} produced no advice"
 
 
-# --- Explanation is always present and grounded ----------------------------
+# --- Explanation is grounded, and adds something --------------------------
 def test_explanation_present_and_verified(scenario):
+    """Tightened: "Why this answer?" used to be populated unconditionally, which
+    on a calm or moderate day meant showing the reader their own answer back.
+    It is now present only when it adds something — so assert that, not merely
+    that the field is non-empty."""
     scenario("rain")
     response = chat_engine.handle_chat(query="Weather in Kochi?")
-    assert response.explanation
     assert response.verification.verified
+    assert response.explanation, "a Moderate day has measured drivers to show"
+    said = set(advisory._sentences(response.answer))
+    fresh = [s for s in advisory._sentences(response.explanation) if s not in said]
+    assert fresh, "explanation only repeats the answer"
 
 
 def test_raw_weather_accompanies_the_answer(scenario):

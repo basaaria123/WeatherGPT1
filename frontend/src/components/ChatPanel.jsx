@@ -43,13 +43,14 @@ export default function ChatPanel({
   voicePending,
   error,
   audioAvailable,
+  serverTranscribes,
 }) {
   const language = useStore((s) => s.language)
   const [draft, setDraft] = useState('')
   const listRef = useRef(null)
   const audioRef = useRef(null)
   const [playingId, setPlayingId] = useState(null)
-  const [noSpeech, setNoSpeech] = useState(false)
+  const [voiceNote, setVoiceNote] = useState(null)
 
   const recorder = useVoiceRecorder({ language })
   const quick = t(language, 'quick')
@@ -81,22 +82,36 @@ export default function ChatPanel({
   // container header and no speech. Below this, there is nothing to transcribe.
   const MIN_AUDIO_BYTES = 1200
 
+  // With no speech-to-text on the server, the browser's own transcript is the
+  // only thing that can turn this recording into a question. Knowing that up
+  // front is what lets us give the real reason instead of a server error about
+  // a Python package the user cannot install from a browser.
+  const transcriptIsRequired = serverTranscribes === false
+
   const toggleRecording = async () => {
     if (recorder.recording) {
       const result = await recorder.stop()
       if (!result?.blob) return
-      const heardSomething =
-        Boolean(result.transcript?.trim()) || result.blob.size >= MIN_AUDIO_BYTES
-      if (!heardSomething) {
-        // Say so here rather than spending a round trip to be told the same.
-        setNoSpeech(true)
+      const transcript = result.transcript?.trim() || ''
+
+      if (transcriptIsRequired && !transcript) {
+        setVoiceNote(
+          result.recognitionRan && !result.recognitionError
+            ? 'noSpeech'
+            : 'recognitionUnavailable',
+        )
         return
       }
-      setNoSpeech(false)
-      onVoice(result.blob, result.transcript)
+      if (!transcript && result.blob.size < MIN_AUDIO_BYTES) {
+        // Say so here rather than spending a round trip to be told the same.
+        setVoiceNote('noSpeech')
+        return
+      }
+      setVoiceNote(null)
+      onVoice(result.blob, transcript)
       return
     }
-    setNoSpeech(false)
+    setVoiceNote(null)
     await recorder.start()
   }
 
@@ -196,9 +211,9 @@ export default function ChatPanel({
         )}
       </div>
 
-      {noSpeech && !recorder.error && (
+      {voiceNote && !recorder.error && (
         <p className="mt-2 text-xs text-muted" role="status">
-          {t(language, 'noSpeech')}
+          {t(language, voiceNote)}
         </p>
       )}
 

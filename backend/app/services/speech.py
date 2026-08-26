@@ -21,6 +21,7 @@ import base64
 import importlib.util
 import io
 import logging
+import struct
 import tempfile
 import threading
 import wave
@@ -84,8 +85,12 @@ def validate_audio(data: bytes, filename: str | None, content_type: str | None) 
                         f"That recording is longer than {settings.max_audio_seconds} seconds. "
                         "Please ask a shorter question."
                     )
-        except wave.Error:
-            pass  # Not a readable WAV; let the transcriber decide.
+        except (wave.Error, RuntimeError, EOFError, struct.error):
+            # A truncated or malformed header is not a reason to fail the turn:
+            # the browser may still have sent a usable transcript alongside it.
+            # `wave` raises a bare RuntimeError when it cannot seek, which is
+            # exactly what a cut-short mobile recording produces.
+            pass
 
 
 # ---------------------------------------------------------------------------
@@ -164,8 +169,11 @@ def _load_model():
             _model = whisper.load_model(settings.whisper_model, device=settings.whisper_device)
         else:
             raise TranscriptionError(
-                "Voice input is not enabled on this server. "
-                "Install faster-whisper (or openai-whisper) to turn it on, or type your question instead."
+                "Speech recognition is not configured on this server. Set "
+                "ELEVENLABS_API_KEY for hosted transcription (no download needed), "
+                "or install faster-whisper for on-device transcription. Until then, "
+                "voice still works in browsers that support speech recognition, and "
+                "you can always type your question."
             )
         _model_kind = engine
         return _model, _model_kind
