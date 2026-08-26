@@ -147,13 +147,18 @@ function Logo() {
 
   if (!failed) {
     return (
-      <span className="grid h-[30px] w-[30px] shrink-0 place-items-center overflow-hidden rounded-lg">
+      // The emblem sits at x 0.204–0.860, y 0.072–0.620 of the square artwork,
+      // above the wordmark. Rendering the file at 46px and offsetting by those
+      // measurements puts the whole badge — and nothing else — in the 30px box,
+      // so the header shows the official mark rather than a slice of it.
+      <span className="relative h-[30px] w-[30px] shrink-0 overflow-hidden rounded-lg">
         <img
           src={LOGO_SRC}
           alt=""
           aria-hidden="true"
           onError={() => setFailed(true)}
-          className="h-[62px] w-[62px] max-w-none object-contain object-top"
+          className="absolute max-w-none"
+          style={{ width: '46px', height: '46px', left: '-9.5px', top: '-1px' }}
           draggable="false"
         />
       </span>
