@@ -15,6 +15,36 @@ DATA_DIR = BASE_DIR / "data"
 FIXTURE_DIR = DATA_DIR / "fixtures"
 
 
+def _load_dotenv() -> None:
+    """Read ``backend/.env`` into the environment, if it exists.
+
+    Deliberately not python-dotenv: this is a dozen lines and the project keeps
+    its dependency list short enough to fit a serverless bundle. Real
+    environment variables always win, so a value set in the Vercel dashboard is
+    never shadowed by a file left in a developer's checkout.
+    """
+    path = BASE_DIR.parent / ".env"
+    try:
+        raw = path.read_text(encoding="utf-8")
+    except (OSError, UnicodeDecodeError):
+        return
+    for line in raw.splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, _, value = line.partition("=")
+        key = key.strip()
+        if not key or key in os.environ:
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        os.environ[key] = value
+
+
+_load_dotenv()
+
+
 def _env_bool(name: str, default: bool = False) -> bool:
     raw = os.getenv(name)
     if raw is None:
@@ -54,8 +84,22 @@ def _env_list(name: str, default: list[str]) -> list[str]:
 @dataclass(frozen=True)
 class Settings:
     # --- Anthropic / LLM ---------------------------------------------------
+    # Which provider answers. "auto" prefers Gemini when its key is present,
+    # then Anthropic; either way the rules-based path stays underneath both.
+    llm_provider: str = field(default_factory=lambda: os.getenv("LLM_PROVIDER", "auto").strip().lower())
     anthropic_api_key: str = field(default_factory=lambda: os.getenv("ANTHROPIC_API_KEY", "").strip())
     anthropic_model: str = field(default_factory=lambda: os.getenv("ANTHROPIC_MODEL", "claude-sonnet-4-6").strip())
+    gemini_api_key: str = field(
+        default_factory=lambda: (
+            os.getenv("GEMINI_API_KEY") or os.getenv("GOOGLE_API_KEY") or ""
+        ).strip()
+    )
+    gemini_model: str = field(default_factory=lambda: os.getenv("GEMINI_MODEL", "gemini-3.5-flash-lite").strip())
+    gemini_api_base: str = field(
+        default_factory=lambda: os.getenv(
+            "GEMINI_API_BASE", "https://generativelanguage.googleapis.com/v1beta"
+        ).strip().rstrip("/")
+    )
     llm_timeout_seconds: float = field(default_factory=lambda: _env_float("LLM_TIMEOUT_SECONDS", 25.0))
     llm_max_retries: int = field(default_factory=lambda: _env_int("LLM_MAX_RETRIES", 1))
     llm_enabled: bool = field(default_factory=lambda: _env_bool("LLM_ENABLED", True))
@@ -102,6 +146,21 @@ class Settings:
     twilio_from_number: str = field(default_factory=lambda: os.getenv("TWILIO_FROM_NUMBER", "").strip())
 
     # --- Speech ------------------------------------------------------------
+    # Hosted speech-to-text. Tried ahead of Whisper when a key is present, and
+    # it needs no model download, which is what makes voice work on serverless.
+    elevenlabs_api_key: str = field(default_factory=lambda: os.getenv("ELEVENLABS_API_KEY", "").strip())
+    elevenlabs_stt_model: str = field(
+        default_factory=lambda: os.getenv("ELEVENLABS_STT_MODEL", "scribe_v1").strip()
+    )
+    # Its own budget rather than a multiple of the weather timeout: a demo can
+    # afford to wait for a transcription, but not to wait twice for one that is
+    # never coming back.
+    elevenlabs_timeout_seconds: float = field(
+        default_factory=lambda: _env_float("ELEVENLABS_TIMEOUT_SECONDS", 30.0)
+    )
+    elevenlabs_api_base: str = field(
+        default_factory=lambda: os.getenv("ELEVENLABS_API_BASE", "https://api.elevenlabs.io").strip().rstrip("/")
+    )
     whisper_model: str = field(default_factory=lambda: os.getenv("WHISPER_MODEL", "base").strip())
     whisper_device: str = field(default_factory=lambda: os.getenv("WHISPER_DEVICE", "cpu").strip())
     max_audio_bytes: int = field(default_factory=lambda: _env_int("MAX_AUDIO_BYTES", 20 * 1024 * 1024))
@@ -148,7 +207,32 @@ class Settings:
 
     @property
     def llm_configured(self) -> bool:
-        return bool(self.llm_enabled and self.anthropic_api_key)
+        return bool(self.llm_enabled and self.active_llm_provider)
+
+    @property
+    def active_llm_provider(self) -> str:
+        """Which provider a call would actually use: "gemini", "anthropic" or ""."""
+        if not self.llm_enabled:
+            return ""
+        if self.llm_provider == "gemini":
+            return "gemini" if self.gemini_api_key else ""
+        if self.llm_provider == "anthropic":
+            return "anthropic" if self.anthropic_api_key else ""
+        # auto
+        if self.gemini_api_key:
+            return "gemini"
+        if self.anthropic_api_key:
+            return "anthropic"
+        return ""
+
+    @property
+    def active_llm_model(self) -> str:
+        provider = self.active_llm_provider
+        if provider == "gemini":
+            return self.gemini_model
+        if provider == "anthropic":
+            return self.anthropic_model
+        return ""
 
 
 _settings: Settings | None = None

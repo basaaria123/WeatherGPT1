@@ -1,4 +1,4 @@
-"""Anthropic integration.
+"""LLM integration — Gemini or Anthropic, one interface.
 
 Two calls make up the chat path, both using **forced tool use** rather than
 free-text parsing, so extraction is a validated JSON object instead of
@@ -9,8 +9,16 @@ something we have to regex out of prose:
 
 Every function here returns ``None`` (or raises ``LLMUnavailable``) rather than
 propagating a provider error. The chat engine treats that as "degrade to the
-deterministic path", which is why an Anthropic outage mid-conversation costs
+deterministic path", which is why a provider outage mid-conversation costs
 quality but never availability.
+
+Provider choice is a configuration detail, not an architectural one. The public
+functions below are written once against Anthropic's request and response
+shapes; ``_call`` translates them for Gemini and shapes the reply back, so both
+providers reach the same verification, the same grounding rules and the same
+rules-based fallback. Neither of them ever computes risk — that stays in the
+risk engine — and neither is trusted with a number the verifier has not checked
+against the provider payload.
 """
 
 from __future__ import annotations
@@ -39,7 +47,7 @@ def _get_client() -> Any:
     """Lazily build the Anthropic client, rebuilding if the key changed."""
     global _client, _client_key
     settings = get_settings()
-    if not settings.llm_configured:
+    if not settings.anthropic_api_key:
         raise LLMUnavailable("ANTHROPIC_API_KEY is not set")
 
     with _client_lock:
@@ -57,11 +65,21 @@ def _get_client() -> Any:
     return _client
 
 
+def provider() -> str:
+    """Which provider a call would use right now: "gemini", "anthropic" or ""."""
+    return get_settings().active_llm_provider
+
+
 def available() -> bool:
     """True when an LLM call is worth attempting."""
     settings = get_settings()
-    if not settings.llm_configured:
+    active = settings.active_llm_provider
+    if not active:
         return False
+    if active == "gemini":
+        # No SDK to construct: Gemini is reached over plain HTTPS with httpx,
+        # which the project already depends on for the weather provider.
+        return bool(settings.gemini_api_key)
     try:
         _get_client()
         return True
@@ -248,8 +266,158 @@ def _text(response: Any) -> str:
     return "\n".join(parts).strip()
 
 
+# ---------------------------------------------------------------------------
+# Gemini backend
+#
+# Gemini speaks a different dialect of the same idea. Rather than fork every
+# public function, the request is translated on the way out and the reply is
+# shaped back into the two things the callers above actually read: a list of
+# blocks that are either text or a tool call. That keeps forced tool use — and
+# therefore validated JSON rather than parsed prose — on both providers.
+# ---------------------------------------------------------------------------
+_GEMINI_SCHEMA_DROP = {"additionalProperties", "strict", "$schema", "title", "default"}
+
+
+def _gemini_schema(node: Any) -> Any:
+    """Anthropic/JSON-Schema -> the OpenAPI subset Gemini accepts.
+
+    Gemini rejects ``additionalProperties`` outright and wants upper-case type
+    names, so a schema copied across unchanged fails the request rather than
+    degrading — which would silently cost every turn its structure.
+    """
+    if isinstance(node, list):
+        return [_gemini_schema(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    out: dict[str, Any] = {}
+    for key, value in node.items():
+        if key in _GEMINI_SCHEMA_DROP:
+            continue
+        if key == "type" and isinstance(value, str):
+            out["type"] = value.upper()
+        elif key in {"properties", "items"}:
+            out[key] = _gemini_schema(value)
+        else:
+            out[key] = _gemini_schema(value) if isinstance(value, (dict, list)) else value
+    return out
+
+
+class _Block:
+    """Minimal stand-in for an Anthropic content block."""
+
+    __slots__ = ("type", "name", "input", "text")
+
+    def __init__(self, *, type: str, name: str | None = None, input: Any = None, text: str = ""):
+        self.type = type
+        self.name = name
+        self.input = input
+        self.text = text
+
+
+class _Response:
+    __slots__ = ("content",)
+
+    def __init__(self, content: list[_Block]):
+        self.content = content
+
+
+def _gemini_call(**kwargs: Any) -> _Response:
+    import httpx
+
+    settings = get_settings()
+    if not settings.gemini_api_key:
+        raise LLMUnavailable("GEMINI_API_KEY is not set")
+
+    body: dict[str, Any] = {
+        "contents": [
+            {"role": "user", "parts": [{"text": _message_text(message)}]}
+            for message in kwargs.get("messages", [])
+        ],
+        "generationConfig": {
+            "temperature": 0,
+            "maxOutputTokens": int(kwargs.get("max_tokens", 2000)),
+        },
+    }
+    system = kwargs.get("system")
+    if system:
+        body["system_instruction"] = {"parts": [{"text": str(system)}]}
+
+    tools = kwargs.get("tools") or []
+    if tools:
+        body["tools"] = [
+            {
+                "function_declarations": [
+                    {
+                        "name": tool["name"],
+                        "description": tool.get("description", ""),
+                        "parameters": _gemini_schema(tool["input_schema"]),
+                    }
+                    for tool in tools
+                ]
+            }
+        ]
+        choice = kwargs.get("tool_choice") or {}
+        if choice.get("type") == "tool" and choice.get("name"):
+            # The same guarantee forced tool use gives on Anthropic: the reply
+            # is a call to this tool, not prose that happens to look like one.
+            body["tool_config"] = {
+                "function_calling_config": {
+                    "mode": "ANY",
+                    "allowed_function_names": [choice["name"]],
+                }
+            }
+
+    url = f"{settings.gemini_api_base}/models/{settings.gemini_model}:generateContent"
+    last_error: Exception | None = None
+    for attempt in range(max(1, settings.llm_max_retries + 1)):
+        try:
+            response = httpx.post(
+                url,
+                json=body,
+                headers={
+                    "x-goog-api-key": settings.gemini_api_key,
+                    "Content-Type": "application/json",
+                },
+                timeout=settings.llm_timeout_seconds,
+            )
+            response.raise_for_status()
+            return _gemini_blocks(response.json())
+        except Exception as exc:  # noqa: BLE001 - retried, then degraded
+            last_error = exc
+            if attempt + 1 >= max(1, settings.llm_max_retries + 1):
+                break
+    raise LLMUnavailable(f"Gemini request failed: {last_error}")
+
+
+def _message_text(message: Any) -> str:
+    content = message.get("content") if isinstance(message, dict) else message
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        return "\n".join(
+            part.get("text", "") for part in content if isinstance(part, dict)
+        ).strip()
+    return str(content or "")
+
+
+def _gemini_blocks(payload: dict[str, Any]) -> _Response:
+    blocks: list[_Block] = []
+    for candidate in payload.get("candidates", []) or []:
+        for part in (candidate.get("content") or {}).get("parts", []) or []:
+            call = part.get("functionCall")
+            if call:
+                blocks.append(
+                    _Block(type="tool_use", name=call.get("name"), input=call.get("args") or {})
+                )
+            elif part.get("text"):
+                blocks.append(_Block(type="text", text=part["text"]))
+    return _Response(blocks)
+
+
 def _call(**kwargs: Any) -> Any:
     settings = get_settings()
+    if settings.active_llm_provider == "gemini":
+        return _gemini_call(**kwargs)
     client = _get_client()
     return client.messages.create(model=settings.anthropic_model, **kwargs)
 

@@ -89,7 +89,12 @@ async def voice_chat(
 
         try:
             result = speech.transcribe(
-                data, filename=audio.filename, content_type=audio.content_type
+                data,
+                filename=audio.filename,
+                content_type=audio.content_type,
+                # The UI already knows which language the user picked; passing
+                # it stops the recogniser guessing between four Indic scripts.
+                language=i18n.normalise_lang(lang) if lang else None,
             )
             transcript_text = result.text
             detected_language = result.language

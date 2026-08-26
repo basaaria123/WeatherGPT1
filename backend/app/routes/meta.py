@@ -30,7 +30,8 @@ def health() -> dict:
         "llm": {
             "configured": settings.llm_configured,
             "available": llm.available(),
-            "model": settings.anthropic_model if settings.llm_configured else None,
+            "provider": llm.provider() or None,
+            "model": settings.active_llm_model or None,
         },
         "speech": speech.capabilities(),
         "alerts": {

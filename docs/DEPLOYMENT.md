@@ -52,7 +52,11 @@ Project → Settings → Environment Variables:
 
 | Variable | Value | Why |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | your key | Without it, answers use the templated fallback |
+| `GEMINI_API_KEY` | your key | Without it, answers use the templated fallback |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Optional. Larger flash models return 503 under load |
+| `LLM_PROVIDER` | `gemini` | Optional. `auto` also works; `anthropic` selects the other provider |
+| `ELEVENLABS_API_KEY` | your key | Server-side speech-to-text without shipping Whisper's weights |
+| `ANTHROPIC_API_KEY` | optional | The alternative provider |
 | `WEATHER_DATA_MODE` | `live` | The default; set explicitly so it is visible |
 | `TWILIO_ACCOUNT_SID` / `_AUTH_TOKEN` / `_FROM_NUMBER` | optional | Omit and alerts log instead of texting |
 
@@ -136,7 +140,8 @@ curl -X POST https://<your-app>.vercel.app/api/alerts/scan
 Environment:
 
 ```
-ANTHROPIC_API_KEY=sk-ant-...
+GEMINI_API_KEY=...
+ELEVENLABS_API_KEY=...
 WEATHER_DATA_MODE=live
 WEATHERGPT_DB=/var/data/weathergpt.db     # attach a persistent disk
 CORS_ORIGINS=https://<your-frontend>.vercel.app
@@ -146,7 +151,9 @@ ALERT_INTERVAL_MINUTES=30
 
 Add `pip install -r requirements-voice.txt` to the build command if you want
 server-side Whisper. The first request then downloads the model, so warm it
-once after deploy.
+once after deploy. With `ELEVENLABS_API_KEY` set you do not need it: Scribe is
+tried first and needs nothing on disk, which is what makes voice input work on
+a serverless host at all.
 
 ### Frontend on Vercel
 

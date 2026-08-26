@@ -97,8 +97,12 @@ that change behaviour most:
 
 | Variable | Default | Effect |
 |---|---|---|
-| `ANTHROPIC_API_KEY` | *(unset)* | Unset ⇒ rule-based understanding and templated answers |
+| `LLM_PROVIDER` | `auto` | `gemini`, `anthropic`, or `auto` (prefers Gemini when its key is set) |
+| `GEMINI_API_KEY` | *(unset)* | Unset ⇒ rule-based understanding and templated answers |
+| `GEMINI_MODEL` | `gemini-3.5-flash-lite` | Answers in about a second; larger flash models return 503 under load |
+| `ANTHROPIC_API_KEY` | *(unset)* | The alternative provider; same pipeline, same guardrails |
 | `ANTHROPIC_MODEL` | `claude-sonnet-4-6` | Model used for extraction and writing |
+| `ELEVENLABS_API_KEY` | *(unset)* | Hosted speech-to-text; needs no model download, so voice works on serverless |
 | `WEATHER_DATA_MODE` | `live` | `fixture` serves deterministic offline data for dev/CI |
 | `ALERT_INTERVAL_MINUTES` | `30` | Scan cadence for the single alert scheduler |
 | `ALERT_MIN_RISK_SCORE` | `61` | The "High" band; the floor for raising an alert |
@@ -201,8 +205,13 @@ follow-ups, off-topic queries), the eight edge cases from the brief, and a
 cross-feature invariant test asserting that `/chat`, `/risk`, `/risk-map` and
 stored alerts report identical scores for the same location.
 
-To evaluate the LLM path instead, export `ANTHROPIC_API_KEY` and unset
-`LLM_ENABLED=false` in `tests/conftest.py`.
+To evaluate the LLM path instead, export `GEMINI_API_KEY` (or
+`ANTHROPIC_API_KEY`) and unset `LLM_ENABLED=false` in `tests/conftest.py`.
+
+Whichever provider answers, it reaches the same guardrails: the risk engine is
+still the only thing that scores risk, and `verification` still discards an
+answer that quotes a number the provider did not return — so a provider swap
+changes the wording, never the facts.
 
 ---
 

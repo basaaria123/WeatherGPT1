@@ -3,9 +3,11 @@
 
 Both directions are optional capabilities, feature-detected at call time:
 
-* Transcription prefers ``faster-whisper`` (much lighter than the reference
-  implementation) and falls back to ``openai-whisper``. Neither is a hard
-  dependency — the API stays up without them and reports the gap.
+* Transcription prefers ElevenLabs Scribe when a key is configured — it needs
+  no model download, which is what makes voice input work on a serverless host
+  — then ``faster-whisper`` (much lighter than the reference implementation),
+  then ``openai-whisper``. None is a hard dependency: the API stays up without
+  any of them and reports the gap rather than pretending.
 * Synthesis uses gTTS, with an offline ``pyttsx3``/espeak path when installed.
 
 Nothing here is allowed to break a turn. If transcription fails the route
@@ -102,7 +104,18 @@ def _has(module: str) -> bool:
 
 
 def transcription_engine() -> str:
-    """Which engine would be used: 'faster-whisper' | 'whisper' | 'none'."""
+    """Which engine would be used: 'elevenlabs' | 'faster-whisper' | 'whisper' | 'none'."""
+    if get_settings().elevenlabs_api_key:
+        return "elevenlabs"
+    if _has("faster_whisper"):
+        return "faster-whisper"
+    if _has("whisper"):
+        return "whisper"
+    return "none"
+
+
+def _local_engine() -> str:
+    """The on-device engine, ignoring any hosted one. Used as the fallback."""
     if _has("faster_whisper"):
         return "faster-whisper"
     if _has("whisper"):
@@ -140,7 +153,7 @@ def _load_model():
     with _model_lock:
         if _model is not None:
             return _model, _model_kind
-        engine = transcription_engine()
+        engine = _local_engine()
         if engine == "faster-whisper":
             from faster_whisper import WhisperModel  # type: ignore
 
@@ -158,9 +171,80 @@ def _load_model():
         return _model, _model_kind
 
 
-def transcribe(data: bytes, *, filename: str | None = None, content_type: str | None = None) -> Transcript:
-    """Transcribe audio locally. Raises ``TranscriptionError`` with a usable message."""
+def _elevenlabs_transcribe(
+    data: bytes,
+    *,
+    filename: str | None,
+    content_type: str | None,
+    language: str | None,
+) -> Transcript:
+    """ElevenLabs Scribe.
+
+    Request shape taken from the official SDK's own client rather than from
+    memory: POST /v1/speech-to-text, ``xi-api-key`` header, the audio in a
+    ``file`` part and ``model_id``/``language_code`` as form fields; the reply
+    carries ``text``, ``language_code`` and ``language_probability``.
+    """
+    import httpx
+
+    settings = get_settings()
+    form: dict[str, str] = {"model_id": settings.elevenlabs_stt_model}
+    if language:
+        # Telling Scribe the language beats letting it guess between the four
+        # Indic scripts the app supports, and the UI already knows which one.
+        form["language_code"] = language
+
+    try:
+        response = httpx.post(
+            f"{settings.elevenlabs_api_base}/v1/speech-to-text",
+            headers={"xi-api-key": settings.elevenlabs_api_key},
+            data=form,
+            files={"file": (filename or "question.webm", data, content_type or "audio/webm")},
+            timeout=settings.elevenlabs_timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:  # noqa: BLE001 - any failure falls back below
+        raise TranscriptionError(f"ElevenLabs transcription failed: {exc}") from exc
+
+    text = str(payload.get("text") or "").strip()
+    if not text:
+        raise TranscriptionError("I could not hear anything clear in that recording. Please try again.")
+    return Transcript(
+        text=text,
+        language=str(payload.get("language_code") or language or "en"),
+        confidence=payload.get("language_probability"),
+        engine="elevenlabs",
+    )
+
+
+def transcribe(
+    data: bytes,
+    *,
+    filename: str | None = None,
+    content_type: str | None = None,
+    language: str | None = None,
+) -> Transcript:
+    """Turn audio into text. Raises ``TranscriptionError`` with a usable message."""
     validate_audio(data, filename, content_type)
+
+    settings = get_settings()
+    if settings.elevenlabs_api_key:
+        try:
+            result = _elevenlabs_transcribe(
+                data, filename=filename, content_type=content_type, language=language
+            )
+            note_transcription_result(True)
+            return result
+        except TranscriptionError as exc:
+            # A hosted transcriber being down is not a reason to lose the turn
+            # when a local model is installed, so try that before giving up.
+            log.warning("ElevenLabs transcription failed: %s", exc)
+            if _local_engine() == "none":
+                note_transcription_result(False)
+                raise TranscriptionError(
+                    "Speech recognition is unavailable right now. Please type your question instead."
+                ) from exc
 
     suffix = Path(filename or "").suffix.lower() or ".wav"
     try:
@@ -204,6 +288,7 @@ def transcribe(data: bytes, *, filename: str | None = None, content_type: str | 
     if not text or len(text.strip()) < 2:
         raise TranscriptionError("I could not hear anything clear in that recording. Please try again.")
 
+    note_transcription_result(True)
     return Transcript(text=text, language=detected, confidence=confidence, engine=kind)
 
 
