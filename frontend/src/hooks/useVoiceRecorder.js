@@ -10,10 +10,42 @@ import { useCallback, useEffect, useRef, useState } from 'react'
  */
 const MAX_SECONDS = 20
 
+// How long we will wait for Puter before giving up and using whatever the
+// browser's own recogniser heard. A demo cannot hang on a third party.
+const PUTER_TIMEOUT_MS = 12000
+
+/**
+ * Transcribe with Puter.js, which runs in the browser and needs no API key.
+ *
+ * This is what makes the microphone work on a machine where the server has no
+ * speech-to-text configured, and in browsers with no Web Speech API at all.
+ * It is strictly optional: if the script never loaded, the call fails, or it
+ * takes too long, we return null and the caller uses the browser transcript.
+ */
+async function transcribeWithPuter(blob, language) {
+  const speech2txt = window.puter?.ai?.speech2txt
+  if (typeof speech2txt !== 'function' || !blob?.size) return null
+  try {
+    const file = new File([blob], 'question.webm', { type: blob.type || 'audio/webm' })
+    const result = await Promise.race([
+      // A language hint beats letting it guess between four Indic scripts.
+      window.puter.ai.speech2txt(file, { language }),
+      new Promise((resolve) => setTimeout(() => resolve(null), PUTER_TIMEOUT_MS)),
+    ])
+    if (result == null) return null
+    // Documented to return a string; tolerate an object shape defensively.
+    const text = typeof result === 'string' ? result : result?.text
+    return typeof text === 'string' && text.trim() ? text.trim() : null
+  } catch {
+    return null
+  }
+}
+
 export function useVoiceRecorder({ language = 'en' } = {}) {
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState(null)
   const [seconds, setSeconds] = useState(0)
+  const [transcribing, setTranscribing] = useState(false)
 
   const recorderRef = useRef(null)
   const chunksRef = useRef([])
@@ -101,14 +133,22 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
       recorder.ondataavailable = (event) => {
         if (event.data?.size > 0) chunksRef.current.push(event.data)
       }
-      recorder.onstop = () => {
+      recorder.onstop = async () => {
         const blob = new Blob(chunksRef.current, { type: recorder.mimeType || 'audio/webm' })
         cleanup()
         setRecording(false)
         setSeconds(0)
+
+        // Puter first — it handles every browser and needs nothing from the
+        // server — then whatever the browser's own recogniser heard.
+        setTranscribing(true)
+        const puterText = await transcribeWithPuter(blob, language)
+        setTranscribing(false)
+
         resolveRef.current?.({
           blob,
-          transcript: transcriptRef.current,
+          transcript: puterText || transcriptRef.current,
+          transcriptSource: puterText ? 'puter' : (transcriptRef.current ? 'browser' : 'none'),
           // So the caller can distinguish "said nothing" from "the browser
           // could not listen at all", which need different advice.
           recognitionError: recognitionErrorRef.current,
@@ -171,9 +211,13 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
     setSeconds(0)
   }, [cleanup])
 
+  const puterAvailable = typeof window !== 'undefined' && typeof window.puter?.ai?.speech2txt === 'function'
+
   return {
     supported,
     recognitionSupported,
+    puterAvailable,
+    transcribing,
     recording,
     seconds,
     error,
