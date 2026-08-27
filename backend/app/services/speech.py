@@ -162,7 +162,22 @@ def _load_model():
         if engine == "faster-whisper":
             from faster_whisper import WhisperModel  # type: ignore
 
-            _model = WhisperModel(settings.whisper_model, device=settings.whisper_device, compute_type="int8")
+            # First use downloads the weights from Hugging Face — inside the
+            # user's request, which is why a cold machine looks "broken" rather
+            # than slow. If the network is unavailable but the model was fetched
+            # once before, fall back to the local copy instead of failing.
+            try:
+                _model = WhisperModel(
+                    settings.whisper_model, device=settings.whisper_device, compute_type="int8"
+                )
+            except Exception as exc:  # noqa: BLE001 - almost always a network error
+                log.warning("model download failed (%s); retrying from local cache only", exc)
+                _model = WhisperModel(
+                    settings.whisper_model,
+                    device=settings.whisper_device,
+                    compute_type="int8",
+                    local_files_only=True,
+                )
         elif engine == "whisper":
             import whisper  # type: ignore
 
@@ -213,6 +228,7 @@ def _elevenlabs_transcribe(
         response.raise_for_status()
         payload = response.json()
     except Exception as exc:  # noqa: BLE001 - any failure falls back below
+        log.exception("ElevenLabs transcription failed (full traceback follows)")
         raise TranscriptionError(f"ElevenLabs transcription failed: {exc}") from exc
 
     text = str(payload.get("text") or "").strip()
@@ -224,6 +240,23 @@ def _elevenlabs_transcribe(
         confidence=payload.get("language_probability"),
         engine="elevenlabs",
     )
+
+
+def warm_up() -> str:
+    """Load the on-device model now instead of during someone's first question.
+
+    Returns a one-line status. Call it from a terminal before a demo:
+        python -c "import sys; sys.path.insert(0,'.'); from app.services import speech; print(speech.warm_up())"
+    """
+    if get_settings().elevenlabs_api_key:
+        return "hosted transcription configured (ElevenLabs); no local model needed"
+    if _local_engine() == "none":
+        return "no on-device engine installed; nothing to warm up"
+    try:
+        _load_model()
+    except Exception as exc:  # noqa: BLE001 - report, never crash a boot
+        return f"model warm-up FAILED: {exc}"
+    return f"on-device model ready ({_model_kind}, {get_settings().whisper_model})"
 
 
 def transcribe(
@@ -247,7 +280,7 @@ def transcribe(
         except TranscriptionError as exc:
             # A hosted transcriber being down is not a reason to lose the turn
             # when a local model is installed, so try that before giving up.
-            log.warning("ElevenLabs transcription failed: %s", exc)
+            log.warning("ElevenLabs unavailable, trying on-device engine: %s", exc)
             if _local_engine() == "none":
                 note_transcription_result(False)
                 raise TranscriptionError(
@@ -260,7 +293,7 @@ def transcribe(
     except TranscriptionError:
         raise
     except Exception as exc:  # noqa: BLE001 - model load can fail many ways
-        log.error("whisper model load failed: %s", exc)
+        log.exception("whisper model load failed (full traceback follows)")
         # Model weights are fetched on first use; on a host that cannot reach the
         # model host this never succeeds, so stop claiming the capability.
         note_transcription_result(False)
@@ -285,7 +318,7 @@ def transcribe(
             detected = str(result.get("language", "en")) or "en"
             confidence = None
     except Exception as exc:  # noqa: BLE001
-        log.error("transcription failed: %s", exc)
+        log.exception("transcription failed (full traceback follows)")
         raise TranscriptionError(
             "I could not understand that recording. Please try again in a quieter place."
         ) from exc
@@ -354,7 +387,7 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
                 note_synthesis_result(True)
                 return base64.b64encode(audio).decode("ascii"), "audio/mpeg", note
         except Exception as exc:  # noqa: BLE001 - gTTS needs network
-            log.warning("gTTS failed: %s", exc)
+            log.exception("gTTS failed (full traceback follows)")
 
     if _has("pyttsx3"):
         tmp_path: str | None = None
