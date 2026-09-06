@@ -172,6 +172,10 @@ const STRINGS = {
       traveler: 'Wind conditions',
       commuter: 'Wind conditions',
     },
+    // --- Role intelligence -------------------------------------------------
+    roleIntelligence: 'Role intelligence',
+    fishingWindow: 'Weather-based fishing window',
+    commuteWindow: 'Weather risk by hour',
     profiles: {
       general: 'General',
       farmer: 'Farmer',
@@ -346,6 +350,10 @@ const STRINGS = {
       traveler: 'हवा की स्थिति',
       commuter: 'हवा की स्थिति',
     },
+    // --- Role intelligence -------------------------------------------------
+    roleIntelligence: 'आपके लिए जानकारी',
+    fishingWindow: 'मौसम के आधार पर मछली पकड़ने का समय',
+    commuteWindow: 'हर घंटे का मौसम जोखिम',
     profiles: {
       general: 'सामान्य',
       farmer: 'किसान',
@@ -520,6 +528,10 @@ const STRINGS = {
       traveler: 'గాలి పరిస్థితి',
       commuter: 'గాలి పరిస్థితి',
     },
+    // --- Role intelligence -------------------------------------------------
+    roleIntelligence: 'మీ కోసం సమాచారం',
+    fishingWindow: 'వాతావరణం ఆధారంగా చేపల వేట సమయం',
+    commuteWindow: 'గంటవారీ వాతావరణ ప్రమాదం',
     profiles: {
       general: 'సాధారణ',
       farmer: 'రైతు',
@@ -694,6 +706,10 @@ const STRINGS = {
       traveler: 'বাতাসের অবস্থা',
       commuter: 'বাতাসের অবস্থা',
     },
+    // --- Role intelligence -------------------------------------------------
+    roleIntelligence: 'আপনার জন্য তথ্য',
+    fishingWindow: 'আবহাওয়া অনুযায়ী মাছ ধরার সময়',
+    commuteWindow: 'ঘণ্টাভিত্তিক আবহাওয়া ঝুঁকি',
     profiles: {
       general: 'সাধারণ',
       farmer: 'কৃষক',
@@ -868,6 +884,10 @@ const STRINGS = {
       traveler: 'वाऱ्याची स्थिती',
       commuter: 'वाऱ्याची स्थिती',
     },
+    // --- Role intelligence -------------------------------------------------
+    roleIntelligence: 'तुमच्यासाठी माहिती',
+    fishingWindow: 'हवामानानुसार मासेमारीची वेळ',
+    commuteWindow: 'तासानुसार हवामान धोका',
     profiles: {
       general: 'सामान्य',
       farmer: 'शेतकरी',
@@ -1042,6 +1062,10 @@ const STRINGS = {
       traveler: 'বতাহৰ অৱস্থা',
       commuter: 'বতাহৰ অৱস্থা',
     },
+    // --- Role intelligence -------------------------------------------------
+    roleIntelligence: 'আপোনাৰ বাবে তথ্য',
+    fishingWindow: 'বতৰ অনুসৰি মাছ ধৰাৰ সময়',
+    commuteWindow: 'ঘণ্টা অনুসৰি বতৰৰ বিপদ',
     profiles: {
       general: 'সাধাৰণ',
       farmer: 'কৃষক',

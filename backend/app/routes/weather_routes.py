@@ -24,9 +24,10 @@ from ..schemas import (
     ForecastResponse,
     HourPoint,
     LocationOut,
+    RoleIntelligenceOut,
     TimelineResponse,
 )
-from ..services import advisory, climate, risk_engine, weather
+from ..services import advisory, climate, risk_engine, role_intel, weather
 from ..services.weather import WeatherError
 
 router = APIRouter(tags=["weather"])
@@ -128,6 +129,8 @@ def current_weather(
         # The dashboard reaches emergency mode without anyone having to ask a
         # question, and carries the same advisory the chat would give.
         advisory=AdvisoryOut(**advisory.build_advisory(risk, user_type, language)),
+        # The same bundle and the same risk, read for whoever is asking.
+        role_intelligence=RoleIntelligenceOut(**role_intel.build(bundle, risk, user_type, language)),
         emergency=EmergencyOut(**advisory.build_emergency(bundle, risk, user_type, language)),
         official_alert_count=official,
     )

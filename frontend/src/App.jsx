@@ -23,6 +23,7 @@ import Landing from './components/Landing'
 import LocationDialog from './components/LocationDialog'
 import PipelinePanel from './components/PipelinePanel'
 import RiskMap from './components/RiskMap'
+import RoleIntelligence from './components/RoleIntelligence'
 import SplashScreen from './components/SplashScreen'
 import Timeline from './components/Timeline'
 import WeatherIntro from './components/WeatherIntro'
@@ -361,6 +362,15 @@ export default function App() {
                 loading={loading.current}
                 error={errors.current}
                 onRetry={refresh}
+              />
+
+              {/* What that same weather means for whoever is reading it. The
+                  server derives it from this response's own bundle and risk,
+                  so it can never disagree with the card above. */}
+              <RoleIntelligence
+                intel={currentData?.role_intelligence}
+                loading={loading.current}
+                hours={timelineData?.hours}
               />
 
               {/* Chat beside the alert feed: the conversation never takes over

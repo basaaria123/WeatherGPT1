@@ -892,6 +892,13 @@ _EXTRA_SENTENCES: dict[str, dict[str, str]] = {
 for _lang, _table in _EXTRA_SENTENCES.items():
     SENTENCES.setdefault(_lang, {}).update(_table)
 
+# Role-intelligence wording lives in its own module purely for readability —
+# it merges into the same table and is read through the same `sentence()`.
+from ._role_sentences import ROLE_SENTENCES as _ROLE_SENTENCES  # noqa: E402
+
+for _lang, _table in _ROLE_SENTENCES.items():
+    SENTENCES.setdefault(_lang, {}).update(_table)
+
 
 # ---------------------------------------------------------------------------
 # Why an action matters.

@@ -309,6 +309,33 @@ class InsightOut(BaseModel):
     actionable: bool = False
 
 
+class RoleCard(BaseModel):
+    """One role-specific reading. Rendered as-is; the UI interprets nothing."""
+
+    id: str
+    icon: str = ""
+    title: str
+    headline: str
+    detail: str = ""
+    # Presentation only, never a claim: safe | caution | warn | danger | info.
+    tone: Literal["safe", "caution", "warn", "danger", "info"] = "info"
+
+
+class RoleIntelligenceOut(BaseModel):
+    """What the current weather means for the selected profile.
+
+    Derived from the same bundle and the same RiskOutput as everything else in
+    this response — it re-reads the weather, it does not re-fetch or re-score it.
+    """
+
+    user_type: str = "general"
+    icon: str = ""
+    heading: str = ""
+    cards: list[RoleCard] = Field(default_factory=list)
+    # A disclosure where the app cannot answer a role's real question.
+    note: str = ""
+
+
 class CurrentWeatherResponse(BaseModel):
     location: LocationOut
     generated_at: str
@@ -319,6 +346,7 @@ class CurrentWeatherResponse(BaseModel):
     insight: InsightOut | None = None
     advisory: AdvisoryOut | None = None
     emergency: EmergencyOut | None = None
+    role_intelligence: RoleIntelligenceOut | None = None
     # Official alerts are a separate concept from a detected hazard: this counts
     # warnings actually issued and stored for this location, which may be zero
     # while risk is high.
