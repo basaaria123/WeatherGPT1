@@ -70,7 +70,7 @@ export function Cloud({ spec, index, accent }) {
  * different aspect ratio and a wider sway. Position, delay and duration are
  * derived from the index, so the scatter is stable across renders.
  */
-export function Drops({ spec, accent }) {
+export function Drops({ spec, accent, distance }) {
   return (
     <div className="pointer-events-none absolute inset-0 overflow-hidden">
       {Array.from({ length: spec.count }, (_, index) => {
@@ -97,8 +97,11 @@ export function Drops({ spec, accent }) {
               '--wx-drop-drift': `${drift}px`,
               // Viewport units, not percent: a percentage in `translate`
               // resolves against the element's own box, so a 16px drop would
-              // fall 19px and never reach the screen.
-              '--wx-drop-spread': `${118 + spec.spread * 30}vh`,
+              // fall 19px and never reach the screen. `distance` overrides it
+              // in pixels for callers that fill a card rather than the screen.
+              '--wx-drop-spread': distance
+                ? `${Math.round(distance * (1.18 + spec.spread * 0.3))}px`
+                : `${118 + spec.spread * 30}vh`,
               animationDuration: `${duration}s`,
               animationDelay: `${delay}s`,
             }}

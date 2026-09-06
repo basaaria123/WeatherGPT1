@@ -161,6 +161,17 @@ const STRINGS = {
     speakToApp: 'Speak to WeatherGPT',
     listenToAnswers: 'Listen to answers',
     voiceNotInLanguage: 'Voice is not available in this language yet',
+    // --- Weather compass ---------------------------------------------------
+    direction: 'Direction',
+    unavailable: 'Unavailable',
+    calm: 'Calm',
+    windLabels: {
+      general: 'Wind',
+      farmer: 'Field wind',
+      fisherman: 'Marine wind',
+      traveler: 'Wind conditions',
+      commuter: 'Wind conditions',
+    },
     profiles: {
       general: 'General',
       farmer: 'Farmer',
@@ -324,6 +335,17 @@ const STRINGS = {
     speakToApp: 'WeatherGPT से बोलें',
     listenToAnswers: 'उत्तर सुनें',
     voiceNotInLanguage: 'इस भाषा में आवाज़ अभी उपलब्ध नहीं है',
+    // --- Weather compass ---------------------------------------------------
+    direction: 'दिशा',
+    unavailable: 'उपलब्ध नहीं',
+    calm: 'शांत',
+    windLabels: {
+      general: 'हवा',
+      farmer: 'खेत की हवा',
+      fisherman: 'समुद्री हवा',
+      traveler: 'हवा की स्थिति',
+      commuter: 'हवा की स्थिति',
+    },
     profiles: {
       general: 'सामान्य',
       farmer: 'किसान',
@@ -487,6 +509,17 @@ const STRINGS = {
     speakToApp: 'WeatherGPT తో మాట్లాడండి',
     listenToAnswers: 'సమాధానాలు వినండి',
     voiceNotInLanguage: 'ఈ భాషలో వాయిస్ ఇంకా అందుబాటులో లేదు',
+    // --- Weather compass ---------------------------------------------------
+    direction: 'దిశ',
+    unavailable: 'అందుబాటులో లేదు',
+    calm: 'ప్రశాంతం',
+    windLabels: {
+      general: 'గాలి',
+      farmer: 'పొలంలో గాలి',
+      fisherman: 'సముద్రపు గాలి',
+      traveler: 'గాలి పరిస్థితి',
+      commuter: 'గాలి పరిస్థితి',
+    },
     profiles: {
       general: 'సాధారణ',
       farmer: 'రైతు',
@@ -650,6 +683,17 @@ const STRINGS = {
     speakToApp: 'WeatherGPT-কে বলুন',
     listenToAnswers: 'উত্তর শুনুন',
     voiceNotInLanguage: 'এই ভাষায় ভয়েস এখনও নেই',
+    // --- Weather compass ---------------------------------------------------
+    direction: 'দিক',
+    unavailable: 'উপলব্ধ নয়',
+    calm: 'শান্ত',
+    windLabels: {
+      general: 'বাতাস',
+      farmer: 'মাঠের বাতাস',
+      fisherman: 'সামুদ্রিক বাতাস',
+      traveler: 'বাতাসের অবস্থা',
+      commuter: 'বাতাসের অবস্থা',
+    },
     profiles: {
       general: 'সাধারণ',
       farmer: 'কৃষক',
@@ -813,6 +857,17 @@ const STRINGS = {
     speakToApp: 'WeatherGPT शी बोला',
     listenToAnswers: 'उत्तरे ऐका',
     voiceNotInLanguage: 'या भाषेत आवाज अद्याप उपलब्ध नाही',
+    // --- Weather compass ---------------------------------------------------
+    direction: 'दिशा',
+    unavailable: 'उपलब्ध नाही',
+    calm: 'शांत',
+    windLabels: {
+      general: 'वारा',
+      farmer: 'शेतातील वारा',
+      fisherman: 'सागरी वारा',
+      traveler: 'वाऱ्याची स्थिती',
+      commuter: 'वाऱ्याची स्थिती',
+    },
     profiles: {
       general: 'सामान्य',
       farmer: 'शेतकरी',
@@ -976,6 +1031,17 @@ const STRINGS = {
     speakToApp: 'WeatherGPT-ৰ সৈতে কথা পাতক',
     listenToAnswers: 'উত্তৰ শুনক',
     voiceNotInLanguage: 'এই ভাষাত ভইচ এতিয়াও নাই',
+    // --- Weather compass ---------------------------------------------------
+    direction: 'দিশ',
+    unavailable: 'উপলব্ধ নহয়',
+    calm: 'শান্ত',
+    windLabels: {
+      general: 'বতাহ',
+      farmer: 'পথাৰৰ বতাহ',
+      fisherman: 'সাগৰীয় বতাহ',
+      traveler: 'বতাহৰ অৱস্থা',
+      commuter: 'বতাহৰ অৱস্থা',
+    },
     profiles: {
       general: 'সাধাৰণ',
       farmer: 'কৃষক',

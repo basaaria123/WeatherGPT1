@@ -221,3 +221,26 @@ export function scatter(index, salt = 0) {
   const value = Math.sin((index + 1) * 12.9898 + salt * 78.233) * 43758.5453
   return value - Math.floor(value)
 }
+
+/**
+ * The same weather, at the size of a card.
+ *
+ * The tap-the-icon burst plays inside the conditions card rather than over the
+ * whole screen, so it wants the same sky with fewer of everything and no
+ * full-bleed wash. Deriving it from the intro's own recipe is the point: there
+ * is one description of what drizzle looks like, and both surfaces render it.
+ */
+export function scaleForBurst(variant) {
+  return {
+    ...variant,
+    wash: 0,
+    // One bank is atmosphere; three inside a card is a smudge.
+    clouds: variant.clouds.slice(0, 1).map((cloud) => ({ ...cloud, top: 2, size: cloud.size * 0.55 })),
+    veils: Math.min(variant.veils, 1),
+    motes: Math.round(variant.motes * 0.6),
+    drops: variant.drops ? { ...variant.drops, count: Math.round(variant.drops.count * 0.45) } : null,
+    sun: variant.sun ? { ...variant.sun, size: Math.round(variant.sun.size * 0.55), glow: variant.sun.glow } : null,
+    // One flash, early, so it lands inside the shorter window.
+    flashes: variant.flashes.slice(0, 1).map((flash) => ({ ...flash, at: 260 })),
+  }
+}

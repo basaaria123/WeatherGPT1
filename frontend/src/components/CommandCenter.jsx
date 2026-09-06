@@ -1,10 +1,13 @@
-import { motion } from 'framer-motion'
+import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { hazardLabel, t } from '../i18n/ui'
+import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 import { LoadingBlock, Metric, SeverityPill } from './ui/Primitives'
 import WeatherGlyph from './ui/WeatherGlyph'
+import WeatherCompass from './WeatherCompass'
+import WeatherMicroBurst from './WeatherMicroBurst'
 
 /**
  * Hero conditions card.
@@ -55,6 +58,11 @@ function relativeTime(iso) {
 
 export default function CommandCenter({ data, loading, error, onRetry }) {
   const language = useStore((s) => s.language)
+  // Only used to word the compass heading — the role itself is untouched.
+  const userType = useStore((s) => s.userType)
+  // Bumped on each tap of the weather icon; the burst restarts on a new value.
+  const [burst, setBurst] = useState(0)
+  const reduced = useReducedMotion()
 
   if (loading && !data) {
     return (
@@ -91,8 +99,17 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
-      className="glass glass-raised glass-hero relative overflow-hidden p-5 sm:p-6"
+      /* The hover response is deliberately almost nothing: a degree of lift and
+         a slightly brighter edge, on a card that is otherwise perfectly still.
+         The lift is framer's rather than a Tailwind class because framer writes
+         its own inline `transform` here, which a class could not override. */
+      whileHover={reduced ? undefined : { y: -2 }}
+      className="glass glass-raised glass-hero relative overflow-hidden p-5 transition-[border-color,box-shadow]
+                 duration-300 hover:border-primary/45 hover:shadow-[var(--shadow-lift)] sm:p-6"
     >
+      {/* Sits behind the card's own content, filling it, and unmounts when the
+          burst ends. */}
+      <WeatherMicroBurst token={burst} weatherCode={current.weather_code} />
       <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted">
           {t(language, 'conditionsNow')}
@@ -101,7 +118,30 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
       </div>
 
       <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
-        <WeatherGlyph code={current.weather_code} size={76} className="shrink-0" />
+        {/* Tapping the icon replays the current condition. It is a button so it
+            is reachable by keyboard too, and the glyph itself is unchanged. */}
+        <button
+          type="button"
+          onClick={() => setBurst((n) => n + 1)}
+          aria-label={current.condition ?? t(language, 'conditionsNow')}
+          title={current.condition ?? undefined}
+          className="shrink-0 rounded-2xl transition active:scale-95"
+        >
+          {/* Keyed on the code so a new location's weather fades in rather than
+              swapping between two unrelated pictures. */}
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.span
+              key={current.weather_code ?? 'none'}
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.9 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="block"
+            >
+              <WeatherGlyph code={current.weather_code} size={76} />
+            </motion.span>
+          </AnimatePresence>
+        </button>
 
         <div className="min-w-0">
           {current.temperature_c !== null && current.temperature_c !== undefined && (
@@ -145,6 +185,13 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
         <Metric label={t(language, 'pressure')} value={current.pressure_hpa?.toFixed?.(0)} unit="hPa" />
         <Metric label={t(language, 'cloud')} value={current.cloud_cover_pct?.toFixed?.(0)} unit="%" />
         <Metric label={t(language, 'visibility')} value={current.visibility_km?.toFixed?.(1)} unit="km" />
+      </div>
+
+      {/* Wind has a direction as well as a speed, and the grid above can only
+          show the speed. The dial reads the same payload — no second request,
+          no second interpretation. */}
+      <div className="mt-4 border-t border-[rgb(var(--wx-tint)/0.07)] pt-4">
+        <WeatherCompass current={current} language={language} userType={userType} />
       </div>
     </motion.section>
   )
