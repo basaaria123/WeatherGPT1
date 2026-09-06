@@ -1,4 +1,5 @@
 import { create } from 'zustand'
+import { GUEST, clearSession, loadSession, saveSession } from '../auth/session'
 
 /**
  * Global UI state.
@@ -33,6 +34,39 @@ export const useStore = create((set, get) => ({
   // --- Session -------------------------------------------------------------
   sessionId: null,
   setSessionId: (sessionId) => set({ sessionId }),
+
+  // --- Who is reading, and whether they have been set up -------------------
+  // `onboarded` is remembered so a returning reader lands on the dashboard
+  // rather than being asked the same three questions again.
+  onboarded: prefs.onboarded ?? false,
+  completeOnboarding: () => {
+    savePrefs({ ...loadPrefs(), onboarded: true })
+    set({ onboarded: true })
+  },
+  // Prototype identity — see src/auth/session.js. Guest is the default and the
+  // whole product works in it; only SMS delivery needs a verified number.
+  session: loadSession(),
+  setSession: (session) => {
+    saveSession(session)
+    set({ session })
+  },
+  signOut: () => {
+    clearSession()
+    set({ session: GUEST, smsOptIn: false })
+    savePrefs({ ...loadPrefs(), smsOptIn: false })
+  },
+  // SMS is opt-in, and off by default: an alert channel nobody asked for is
+  // the wrong default even when it works.
+  smsOptIn: prefs.smsOptIn ?? false,
+  setSmsOptIn: (smsOptIn) => {
+    savePrefs({ ...loadPrefs(), smsOptIn })
+    set({ smsOptIn })
+  },
+  smsSeverity: prefs.smsSeverity ?? 'high',
+  setSmsSeverity: (smsSeverity) => {
+    savePrefs({ ...loadPrefs(), smsSeverity })
+    set({ smsSeverity })
+  },
 
   // --- Preferences ---------------------------------------------------------
   language: prefs.language ?? 'en',

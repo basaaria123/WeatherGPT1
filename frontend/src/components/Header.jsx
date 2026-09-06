@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { profileLabel, t } from '../i18n/ui'
 import LanguagePicker from './LanguagePicker'
+import ProfileMenu from './ProfileMenu'
 import { LOGO_SRC } from './SplashScreen'
 import { useStore } from '../store/useStore'
 
@@ -9,7 +10,7 @@ import { useStore } from '../store/useStore'
 
 const PROFILES = ['general', 'farmer', 'fisherman', 'traveler', 'commuter']
 
-export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }) {
+export default function Header({ onHome, onOpenLocation, onRefresh, refreshing, onSignIn }) {
   const language = useStore((s) => s.language)
   const userType = useStore((s) => s.userType)
   const setUserType = useStore((s) => s.setUserType)
@@ -47,7 +48,10 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
             </div>
           </button>
 
-          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+          {/* `min-w-0` rather than `shrink-0`: with the profile control added
+              this cluster is wider than a 320px screen, and the location chip
+              already truncates. Refusing to shrink pushed the page sideways. */}
+          <div className="flex min-w-0 items-center gap-1.5 sm:gap-2">
             <ConnectionDot state={socketState} language={language} />
             {dataSource === 'fixture' && (
               <span
@@ -63,7 +67,7 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
             <button
               type="button"
               onClick={onOpenLocation}
-              className="flex max-w-[30vw] items-center gap-1.5 sm:max-w-none rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)]
+              className="flex min-w-0 max-w-[28vw] items-center gap-1.5 sm:max-w-none rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)]
                          bg-[rgb(var(--wx-tint)/0.05)] px-2.5 py-1.5 text-xs text-ink transition hover:border-[rgb(var(--wx-tint)/0.25)]
                          hover:bg-[rgb(var(--wx-tint)/0.1)] sm:max-w-none"
               title={t(language, 'changeLocation')}
@@ -82,6 +86,8 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
               onSelect={setUserType}
               className="hidden sm:block"
             />
+
+            <ProfileMenu onSignIn={onSignIn} />
 
             <button
               type="button"

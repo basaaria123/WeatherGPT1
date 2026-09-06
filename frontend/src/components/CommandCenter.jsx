@@ -216,7 +216,9 @@ function RiskExplainer({ risk, language }) {
 
   return (
     <div className="ml-auto w-full sm:w-auto sm:min-w-[13rem] sm:text-right">
-      <div className="text-[11px] uppercase tracking-[0.12em] text-faint">{t(language, 'riskScore')}</div>
+      {/* Attributed, not just labelled. A number this prominent has to say
+          whose number it is, or a reader will take it for an official one. */}
+      <div className="text-[11px] uppercase tracking-[0.12em] text-faint">{t(language, 'aiHazard')}</div>
       <div className="flex items-baseline gap-1.5 sm:justify-end">
         <span className="text-2xl font-semibold" style={{ color: tone.color }}>
           {risk.risk_score}
@@ -319,8 +321,9 @@ function HazardVsAlerts({ risk, officialCount, language }) {
   return (
     <div className="mt-4 grid gap-2 border-t border-[rgb(var(--wx-tint)/0.07)] pt-3.5 sm:grid-cols-2">
       <div>
-        <div className="text-[11px] uppercase tracking-[0.12em] text-faint">
-          {t(language, 'hazardRisk')}
+        <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-faint">
+          <span aria-hidden="true" className="normal-case tracking-normal">🧠</span>
+          <span>{t(language, 'hazardRisk')}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
           {hasHazard && (
@@ -332,16 +335,20 @@ function HazardVsAlerts({ risk, officialCount, language }) {
         </div>
         {/* Only worth saying while no warning exists. Once one is issued the
             note would contradict the panel beside it. */}
-        {hasHazard && officialCount === 0 && (
-          <p className="mt-0.5 text-[11px] leading-relaxed text-faint">
-            {t(language, 'hazardDetectedNote')}
-          </p>
-        )}
+        {/* The disclaimer stands whether or not a hazard was detected: the
+            distinction between a model's reading and a government's warning is
+            not conditional on the weather. */}
+        <p className="mt-0.5 text-[11px] leading-relaxed text-faint">
+          {hasHazard && officialCount === 0
+            ? t(language, 'hazardDetectedNote')
+            : t(language, 'aiHazardNote')}
+        </p>
       </div>
 
       <div>
-        <div className="text-[11px] uppercase tracking-[0.12em] text-faint">
-          {t(language, 'officialAlerts')}
+        <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-faint">
+          <span aria-hidden="true" className="normal-case tracking-normal">🏛️</span>
+          <span>{t(language, 'officialStatus')}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
           <span aria-hidden="true" className={officialCount > 0 ? '' : 'text-safe'}>
@@ -355,6 +362,10 @@ function HazardVsAlerts({ risk, officialCount, language }) {
                 : t(language, 'warningMany').replace('{n}', String(officialCount))}
           </span>
         </div>
+        {/* Where it came from, so the reader can weigh it. */}
+        <p className="mt-0.5 text-[11px] leading-relaxed text-faint">
+          {t(language, 'source')}: IMD / NDMA
+        </p>
       </div>
     </div>
   )

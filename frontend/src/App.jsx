@@ -20,6 +20,7 @@ import Header from './components/Header'
 import HistoricalNote from './components/HistoricalNote'
 import ImpactGrid from './components/ImpactGrid'
 import Landing from './components/Landing'
+import Onboarding from './components/onboarding/Onboarding'
 import LocationDialog from './components/LocationDialog'
 import PipelinePanel from './components/PipelinePanel'
 import RiskMap from './components/RiskMap'
@@ -41,7 +42,9 @@ let messageId = 0
 const nextId = () => { messageId += 1; return messageId }
 
 export default function App() {
-  const [stage, setStage] = useState('splash') // splash | landing | app
+  // splash → landing → onboarding (first visit only) → app. A returning
+  // reader has `onboarded` remembered and never sees the questions again.
+  const [stage, setStage] = useState('splash')
 
   const language = useStore((s) => s.language)
   const userType = useStore((s) => s.userType)
@@ -54,8 +57,12 @@ export default function App() {
   const setDemoOpen = useStore((s) => s.setDemoOpen)
   const setMapFocus = useStore((s) => s.setMapFocus)
   const capabilities = useStore((s) => s.capabilities)
+  const onboarded = useStore((s) => s.onboarded)
 
   const [locationOpen, setLocationOpen] = useState(false)
+  // Which panel onboarding opens on: the first question on a first visit, the
+  // identity panel when the reader asked to sign in.
+  const [onboardAt, setOnboardAt] = useState('location')
   const [compareOpen, setCompareOpen] = useState(false)
   const [refreshing, setRefreshing] = useState(false)
 
@@ -317,6 +324,18 @@ export default function App() {
       <AnimatePresence mode="wait">
         {stage === 'splash' && <SplashScreen key="splash" onDone={() => setStage('landing')} />}
 
+        {stage === 'onboarding' && (
+          <motion.div
+            key="onboarding"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0, y: -12 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+          >
+            <Onboarding startAt={onboardAt} onDone={() => setStage('app')} />
+          </motion.div>
+        )}
+
         {stage === 'landing' && (
           <motion.div
             key="landing"
@@ -328,7 +347,7 @@ export default function App() {
             {/* The landing page introduces the product; it deliberately shows no
                 live condition, temperature or location. */}
             <Landing
-              onEnter={() => setStage('app')}
+              onEnter={() => { setOnboardAt('location'); setStage(onboarded ? 'app' : 'onboarding') }}
               onDemo={() => { setStage('app'); setTimeout(() => setDemoOpen(true), 500) }}
             />
           </motion.div>
@@ -349,6 +368,9 @@ export default function App() {
               onOpenLocation={() => setLocationOpen(true)}
               onRefresh={refresh}
               refreshing={refreshing}
+              /* Signing in re-enters the identity panel rather than opening a
+                 separate modal: one flow, reachable from both places. */
+              onSignIn={() => { setOnboardAt('identity'); setStage('onboarding') }}
             />
 
             <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-16 pt-3 sm:px-6 sm:pt-5">
