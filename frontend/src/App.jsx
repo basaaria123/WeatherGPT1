@@ -24,6 +24,7 @@ import LocationDialog from './components/LocationDialog'
 import PipelinePanel from './components/PipelinePanel'
 import RiskMap from './components/RiskMap'
 import RoleIntelligence from './components/RoleIntelligence'
+import WeatherMap from './components/WeatherMap'
 import SplashScreen from './components/SplashScreen'
 import Timeline from './components/Timeline'
 import WeatherIntro from './components/WeatherIntro'
@@ -126,9 +127,16 @@ export default function App() {
         setConditions({ current: data.current, risk: data.risk })
         setDataSource(data.data_source ?? 'live')
       }),
-      settle('timeline', api.timeline({ location: location.name, hours: 24 }), setTimelineData),
+      // `user_type` and `language` add the per-hour readings the map explains
+      // itself with; `hours` carries each mapped location's own forecast so the
+      // playback steps real values instead of animating one.
+      settle(
+        'timeline',
+        api.timeline({ location: location.name, hours: 24, user_type: userType, language }),
+        setTimelineData,
+      ),
       settle('forecast', api.forecast({ location: location.name, days: 7 }), setForecastData),
-      settle('map', api.riskMap({ limit: 16 }), setMapData),
+      settle('map', api.riskMap({ limit: 16, hours: 6 }), setMapData),
     ])
   }, [location?.name, language, userType, setConditions, setDataSource])
 
@@ -362,6 +370,17 @@ export default function App() {
                 loading={loading.current}
                 error={errors.current}
                 onRetry={refresh}
+              />
+
+              {/* The same watched locations the risk map plots, read as weather
+                  rather than as risk, and steppable through their own forecast
+                  hours. It shares that one response — no request of its own. */}
+              <WeatherMap
+                data={mapData}
+                hours={timelineData?.hours}
+                insights={timelineData?.insights}
+                loading={loading.map}
+                error={errors.map}
               />
 
               {/* What that same weather means for whoever is reading it. The

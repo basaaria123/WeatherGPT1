@@ -290,6 +290,10 @@ class TimelineResponse(BaseModel):
     generated_at: str
     data_source: str
     hours: list[HourPoint]
+    # One reading per hour, aligned index-for-index with `hours`, in the
+    # caller's language and framed for their profile. Empty when neither was
+    # asked for, so an existing caller sees exactly what it saw before.
+    insights: list[str] = Field(default_factory=list)
 
 
 class ForecastResponse(BaseModel):
@@ -353,6 +357,23 @@ class CurrentWeatherResponse(BaseModel):
     official_alert_count: int = 0
 
 
+class MapHour(BaseModel):
+    """One forecast hour for one place on the map.
+
+    Only fields the provider actually returned for that hour are populated;
+    `cloud_cover_pct` is deliberately absent because the hourly series does not
+    carry it, and a map layer must be able to tell "no reading" from "clear".
+    """
+
+    time: str
+    temperature_c: float | None = None
+    precipitation_mm: float | None = None
+    precipitation_probability_pct: float | None = None
+    wind_speed_kmh: float | None = None
+    risk_score: int = 0
+    risk_level: RiskLevel = "Low"
+
+
 class RiskMapEntry(BaseModel):
     location: str
     admin1: str | None = None
@@ -361,6 +382,17 @@ class RiskMapEntry(BaseModel):
     risk_score: int
     risk_level: RiskLevel
     detected_hazard: str
+    # Measured values for this point, already in hand when the risk was scored.
+    # Present so a map layer can colour real readings instead of inventing a
+    # field between the points it has.
+    temperature_c: float | None = None
+    precipitation_mm: float | None = None
+    precipitation_probability_pct: float | None = None
+    wind_speed_kmh: float | None = None
+    wind_direction_deg: float | None = None
+    cloud_cover_pct: float | None = None
+    # Forward hours for this point, only when the caller asked for them.
+    hours: list[MapHour] = Field(default_factory=list)
 
 
 class RiskMapResponse(BaseModel):

@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, HTTPException, Query
 
 from ..config import get_settings
-from ..schemas import RiskMapEntry, RiskMapResponse, RiskOutput
+from ..schemas import MapHour, RiskMapEntry, RiskMapResponse, RiskOutput
 from ..services import risk_engine, weather
 from ..services.alerts import DEFAULT_WATCH
 from ..services.weather import WeatherError
@@ -42,7 +42,13 @@ def risk_for_location(
     return risk_engine.assess(bundle)
 
 
-def _score_one(name: str) -> tuple[RiskMapEntry | None, str | None]:
+def _score_one(name: str, hours: int = 0) -> tuple[RiskMapEntry | None, str | None]:
+    """Score one watched location, and carry out the readings already fetched.
+
+    The bundle is retrieved to compute the risk either way; returning the
+    measured values alongside it costs nothing and is what lets the map colour
+    real observations rather than interpolate a field it does not have.
+    """
     try:
         location = weather.geocode(name)
         if location is None:
@@ -51,6 +57,13 @@ def _score_one(name: str) -> tuple[RiskMapEntry | None, str | None]:
     except WeatherError as exc:
         return None, f"{name}: {exc}"
     risk = risk_engine.assess(bundle)
+    current = bundle.current or {}
+
+    forward: list[MapHour] = []
+    if hours > 0:
+        for hour in risk_engine.timeline(bundle, hours=hours):
+            forward.append(MapHour(**{k: v for k, v in hour.items() if k in MapHour.model_fields}))
+
     return (
         RiskMapEntry(
             location=location.name,
@@ -60,6 +73,13 @@ def _score_one(name: str) -> tuple[RiskMapEntry | None, str | None]:
             risk_score=risk.risk_score,
             risk_level=risk.risk_level,
             detected_hazard=risk.detected_hazard,
+            temperature_c=current.get("temperature_c"),
+            precipitation_mm=current.get("precipitation_mm"),
+            precipitation_probability_pct=current.get("precipitation_probability_pct"),
+            wind_speed_kmh=current.get("wind_speed_kmh"),
+            wind_direction_deg=current.get("wind_direction_deg"),
+            cloud_cover_pct=current.get("cloud_cover_pct"),
+            hours=forward,
         ),
         None,
     )
@@ -69,6 +89,7 @@ def _score_one(name: str) -> tuple[RiskMapEntry | None, str | None]:
 async def risk_map(
     limit: int = Query(24, ge=1, le=85),
     all_locations: bool = Query(False, description="Score the whole gazetteer instead of the watchlist"),
+    hours: int = Query(0, ge=0, le=12, description="Forward hours to carry per location; 0 omits them"),
 ) -> RiskMapResponse:
     """Per-location risk for the India map, from the same engine as everything else.
 
@@ -81,7 +102,7 @@ async def risk_map(
     else:
         names = list(DEFAULT_WATCH)[:limit]
 
-    results = await asyncio.gather(*(asyncio.to_thread(_score_one, name) for name in names))
+    results = await asyncio.gather(*(asyncio.to_thread(_score_one, name, hours) for name in names))
 
     entries = [entry for entry, _ in results if entry is not None]
     errors = [error for _, error in results if error]

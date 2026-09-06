@@ -27,7 +27,7 @@ from ..schemas import (
     RoleIntelligenceOut,
     TimelineResponse,
 )
-from ..services import advisory, climate, risk_engine, role_intel, weather
+from ..services import advisory, climate, map_insight, risk_engine, role_intel, weather
 from ..services.weather import WeatherError
 
 router = APIRouter(tags=["weather"])
@@ -170,15 +170,23 @@ def timeline(
     latitude: float | None = None,
     longitude: float | None = None,
     hours: int = Query(24, ge=1, le=48),
+    language: str = Query("en", description="Language for the per-hour readings"),
+    user_type: str | None = Query(None, description="Frames the per-hour readings; never the numbers"),
 ) -> TimelineResponse:
-    """Next-N-hour timeline, each hour carrying its own risk level."""
+    """Next-N-hour timeline, each hour carrying its own risk level.
+
+    `insights` is only built when a profile is asked for, so the existing
+    callers of this endpoint get byte-identical responses.
+    """
     resolved = _resolve(location, latitude, longitude)
     bundle = _bundle(resolved)
+    series = risk_engine.timeline(bundle, hours=hours)
     return TimelineResponse(
         location=_location_out(bundle.location),
         generated_at=_now(),
         data_source=bundle.source,
-        hours=[HourPoint(**hour) for hour in risk_engine.timeline(bundle, hours=hours)],
+        hours=[HourPoint(**hour) for hour in series],
+        insights=map_insight.build(series, user_type, language) if user_type else [],
     )
 
 

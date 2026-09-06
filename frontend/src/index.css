@@ -368,3 +368,52 @@
   0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.25; }
   50% { transform: translate3d(6px, -14px, 0); opacity: 0.7; }
 }
+
+/* --- Weather map timeline slider -------------------------------------------
+   The native range input carries the app's own accent instead of the browser
+   default, and keeps a touch-sized thumb on a phone. */
+
+.wx-range {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 22px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.wx-range::-webkit-slider-runnable-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--wx-tint) / 0.14);
+}
+
+.wx-range::-moz-range-track {
+  height: 4px;
+  border-radius: var(--radius-pill);
+  background: rgb(var(--wx-tint) / 0.14);
+}
+
+.wx-range::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  margin-top: -7px;
+  height: 18px;
+  width: 18px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  border: 3px solid rgb(var(--wx-scrim) / 0.9);
+  box-shadow: var(--shadow-glass);
+}
+
+.wx-range::-moz-range-thumb {
+  height: 18px;
+  width: 18px;
+  border: 3px solid rgb(var(--wx-scrim) / 0.9);
+  border-radius: 50%;
+  background: var(--color-primary);
+}
+
+.wx-range:focus-visible::-webkit-slider-thumb {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
