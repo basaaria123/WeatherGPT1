@@ -13,7 +13,7 @@ const STRINGS = {
     heroLead:
       'WeatherGPT turns raw forecast data into plain-language guidance — in your language, by voice, for the decision you actually have to make.',
     heroWho: 'Built for farmers, fishermen, travellers and flood-prone communities across India.',
-    heroCta: 'Open the assistant',
+    heroCta: 'Get started',
     heroSecondary: 'See the difference',
     pillarDataTitle: 'Raw data',
     pillarDataBody: 'Live observations and forecasts, not a canned summary.',
@@ -263,7 +263,7 @@ const STRINGS = {
     heroLead:
       'WeatherGPT जटिल पूर्वानुमान को सरल भाषा में बदलता है — आपकी भाषा में, आवाज़ से, उस फ़ैसले के लिए जो आपको वाक़ई लेना है।',
     heroWho: 'किसानों, मछुआरों, यात्रियों और बाढ़-प्रभावित समुदायों के लिए बनाया गया।',
-    heroCta: 'सहायक खोलें',
+    heroCta: 'शुरू करें',
     heroSecondary: 'फ़र्क़ देखें',
     pillarDataTitle: 'कच्चा डेटा',
     pillarDataBody: 'सीधा अवलोकन और पूर्वानुमान, बना-बनाया सारांश नहीं।',
@@ -513,7 +513,7 @@ const STRINGS = {
     heroLead:
       'WeatherGPT సంక్లిష్టమైన సూచనలను సరళమైన భాషలోకి మారుస్తుంది — మీ భాషలో, మీ గొంతుతో, మీరు నిజంగా తీసుకోవాల్సిన నిర్ణయం కోసం.',
     heroWho: 'రైతులు, మత్స్యకారులు, ప్రయాణికులు మరియు వరద ప్రాంత ప్రజల కోసం.',
-    heroCta: 'సహాయకుడిని తెరవండి',
+    heroCta: 'ప్రారంభించండి',
     heroSecondary: 'తేడా చూడండి',
     pillarDataTitle: 'ముడి సమాచారం',
     pillarDataBody: 'ప్రత్యక్ష పరిశీలనలు, ముందే తయారుచేసిన సారాంశం కాదు.',
@@ -763,7 +763,7 @@ const STRINGS = {
     heroLead:
       'WeatherGPT জটিল পূর্বাভাসকে সহজ ভাষায় বদলে দেয় — আপনার ভাষায়, কণ্ঠে, আপনার আসল সিদ্ধান্তের জন্য।',
     heroWho: 'কৃষক, জেলে, ভ্রমণকারী ও বন্যাপ্রবণ এলাকার মানুষের জন্য তৈরি।',
-    heroCta: 'সহায়ক খুলুন',
+    heroCta: 'শুরু করুন',
     heroSecondary: 'পার্থক্য দেখুন',
     pillarDataTitle: 'কাঁচা তথ্য',
     pillarDataBody: 'সরাসরি পর্যবেক্ষণ ও পূর্বাভাস, তৈরি সারাংশ নয়।',
@@ -1013,7 +1013,7 @@ const STRINGS = {
     heroLead:
       'WeatherGPT गुंतागुंतीचा अंदाज सोप्या भाषेत बदलतो — तुमच्या भाषेत, आवाजाने, तुम्हाला खरोखर घ्यायच्या निर्णयासाठी.',
     heroWho: 'शेतकरी, मच्छीमार, प्रवासी आणि पूरप्रवण भागातील लोकांसाठी.',
-    heroCta: 'सहाय्यक उघडा',
+    heroCta: 'सुरू करा',
     heroSecondary: 'फरक पाहा',
     pillarDataTitle: 'कच्ची माहिती',
     pillarDataBody: 'थेट निरीक्षणे आणि अंदाज, तयार सारांश नाही.',
@@ -1263,7 +1263,7 @@ const STRINGS = {
     heroLead:
       'WeatherGPT জটিল পূৰ্বাভাসক সৰল ভাষালৈ সলনি কৰে — আপোনাৰ ভাষাত, মাতেৰে, আপুনি সঁচাকৈ ল’ব লগা সিদ্ধান্তৰ বাবে।',
     heroWho: 'কৃষক, মাছমৰীয়া, যাত্ৰী আৰু বানপীড়িত অঞ্চলৰ মানুহৰ বাবে।',
-    heroCta: 'সহায়ক খোলক',
+    heroCta: 'আৰম্ভ কৰক',
     heroSecondary: 'পাৰ্থক্য চাওক',
     pillarDataTitle: 'কেঁচা তথ্য',
     pillarDataBody: 'পোনপটীয়া পৰ্যবেক্ষণ আৰু পূৰ্বাভাস, সজোৱা সাৰাংশ নহয়।',
