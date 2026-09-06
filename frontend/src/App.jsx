@@ -25,6 +25,7 @@ import PipelinePanel from './components/PipelinePanel'
 import RiskMap from './components/RiskMap'
 import SplashScreen from './components/SplashScreen'
 import Timeline from './components/Timeline'
+import WeatherIntro from './components/WeatherIntro'
 
 /**
  * App shell.
@@ -298,6 +299,11 @@ export default function App() {
   return (
     <>
       <WeatherScene scene={scene} light={lightTheme} intensity={stage === 'app' ? 0.75 : 1} />
+
+      {/* Greets the dashboard with the sky it just read. Reads the same payload
+          the cards render, so it can never introduce a condition they disagree
+          with, and it is deliberately absent from the landing page. */}
+      <WeatherIntro data={currentData} selectedLocation={location?.name ?? null} active={stage === 'app'} />
 
       <AnimatePresence mode="wait">
         {stage === 'splash' && <SplashScreen key="splash" onDone={() => setStage('landing')} />}

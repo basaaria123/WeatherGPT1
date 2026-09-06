@@ -299,3 +299,72 @@
 @media (prefers-reduced-motion: reduce) {
   .pulse-emergency { animation: none !important; opacity: 1 !important; }
 }
+
+/* --- Weather intro ---------------------------------------------------------
+   Motion for the two-second condition greeting. Everything here is scoped to
+   .wx-intro-*, runs only while the overlay is mounted, and stops with it —
+   there is no infinite work left behind the dashboard once the intro ends.
+
+   Reduced motion does not need a block below: the component drops the moving
+   layers entirely and renders the wash and the caption alone, which is a
+   different animation rather than the same one at zero speed. */
+
+.wx-intro-sun {
+  border-radius: 50%;
+  filter: blur(2px);
+  animation: wx-intro-sun-bloom 2.4s ease-out forwards;
+}
+
+@keyframes wx-intro-sun-bloom {
+  from { transform: scale(0.82); }
+  to { transform: scale(1.06); }
+}
+
+.wx-intro-cloud {
+  filter: blur(17px);
+  animation-name: wx-intro-drift;
+  animation-timing-function: linear;
+  animation-iteration-count: 1;
+  animation-fill-mode: forwards;
+}
+
+@keyframes wx-intro-drift {
+  from { transform: translateX(var(--wx-drift-from)); }
+  to { transform: translateX(var(--wx-drift-to)); }
+}
+
+.wx-intro-drop {
+  animation-name: wx-intro-fall;
+  animation-timing-function: linear;
+  animation-iteration-count: infinite;
+  will-change: transform;
+}
+
+@keyframes wx-intro-fall {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(var(--wx-drop-drift), var(--wx-drop-spread), 0); }
+}
+
+.wx-intro-veil {
+  filter: blur(26px);
+  animation-name: wx-intro-sheet;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes wx-intro-sheet {
+  0%, 100% { transform: translateX(-8%); opacity: 0.65; }
+  50% { transform: translateX(8%); opacity: 1; }
+}
+
+.wx-intro-mote {
+  filter: blur(0.5px);
+  animation-name: wx-intro-float;
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+@keyframes wx-intro-float {
+  0%, 100% { transform: translate3d(0, 0, 0); opacity: 0.25; }
+  50% { transform: translate3d(6px, -14px, 0); opacity: 0.7; }
+}
