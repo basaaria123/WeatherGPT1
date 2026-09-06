@@ -6,16 +6,6 @@
  * so the two never drift apart or contradict each other.
  */
 
-export const LANGUAGES = [
-  // `label` is what a citizen reads; `short` keeps the header usable at 320px.
-  { code: 'en', label: 'English', short: 'EN', name: 'English' },
-  { code: 'hi', label: 'हिन्दी', short: 'हिं', name: 'Hindi' },
-  { code: 'te', label: 'తెలుగు', short: 'తె', name: 'Telugu' },
-  { code: 'bn', label: 'বাংলা', short: 'বাং', name: 'Bengali' },
-  { code: 'mr', label: 'मराठी', short: 'मरा', name: 'Marathi' },
-  { code: 'as', label: 'অসমীয়া', short: 'অস', name: 'Assamese' },
-]
-
 const STRINGS = {
   en: {
     tagline: 'Weather Intelligence Assistant',
@@ -157,6 +147,20 @@ const STRINGS = {
       'Weather for fishing',
       'What about tomorrow?',
     ],
+    // --- Language picker ---------------------------------------------------
+    chooseLanguage: 'Choose language',
+    searchLanguage: 'Search language',
+    noLanguageFound: 'No language found',
+    groupPopular: 'Popular',
+    groupNorth: 'North & Central India',
+    groupSouth: 'South India',
+    groupEast: 'East & Northeast India',
+    groupCommunity: 'Regional & community languages',
+    regionalLanguages: 'Indian & regional languages',
+    answersInEnglish: 'Answers in English',
+    speakToApp: 'Speak to WeatherGPT',
+    listenToAnswers: 'Listen to answers',
+    voiceNotInLanguage: 'Voice is not available in this language yet',
     profiles: {
       general: 'General',
       farmer: 'Farmer',
@@ -306,6 +310,20 @@ const STRINGS = {
       'मछली पकड़ने का मौसम',
       'कल का मौसम?',
     ],
+    // --- Language picker ---------------------------------------------------
+    chooseLanguage: 'भाषा चुनें',
+    searchLanguage: 'भाषा खोजें',
+    noLanguageFound: 'कोई भाषा नहीं मिली',
+    groupPopular: 'लोकप्रिय',
+    groupNorth: 'उत्तर और मध्य भारत',
+    groupSouth: 'दक्षिण भारत',
+    groupEast: 'पूर्व और पूर्वोत्तर भारत',
+    groupCommunity: 'क्षेत्रीय और समुदाय की भाषाएँ',
+    regionalLanguages: 'भारतीय और क्षेत्रीय भाषाएँ',
+    answersInEnglish: 'उत्तर अंग्रेज़ी में',
+    speakToApp: 'WeatherGPT से बोलें',
+    listenToAnswers: 'उत्तर सुनें',
+    voiceNotInLanguage: 'इस भाषा में आवाज़ अभी उपलब्ध नहीं है',
     profiles: {
       general: 'सामान्य',
       farmer: 'किसान',
@@ -455,6 +473,20 @@ const STRINGS = {
       'చేపల వేటకు వాతావరణం',
       'రేపటి సంగతి?',
     ],
+    // --- Language picker ---------------------------------------------------
+    chooseLanguage: 'భాషను ఎంచుకోండి',
+    searchLanguage: 'భాషను వెతకండి',
+    noLanguageFound: 'భాష దొరకలేదు',
+    groupPopular: 'ప్రాచుర్యం పొందినవి',
+    groupNorth: 'ఉత్తర మరియు మధ్య భారతం',
+    groupSouth: 'దక్షిణ భారతం',
+    groupEast: 'తూర్పు మరియు ఈశాన్య భారతం',
+    groupCommunity: 'ప్రాంతీయ మరియు సమాజ భాషలు',
+    regionalLanguages: 'భారతీయ మరియు ప్రాంతీయ భాషలు',
+    answersInEnglish: 'సమాధానాలు ఆంగ్లంలో',
+    speakToApp: 'WeatherGPT తో మాట్లాడండి',
+    listenToAnswers: 'సమాధానాలు వినండి',
+    voiceNotInLanguage: 'ఈ భాషలో వాయిస్ ఇంకా అందుబాటులో లేదు',
     profiles: {
       general: 'సాధారణ',
       farmer: 'రైతు',
@@ -604,6 +636,20 @@ const STRINGS = {
       'মাছ ধরার আবহাওয়া',
       'আগামীকাল কেমন?',
     ],
+    // --- Language picker ---------------------------------------------------
+    chooseLanguage: 'ভাষা বেছে নিন',
+    searchLanguage: 'ভাষা খুঁজুন',
+    noLanguageFound: 'কোনো ভাষা পাওয়া যায়নি',
+    groupPopular: 'জনপ্রিয়',
+    groupNorth: 'উত্তর ও মধ্য ভারত',
+    groupSouth: 'দক্ষিণ ভারত',
+    groupEast: 'পূর্ব ও উত্তর-পূর্ব ভারত',
+    groupCommunity: 'আঞ্চলিক ও সম্প্রদায়ের ভাষা',
+    regionalLanguages: 'ভারতীয় ও আঞ্চলিক ভাষা',
+    answersInEnglish: 'উত্তর ইংরেজিতে',
+    speakToApp: 'WeatherGPT-কে বলুন',
+    listenToAnswers: 'উত্তর শুনুন',
+    voiceNotInLanguage: 'এই ভাষায় ভয়েস এখনও নেই',
     profiles: {
       general: 'সাধারণ',
       farmer: 'কৃষক',
@@ -753,6 +799,20 @@ const STRINGS = {
       'मासेमारीसाठी हवामान',
       'उद्याचे काय?',
     ],
+    // --- Language picker ---------------------------------------------------
+    chooseLanguage: 'भाषा निवडा',
+    searchLanguage: 'भाषा शोधा',
+    noLanguageFound: 'कोणतीही भाषा सापडली नाही',
+    groupPopular: 'लोकप्रिय',
+    groupNorth: 'उत्तर व मध्य भारत',
+    groupSouth: 'दक्षिण भारत',
+    groupEast: 'पूर्व व ईशान्य भारत',
+    groupCommunity: 'प्रादेशिक व समुदाय भाषा',
+    regionalLanguages: 'भारतीय व प्रादेशिक भाषा',
+    answersInEnglish: 'उत्तरे इंग्रजीत',
+    speakToApp: 'WeatherGPT शी बोला',
+    listenToAnswers: 'उत्तरे ऐका',
+    voiceNotInLanguage: 'या भाषेत आवाज अद्याप उपलब्ध नाही',
     profiles: {
       general: 'सामान्य',
       farmer: 'शेतकरी',
@@ -902,6 +962,20 @@ const STRINGS = {
       'মাছ ধৰাৰ বতৰ',
       'কাইলৈৰ কথা?',
     ],
+    // --- Language picker ---------------------------------------------------
+    chooseLanguage: 'ভাষা বাছনি কৰক',
+    searchLanguage: 'ভাষা বিচাৰক',
+    noLanguageFound: 'কোনো ভাষা পোৱা নাযায়',
+    groupPopular: 'জনপ্ৰিয়',
+    groupNorth: 'উত্তৰ আৰু মধ্য ভাৰত',
+    groupSouth: 'দক্ষিণ ভাৰত',
+    groupEast: 'পূব আৰু উত্তৰ-পূব ভাৰত',
+    groupCommunity: 'আঞ্চলিক আৰু সম্প্ৰদায়ৰ ভাষা',
+    regionalLanguages: 'ভাৰতীয় আৰু আঞ্চলিক ভাষা',
+    answersInEnglish: 'উত্তৰ ইংৰাজীত',
+    speakToApp: 'WeatherGPT-ৰ সৈতে কথা পাতক',
+    listenToAnswers: 'উত্তৰ শুনক',
+    voiceNotInLanguage: 'এই ভাষাত ভইচ এতিয়াও নাই',
     profiles: {
       general: 'সাধাৰণ',
       farmer: 'কৃষক',

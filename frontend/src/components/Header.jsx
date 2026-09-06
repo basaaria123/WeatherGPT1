@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { LANGUAGES, profileLabel, t } from '../i18n/ui'
+import { profileLabel, t } from '../i18n/ui'
+import LanguagePicker from './LanguagePicker'
 import { LOGO_SRC } from './SplashScreen'
 import { useStore } from '../store/useStore'
 
@@ -10,7 +11,6 @@ const PROFILES = ['general', 'farmer', 'fisherman', 'traveler', 'commuter']
 
 export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }) {
   const language = useStore((s) => s.language)
-  const setLanguage = useStore((s) => s.setLanguage)
   const userType = useStore((s) => s.userType)
   const setUserType = useStore((s) => s.setUserType)
   const location = useStore((s) => s.location)
@@ -72,14 +72,7 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing }
               <span className="truncate font-medium">{location?.name ?? '—'}</span>
             </button>
 
-            <Dropdown
-              label={LANGUAGES.find((l) => l.code === language)?.label ?? 'English'}
-              shortLabel={LANGUAGES.find((l) => l.code === language)?.short ?? 'EN'}
-              ariaLabel={t(language, 'language')}
-              items={LANGUAGES.map((l) => ({ value: l.code, label: l.label, hint: l.name }))}
-              value={language}
-              onSelect={setLanguage}
-            />
+            <LanguagePicker />
 
             <Dropdown
               label={profileLabel(language, userType)}

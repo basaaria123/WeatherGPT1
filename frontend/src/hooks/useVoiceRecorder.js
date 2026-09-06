@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { speechTagFor } from '../i18n/languages'
 
 /**
  * Microphone capture for /voice-chat.
@@ -88,7 +89,7 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
     try {
       const recognition = new Recognition()
       // BCP-47 tags; the browser ignores an unknown one rather than failing.
-      recognition.lang = { en: 'en-IN', hi: 'hi-IN', te: 'te-IN', bn: 'bn-IN', mr: 'mr-IN', as: 'as-IN' }[language] ?? 'en-IN'
+      recognition.lang = speechTagFor(language)
       recognition.interimResults = false
       recognition.continuous = false
       recognition.onresult = (event) => {
