@@ -168,7 +168,7 @@ def test_explanation_only_quotes_values_the_provider_returned():
 # runs on. They are written against ``handle_chat`` rather than the helpers so
 # they cover the wiring, which is where all four bugs lived.
 # ---------------------------------------------------------------------------
-PERSONAS = ("general", "farmer", "fisherman", "traveler", "commuter")
+PERSONAS = ("general", "farmer", "fisherman", "traveler", "driver")
 
 
 def _answers_by_persona(scenario: str, question: str = "What is the weather in Vijayawada today?"):
@@ -206,7 +206,9 @@ def test_advisory_is_never_empty_and_differs_from_general(scenario):
     responses = _answers_by_persona(scenario)
     general = [a.action for a in responses["general"].advisory.actions]
     assert general, f"{scenario}: general advisory is empty"
-    for persona in ("farmer", "fisherman", "traveler", "commuter"):
+    for persona in PERSONAS:
+        if persona == "general":
+            continue
         actions = [a.action for a in responses[persona].advisory.actions]
         assert actions, f"{scenario}/{persona}: advisory is empty"
         assert actions != general, f"{scenario}/{persona}: advisory matches general"

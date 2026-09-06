@@ -17,7 +17,10 @@ from app.schemas import RiskOutput
 from app.services import i18n, role_intel
 from app.services._role_sentences import ROLE_SENTENCES
 
-ROLES = ["general", "farmer", "fisherman", "traveler", "commuter"]
+ROLES = [
+    "general", "farmer", "fisherman", "traveler", "driver",
+    "outdoor_worker", "household", "student", "caregiver", "commuter",
+]
 
 
 def _risk(level="Low", hazard="No active hazard", **scores) -> RiskOutput:
@@ -228,3 +231,127 @@ def test_compass_point_never_guesses():
     assert role_intel._compass_point(0) == "N"
     assert role_intel._compass_point(225) == "SW"
     assert role_intel._compass_point(359) == "N"
+
+
+# --- The five profiles added for the nine-role selector ---------------------
+
+NEW_ROLES = ["driver", "outdoor_worker", "household", "student", "caregiver"]
+
+# Student is deliberately absent: its panel is a recombination of the commute
+# and outdoor readings rather than a new set of sentences, so that a student and
+# a commuter can never be given two different answers to the same question. Its
+# distinctness lives in the heading, factor order, hazard actions and map
+# clause, and is covered by test_roles_actually_differ and the reuse test below.
+OWN_CARD_ROLES = [r for r in NEW_ROLES if r != "student"]
+
+
+@pytest.mark.parametrize("role", OWN_CARD_ROLES)
+def test_new_roles_answer_their_own_question(role):
+    """A label the engine cannot tell apart would be a promise broken on the
+    next screen, so each new reading must own cards no other reading shows."""
+    mine = {c["id"] for c in role_intel.build(_bundle(), _risk(), role, "en")["cards"]}
+    others = set()
+    for other in ROLES:
+        if other == role:
+            continue
+        others |= {c["id"] for c in role_intel.build(_bundle(), _risk(), other, "en")["cards"]}
+    assert mine - others, f"{role} shows nothing the other readings do not"
+
+
+def test_driver_reads_visibility_from_the_measurement():
+    fog = role_intel.build(_bundle(visibility_km=0.8), _risk(), "driver", "en")["cards"]
+    card = {c["id"]: c for c in fog}["road_visibility"]
+    assert card["tone"] == "danger"
+    assert "0.8" in card["detail"]
+
+    clear = role_intel.build(_bundle(visibility_km=14.0), _risk(), "driver", "en")["cards"]
+    assert {c["id"]: c for c in clear}["road_visibility"]["tone"] == "safe"
+
+
+def test_driver_says_nothing_about_a_road_it_cannot_see():
+    """No visibility reading must not become a clear road."""
+    blind = _bundle(visibility_km=None)
+    card = {c["id"]: c for c in role_intel.build(blind, _risk(), "driver", "en")["cards"]}
+    assert card["road_visibility"]["headline"] == i18n.sentence("ri_no_data", "en")
+    assert card["road_visibility"]["tone"] == "info"
+
+
+def test_driver_surface_verdict_follows_measured_rain():
+    dry = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "driver", "en")["cards"]}
+    assert dry["road_surface"]["tone"] == "safe"
+
+    wet = _bundle(_hourly_mm=1.5, _hourly_prob=80.0, precipitation_mm=2.0)
+    heavy = {c["id"]: c for c in role_intel.build(wet, _risk(), "driver", "en")["cards"]}
+    assert heavy["road_surface"]["tone"] in {"caution", "warn"}
+
+
+def test_outdoor_worker_window_comes_from_the_engine_scores():
+    bundle = _bundle(hours=12)
+    bundle.hourly[4]["risk_score"] = 0  # 10:00
+    card = {c["id"]: c for c in role_intel.build(bundle, _risk(), "outdoor_worker", "en")["cards"]}
+    assert card["work_window"]["headline"] == "10:00"
+
+
+def test_outdoor_worker_window_is_absent_without_an_hourly_series():
+    bare = SimpleNamespace(current=_bundle().current, hourly=[], daily=[])
+    card = {c["id"]: c for c in role_intel.build(bare, _risk(), "outdoor_worker", "en")["cards"]}
+    assert card["work_window"]["headline"] == i18n.sentence("ri_workwindow_none", "en")
+
+
+def test_outdoor_worker_feels_heat_before_the_thermometer_does():
+    """Humidity is what turns a workable 33°C into an unworkable one."""
+    muggy = _bundle(temperature_c=31.0, apparent_temperature_c=32.0, humidity_pct=88.0)
+    card = {c["id"]: c for c in role_intel.build(muggy, _risk(), "outdoor_worker", "en")["cards"]}
+    assert card["heat_stress"]["tone"] == "caution"
+
+    scorching = _bundle(apparent_temperature_c=39.0, humidity_pct=55.0)
+    hot = {c["id"]: c for c in role_intel.build(scorching, _risk(), "outdoor_worker", "en")["cards"]}
+    assert hot["heat_stress"]["tone"] == "warn"
+
+
+def test_preparedness_is_gated_on_storm_and_wind_not_on_rain():
+    """Heavy rain alone is not a reason to tell someone to find a torch."""
+    rainy = _bundle(_hourly_mm=2.0, _hourly_prob=90.0, precipitation_mm=3.0)
+    calm = {c["id"]: c for c in role_intel.build(rainy, _risk(), "household", "en")["cards"]}
+    assert calm["prepare"]["headline"] == i18n.sentence("ri_prepare_normal", "en")
+
+    stormy = role_intel.build(
+        _bundle(), _risk("High", "Lightning/Storm", **{"Lightning/Storm": 70}), "household", "en",
+    )["cards"]
+    assert {c["id"]: c for c in stormy}["prepare"]["tone"] in {"caution", "warn"}
+
+
+def test_household_drying_verdict_tracks_the_forecast():
+    dry = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "household", "en")["cards"]}
+    assert dry["home_rain"]["headline"] == i18n.sentence("ri_home_rain_dry", "en")
+
+    wet = _bundle(_hourly_prob=85.0, _hourly_mm=1.0)
+    damp = {c["id"]: c for c in role_intel.build(wet, _risk(), "household", "en")["cards"]}
+    assert damp["home_rain"]["headline"] == i18n.sentence("ri_home_rain_wet", "en")
+
+
+def test_student_reuses_the_shared_readings_rather_than_a_second_opinion():
+    """Two mappings for one question is two chances to disagree."""
+    student = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "student", "en")["cards"]}
+    commuter = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "commuter", "en")["cards"]}
+    general = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "general", "en")["cards"]}
+    assert student["commute_risk"] == commuter["commute_risk"]
+    assert student["outdoor"] == general["outdoor"]
+
+
+def test_caregiver_reads_heat_earlier_than_the_general_panel():
+    """Children and older people are affected below the general threshold."""
+    warm = _bundle(temperature_c=32.0, apparent_temperature_c=33.0, humidity_pct=60.0)
+    risk = _risk("Moderate", "Extreme Heat", **{"Extreme Heat": 45})
+    care = {c["id"]: c for c in role_intel.build(warm, risk, "caregiver", "en")["cards"]}
+    assert care["vulnerable"]["tone"] == "warn"
+    general = {c["id"]: c for c in role_intel.build(warm, risk, "general", "en")["cards"]}
+    assert general["comfort"]["tone"] == "caution"
+
+
+def test_legacy_profiles_still_resolve():
+    """A stored preference must never become an invalid request."""
+    for legacy in ("commuter", "aviation", "urban"):
+        panel = role_intel.build(_bundle(), _risk(), legacy, "en")
+        assert panel["cards"]
+        assert panel["heading"]

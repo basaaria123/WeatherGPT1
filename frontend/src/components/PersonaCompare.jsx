@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { ROLE_ICONS } from '../i18n/roles'
 import { hazardLabel, profileLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
@@ -15,7 +16,10 @@ import { severityOf } from './ui/severity'
  * Everything shown comes from /advisory/personas, which reads the same risk
  * engine as the rest of the dashboard.
  */
-const ICONS = { farmer: '🌾', fisherman: '🎣', traveler: '🧳', commuter: '🚌', general: '🏠' }
+// The comparison view renders whichever personas the backend returns, so the
+// icons come from the shared role table; `commuter` is still in the backend's
+// comparison set even though the selector no longer offers it.
+const ICONS = { ...ROLE_ICONS, commuter: '🚌' }
 
 export default function PersonaCompare({ open, onClose, location }) {
   const language = useStore((s) => s.language)

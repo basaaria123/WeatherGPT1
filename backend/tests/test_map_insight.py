@@ -17,7 +17,10 @@ from app.main import app
 from app.services import i18n, map_insight
 from app.services._role_sentences import ROLE_SENTENCES
 
-ROLES = ["general", "farmer", "fisherman", "traveler", "commuter"]
+ROLES = [
+    "general", "farmer", "fisherman", "traveler", "driver",
+    "outdoor_worker", "household", "student", "caregiver", "commuter",
+]
 client = TestClient(app)
 
 

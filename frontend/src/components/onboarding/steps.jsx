@@ -9,6 +9,7 @@ import {
 } from '../../auth/session'
 import { LANGUAGE_CATALOG, withServerLanguages } from '../../i18n/languages'
 import { safeNative } from '../../i18n/scriptSupport'
+import { ROLES } from '../../i18n/roles'
 import { profileLabel, t } from '../../i18n/ui'
 import { useStore } from '../../store/useStore'
 
@@ -177,16 +178,10 @@ export function LocationStep({ onNext }) {
 
 // --- 2. How should WeatherGPT help you? -------------------------------------
 
-// The profiles the backend genuinely reasons about. A role on this screen that
+// Shared with the header selector, so the nine roles offered here are exactly
+// the nine the rest of the app can switch between. A role on this screen that
 // the advisory engine cannot tell apart would be a promise the product breaks
 // on the very next screen.
-const ROLES = [
-  { id: 'general', icon: '🌤️' },
-  { id: 'farmer', icon: '🌾' },
-  { id: 'fisherman', icon: '🎣' },
-  { id: 'traveler', icon: '🧳' },
-  { id: 'commuter', icon: '🚗' },
-]
 
 export function RoleStep({ onNext }) {
   const language = useStore((s) => s.language)
@@ -197,7 +192,10 @@ export function RoleStep({ onNext }) {
     <div>
       <Heading title={t(language, 'onbRoleTitle')} lead={t(language, 'onbRoleLead')} />
 
-      <div className="mt-6 grid gap-2 sm:grid-cols-2">
+      {/* Two columns even at 320px: nine single-file rows would push the last
+          roles below the fold, and a role nobody scrolls to is a role nobody
+          picks. Three columns once there is room for them. */}
+      <div className="mt-6 grid grid-cols-2 gap-2 sm:grid-cols-3">
         {ROLES.map((role) => {
           const active = role.id === userType
           return (
@@ -206,15 +204,19 @@ export function RoleStep({ onNext }) {
               type="button"
               onClick={() => { setUserType(role.id); onNext() }}
               aria-pressed={active}
-              className={`flex min-h-[56px] items-center gap-3 rounded-[var(--radius-card)] border px-4 py-3
+              className={`flex min-h-[56px] min-w-0 items-center gap-2.5 rounded-[var(--radius-card)] border px-3 py-2.5
                           text-left transition ${
                             active
                               ? 'border-primary/60 bg-primary/10'
                               : 'border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.03)] hover:border-[rgb(var(--wx-tint)/0.28)]'
                           }`}
             >
-              <span aria-hidden="true" className="text-xl">{role.icon}</span>
-              <span className={`text-[14px] font-medium ${active ? 'text-primary' : 'text-ink'}`}>
+              <span aria-hidden="true" className="shrink-0 text-xl">{role.icon}</span>
+              <span
+                className={`min-w-0 text-[13px] font-medium leading-tight ${
+                  active ? 'text-primary' : 'text-ink'
+                }`}
+              >
                 {profileLabel(language, role.id)}
               </span>
             </button>

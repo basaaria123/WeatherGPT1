@@ -68,6 +68,11 @@ FORECAST_TERMS: tuple[str, ...] = (
     "পূর্বাভাস", "হবে", "পূৰ্বাভাস", "হ'ব",
 )
 
+# Ordered, because the first match wins. The most specific self-identifications
+# come first and the broadest ("travel", "at home") last, so "I work on a
+# construction site" is read as site work rather than as a commute. The legacy
+# profiles sit at the end: they are still accepted, but the selector no longer
+# offers them, so nothing should be routed to one ahead of a profile it does.
 PROFILE_TERMS: dict[str, tuple[str, ...]] = {
     "farmer": ("farm", "farming", "farmer", "crop", "crops", "harvest", "sowing", "irrigation",
                "paddy", "field", "खेती", "किसान", "फ़सल", "फसल", "शेती", "शेतकरी", "पीक",
@@ -75,12 +80,28 @@ PROFILE_TERMS: dict[str, tuple[str, ...]] = {
     "fisherman": ("fish", "fishing", "fisherman", "boat", "sea", "trawler", "nets", "coast",
                   "मछली", "मछुआरा", "नाव", "समुद्र", "मासेमारी", "होडी",
                   "చేపల", "పడవ", "సముద్రం", "মাছ", "নৌকা", "সমুদ্র", "মাছ ধৰা", "নাও"),
+    "outdoor_worker": ("construction", "construction site", "site work", "labour", "labourer",
+                       "mason", "roadwork", "scaffolding", "working outside", "outdoor work",
+                       "मज़दूर", "मजदूर", "निर्माण", "बांधकाम", "बांधकाम मजूर",
+                       "కూలీ", "నిర్మాణం", "శ్রমিক", "শ্রমিক", "নির্মাণ", "শ্ৰমিক"),
+    "caregiver": ("caregiver", "elderly", "old people", "my mother", "my father", "patient",
+                  "patients", "nurse", "asha worker", "anganwadi", "vulnerable",
+                  "बुज़ुर्ग", "बुजुर्ग", "मरीज़", "देखभाल",
+                  "వృద్ధులు", "రోగి", "রোগী", "বয়স্ক", "বৃদ্ধ"),
+    "student": ("student", "college", "exam", "class", "classes", "school", "campus", "hostel",
+                "छात्र", "विद्यार्थी", "स्कूल", "कॉलेज", "शाळा",
+                "విద్యార్థి", "కాలేజీ", "పాఠశాల", "ছাত্র", "স্কুল", "কলেজ", "শিক্ষার্থী", "ছাত্ৰ"),
+    "driver": ("driving", "driver", "drive my", "truck", "lorry", "cab", "taxi", "delivery",
+               "wipers", "behind the wheel", "commute", "two-wheeler", "bike", "office",
+               "ड्राइवर", "ट्रक", "गाड़ी चला", "चालक", "दफ़्तर", "ऑफिस", "कार्यालय",
+               "డ్రైవర్", "లారీ", "ఆఫీసు", "ড্রাইভার", "ট্রাক", "চালক", "অফিস", "কাৰ্যালয়"),
+    "household": ("household", "at home", "laundry", "washing", "power cut", "housework",
+                  "घर", "गृहस्थी", "बिजली कटौती", "घरकाम", "ఇల్లు", "ఇంటి", "ঘর", "ঘৰ"),
     "traveler": ("travel", "trip", "journey", "tour", "visit", "flight", "highway", "road trip",
                  "यात्रा", "सफ़र", "प्रवास", "ప్రయాణం", "যাত্রা", "ভ্রমণ", "যাত্ৰা"),
-    "commuter": ("commute", "office", "work", "school", "bike", "two-wheeler", "bus", "train",
-                 "दफ़्तर", "ऑफिस", "कार्यालय", "ఆఫీసు", "অফিস", "কাৰ্যালয়"),
+    # Legacy: still accepted by the API, no longer offered by the selector.
     "aviation": ("aviation", "pilot", "airport", "runway", "takeoff", "landing", "visibility for flight"),
-    "urban": ("city drainage", "waterlogging", "traffic", "urban", "municipal"),
+    "urban": ("city drainage", "waterlogging", "urban", "municipal"),
 }
 
 # Deictic openers that signal a follow-up to the previous turn rather than a

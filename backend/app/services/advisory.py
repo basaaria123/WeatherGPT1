@@ -33,6 +33,11 @@ PROFILE_LEAD_CATEGORY: dict[str, str] = {
     "farmer": "farming",
     "fisherman": "fishing",
     "traveler": "travel",
+    "driver": "travel",
+    "student": "travel",
+    "outdoor_worker": "outdoor",
+    "caregiver": "outdoor",
+    "household": "household",
     "commuter": "travel",
     "general": "",
 }
@@ -44,6 +49,15 @@ PROFILE_FACTOR_ORDER: dict[str, tuple[str, ...]] = {
     "farmer": ("rain", "heat", "wind", "visibility"),
     "fisherman": ("wind", "rain", "visibility", "heat"),
     "traveler": ("visibility", "rain", "heat", "wind"),
+    # A driver is steering through it: what they can see comes first, then what
+    # the road surface is doing, then what the wind does to the vehicle.
+    "driver": ("visibility", "rain", "wind", "heat"),
+    # Someone working outside all day feels heat before anything else.
+    "outdoor_worker": ("heat", "rain", "wind", "visibility"),
+    "household": ("rain", "heat", "wind", "visibility"),
+    "student": ("rain", "visibility", "wind", "heat"),
+    # Caring for people who overheat and get soaked faster than you do.
+    "caregiver": ("heat", "rain", "wind", "visibility"),
     "commuter": ("rain", "visibility", "wind", "heat"),
     "general": ("rain", "wind", "heat", "visibility"),
 }
@@ -54,6 +68,11 @@ PROFILE_HORIZON_HOURS: dict[str, int] = {
     "farmer": 12,
     "fisherman": 12,
     "traveler": 12,
+    "driver": 8,
+    "outdoor_worker": 12,
+    "household": 12,
+    "student": 8,
+    "caregiver": 12,
     "commuter": 6,
     "general": 12,
 }
@@ -602,10 +621,10 @@ def headline_insight(
                 chosen.append(i18n.sentence("insight_window_until", lang, time=clock))
             elif onset is None:
                 chosen.append(i18n.sentence("impact_farming_clear", lang))
-        elif profile in {"traveler", "commuter"}:
+        elif profile in {"traveler", "commuter", "driver", "student"}:
             if onset is None and vis_ok:
                 chosen.append(i18n.sentence("impact_travel_clear", lang))
-        elif profile == "fisherman":
+        elif profile in {"fisherman", "outdoor_worker", "caregiver"}:
             if onset is None and (peak_wind is None or peak_wind < STRONG_WIND_KMH):
                 chosen.append(i18n.sentence("impact_outdoor_clear", lang))
         elif onset is None and vis_ok:
@@ -716,7 +735,11 @@ def advisory_for_every_persona(risk: RiskOutput, lang: str = "en") -> list[dict[
     return [build_advisory(risk, profile, lang) for profile in PERSONAS]
 
 
-PERSONAS: tuple[str, ...] = ("farmer", "fisherman", "traveler", "commuter", "general")
+# The comparison view is a demonstration, not the selector: five columns is
+# what fits side by side and still reads. "commuter" left this set when the
+# selector stopped offering it — a column labelled with a profile nobody can
+# choose would be showing advice the reader cannot get.
+PERSONAS: tuple[str, ...] = ("farmer", "fisherman", "traveler", "driver", "general")
 
 
 # ---------------------------------------------------------------------------

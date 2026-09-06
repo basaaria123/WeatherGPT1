@@ -30,6 +30,11 @@ _ROLE_CLAUSE = {
     "farmer": ("mi_role_farmer", "mi_role_farmer_calm"),
     "fisherman": ("mi_role_fisherman", "mi_role_fisherman_calm"),
     "traveler": ("mi_role_traveler", "mi_role_traveler_calm"),
+    "driver": ("mi_role_driver", "mi_role_driver_calm"),
+    "outdoor_worker": ("mi_role_outdoor_worker", "mi_role_outdoor_worker_calm"),
+    "household": ("mi_role_household", "mi_role_household_calm"),
+    "student": ("mi_role_student", "mi_role_student_calm"),
+    "caregiver": ("mi_role_caregiver", "mi_role_caregiver_calm"),
     "commuter": ("mi_role_commuter", "mi_role_commuter_calm"),
 }
 

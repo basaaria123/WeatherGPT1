@@ -150,7 +150,7 @@ def test_explanation_never_repeats_the_answer(scenario, name):
 # ---------------------------------------------------------------------------
 # 5. The four features that were already working
 # ---------------------------------------------------------------------------
-PERSONAS = ("general", "farmer", "fisherman", "traveler", "commuter")
+PERSONAS = ("general", "farmer", "fisherman", "traveler", "driver")
 
 
 def test_protected_persona_advice_still_differs(scenario):

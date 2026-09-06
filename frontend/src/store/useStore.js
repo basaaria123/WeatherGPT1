@@ -28,6 +28,17 @@ function savePrefs(prefs) {
   }
 }
 
+// Profiles the selector used to offer. The backend still accepts all three, so
+// nothing breaks server-side — but a stored value the picker no longer lists
+// would leave the role dropdown showing a blank label, so it is moved to the
+// nearest profile that is still offered.
+const RETIRED_PROFILES = { commuter: 'driver', urban: 'driver', aviation: 'traveler' }
+
+function migrateUserType(stored) {
+  if (!stored) return stored
+  return RETIRED_PROFILES[stored] ?? stored
+}
+
 const prefs = loadPrefs()
 
 export const useStore = create((set, get) => ({
@@ -70,7 +81,7 @@ export const useStore = create((set, get) => ({
 
   // --- Preferences ---------------------------------------------------------
   language: prefs.language ?? 'en',
-  userType: prefs.userType ?? 'general',
+  userType: migrateUserType(prefs.userType) ?? 'general',
   responseMode: 'normal',
   setLanguage: (language) => {
     savePrefs({ ...loadPrefs(), language })

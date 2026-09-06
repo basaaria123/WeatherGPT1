@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """What today's weather means for the reader, rather than what it is.
 
-One weather engine, five readings of it. Every card below is derived from the
+One weather engine, nine readings of it. Every card below is derived from the
 same ``bundle`` the dashboard is already rendering and the same ``RiskOutput``
 the risk score came from — this module scores nothing of its own, fetches
 nothing of its own, and cannot see a value the rest of the app cannot.
@@ -57,8 +57,10 @@ STORM_CAUTION = 25            # Lightning/Storm sub-score
 STORM_HIGH = 50
 
 # The commute windows the departure advice searches, in local hours.
+# WORK_WINDOW is the daylight span the site reading searches instead.
 MORNING_WINDOW = (6, 11)
 EVENING_WINDOW = (16, 21)
+WORK_WINDOW = (6, 18)
 
 _LEVEL_ORDER = {"Low": 0, "Moderate": 1, "High": 2, "Severe": 3}
 
@@ -518,6 +520,26 @@ def _traveller(m: _Reading, lang: str) -> list[dict[str, Any]]:
 # Commuter
 # ---------------------------------------------------------------------------
 
+def _reminder(m: _Reading, lang: str) -> dict[str, Any]:
+    """The one line to leave with, shared by every reading that closes on one.
+
+    Kept in one place because five roles end on it: two copies of this ladder
+    would eventually disagree about what a 40% chance of rain is worth.
+    """
+    if m.storm_score >= STORM_HIGH:
+        line, tone = i18n.sentence("ri_reminder_storm", lang), "danger"
+    elif m.rain_possible:
+        # Worth saying at a 30% chance; not worth an amber card when the risk
+        # beside it reads Low and no hazard was detected.
+        line = i18n.sentence("ri_reminder_rain", lang)
+        tone = "caution" if m.rain_likely else "info"
+    elif (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
+        line, tone = i18n.sentence("ri_reminder_wind", lang), "caution"
+    else:
+        line, tone = i18n.sentence("ri_reminder_clear", lang), "safe"
+    return _card("reminder", "💬", i18n.sentence("ri_reminder_title", lang), line, tone)
+
+
 def _best_departure(m: _Reading) -> tuple[str, int] | None:
     """The calmest hour in the next commute window, by the existing risk score.
 
@@ -591,19 +613,297 @@ def _commuter(m: _Reading, lang: str) -> list[dict[str, Any]]:
         ))
 
     # --- One line to leave with -------------------------------------------------
-    if m.storm_score >= STORM_HIGH:
-        line, tone = i18n.sentence("ri_reminder_storm", lang), "danger"
-    elif m.rain_possible:
-        # Worth saying at a 30% chance; not worth an amber card when the risk
-        # beside it reads Low and no hazard was detected.
-        line = i18n.sentence("ri_reminder_rain", lang)
-        tone = "caution" if m.rain_likely else "info"
-    elif (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
-        line, tone = i18n.sentence("ri_reminder_wind", lang), "caution"
-    else:
-        line, tone = i18n.sentence("ri_reminder_clear", lang), "safe"
-    cards.append(_card("reminder", "💬", i18n.sentence("ri_reminder_title", lang), line, tone))
+    cards.append(_reminder(m, lang))
 
+    return cards
+
+
+# ---------------------------------------------------------------------------
+# Driver
+#
+# A driver is steering through the weather rather than planning around it, so
+# every card here is about the next stretch of road: what can be seen, what the
+# surface is doing, and what the wind does to the vehicle.
+# ---------------------------------------------------------------------------
+
+def _driver(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+
+    # --- Road visibility ---------------------------------------------------
+    if m.visibility is None:
+        cards.append(_card(
+            "road_visibility", "👁️", i18n.sentence("ri_road_vis_title", lang),
+            i18n.sentence("ri_no_data", lang), "info",
+        ))
+    else:
+        if m.visibility < VIS_POOR_KM:
+            headline, tone = i18n.sentence("ri_road_vis_poor", lang), "danger"
+        elif m.visibility < VIS_LOW_KM:
+            headline, tone = i18n.sentence("ri_road_vis_reduced", lang), "caution"
+        else:
+            headline, tone = i18n.sentence("ri_road_vis_clear", lang), "safe"
+        cards.append(_card(
+            "road_visibility", "👁️", i18n.sentence("ri_road_vis_title", lang), headline, tone,
+            i18n.sentence("ri_road_vis_detail", lang, km=_r(m.visibility, 1)),
+        ))
+
+    # --- Road surface ------------------------------------------------------
+    if m.rain_24h is None and m.prob_max_12h is None and m.precip_now is None:
+        cards.append(_card(
+            "road_surface", "🛣️", i18n.sentence("ri_road_surface_title", lang),
+            i18n.sentence("ri_no_data", lang), "info",
+        ))
+    else:
+        heavy = (m.rain_24h is not None and m.rain_24h >= RAIN_HEAVY_24H_MM) or m.flood_score >= 40
+        if heavy:
+            headline, tone = i18n.sentence("ri_road_surface_standing", lang), "warn"
+        elif m.rain_likely:
+            headline, tone = i18n.sentence("ri_road_surface_wet", lang), "caution"
+        else:
+            headline, tone = i18n.sentence("ri_road_surface_dry", lang), "safe"
+        detail = i18n.sentence("ri_road_surface_detail", lang) if m.rain_possible else ""
+        cards.append(_card(
+            "road_surface", "🛣️", i18n.sentence("ri_road_surface_title", lang), headline, tone, detail,
+        ))
+
+    # --- Crosswind ---------------------------------------------------------
+    reading = m.gust_or_wind
+    if reading is None:
+        cards.append(_card(
+            "crosswind", "💨", i18n.sentence("ri_crosswind_title", lang),
+            i18n.sentence("ri_no_data", lang), "info",
+        ))
+    else:
+        if reading >= WIND_STRONG_KMH:
+            headline, tone = i18n.sentence("ri_crosswind_strong", lang), "warn"
+        elif reading >= WIND_BRISK_KMH:
+            headline, tone = i18n.sentence("ri_crosswind_brisk", lang), "caution"
+        else:
+            headline, tone = i18n.sentence("ri_crosswind_calm", lang), "safe"
+        detail = i18n.sentence("ri_wind_gust", lang, gust=_r(m.gust)) if m.gust is not None else ""
+        cards.append(_card(
+            "crosswind", "💨", i18n.sentence("ri_crosswind_title", lang), headline, tone, detail,
+        ))
+
+    cards.append(_reminder(m, lang))
+    return cards
+
+
+# ---------------------------------------------------------------------------
+# Outdoor worker
+# ---------------------------------------------------------------------------
+
+def _best_daylight_hour(m: _Reading) -> tuple[str, int] | None:
+    """The calmest working hour in the forecast, by the engine's own score.
+
+    Same discipline as ``_best_departure``: this picks a minimum out of scores
+    the risk engine already produced, and returns ``None`` when there is no
+    hourly series rather than naming an hour on no evidence.
+    """
+    if not m.has_hourly:
+        return None
+    candidates: list[tuple[int, str]] = []
+    for hour in m.hourly[:14]:
+        stamp = str(hour.get("time") or "")
+        if "T" not in stamp:
+            continue
+        try:
+            local_hour = int(stamp.split("T", 1)[1][:2])
+        except (ValueError, IndexError):
+            continue
+        if WORK_WINDOW[0] <= local_hour <= WORK_WINDOW[1]:
+            candidates.append((m.hourly_risk(hour), stamp.split("T", 1)[1][:5]))
+    if not candidates:
+        return None
+    score, label = min(candidates, key=lambda pair: pair[0])
+    return label, score
+
+
+def _outdoor_worker(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+
+    # --- Heat stress -------------------------------------------------------
+    # Apparent temperature is the right input here: humidity is exactly what
+    # turns a workable 33°C into an unworkable one.
+    reading = m.feels if m.feels is not None else m.temp
+    if reading is None:
+        cards.append(_card(
+            "heat_stress", "🥵", i18n.sentence("ri_heatstress_title", lang),
+            i18n.sentence("ri_no_data", lang), "info",
+        ))
+    else:
+        humid = m.humidity is not None and m.humidity >= HUMID_PCT
+        if reading >= HOT_C or m.heat_score >= 50:
+            headline, tone = i18n.sentence("ri_heatstress_high", lang), "warn"
+        elif reading >= WARM_C and humid:
+            headline, tone = i18n.sentence("ri_heatstress_moderate", lang), "caution"
+        else:
+            headline, tone = i18n.sentence("ri_heatstress_ok", lang), "safe"
+        detail = i18n.sentence("ri_comfort_detail", lang, feels=_r(reading), hum=_r(m.humidity)) if (
+            m.humidity is not None
+        ) else i18n.sentence("ri_comfort_detail_temp", lang, feels=_r(reading))
+        cards.append(_card(
+            "heat_stress", "🥵", i18n.sentence("ri_heatstress_title", lang), headline, tone, detail,
+        ))
+
+    # --- Lightning ---------------------------------------------------------
+    if m.storm_score >= STORM_HIGH:
+        headline, tone = i18n.sentence("ri_storm_high", lang), "danger"
+        detail = i18n.sentence("ri_storm_high_detail", lang)
+    elif m.storm_score >= STORM_CAUTION:
+        headline, tone = i18n.sentence("ri_storm_moderate", lang), "caution"
+        detail = i18n.sentence("ri_storm_moderate_detail", lang)
+    else:
+        headline, tone = i18n.sentence("ri_storm_low", lang), "safe"
+        detail = i18n.sentence("ri_storm_low_detail", lang)
+    cards.append(_card(
+        "lightning", "⚡", i18n.sentence("ri_storm_title", lang), headline, tone, detail,
+    ))
+
+    # --- Easiest working window --------------------------------------------
+    best = _best_daylight_hour(m)
+    if best is None:
+        cards.append(_card(
+            "work_window", "🕗", i18n.sentence("ri_workwindow_title", lang),
+            i18n.sentence("ri_workwindow_none", lang), "info",
+        ))
+    else:
+        label, score = best
+        cards.append(_card(
+            "work_window", "🕗", i18n.sentence("ri_workwindow_title", lang), label,
+            "safe" if score < 31 else "caution",
+            i18n.sentence("ri_workwindow_detail", lang),
+        ))
+
+    cards.append(_reminder(m, lang))
+    return cards
+
+
+# ---------------------------------------------------------------------------
+# Household
+# ---------------------------------------------------------------------------
+
+def _preparedness_card(m: _Reading, lang: str) -> dict[str, Any]:
+    """Shared by the household and caregiver readings.
+
+    Gated on storm and wind, because a power interruption is what those two
+    actually predict — heavy rain alone is not a reason to tell someone to find
+    a torch.
+    """
+    windy = (m.gust_or_wind or 0) >= WIND_STRONG_KMH
+    if m.storm_score >= STORM_HIGH or m.level == "Severe" or windy:
+        headline, tone = i18n.sentence("ri_prepare_high", lang), "warn"
+    elif m.storm_score >= STORM_CAUTION or (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
+        headline, tone = i18n.sentence("ri_prepare_watch", lang), "caution"
+    else:
+        return _card(
+            "prepare", "🔦", i18n.sentence("ri_prepare_title", lang),
+            i18n.sentence("ri_prepare_normal", lang), "safe",
+        )
+    return _card(
+        "prepare", "🔦", i18n.sentence("ri_prepare_title", lang), headline, tone,
+        i18n.sentence("ri_prepare_detail", lang),
+    )
+
+
+def _household(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+
+    # --- Comfort indoors ---------------------------------------------------
+    # Same card the general reading shows, deliberately: the question "is it
+    # comfortable?" does not change because the reader is at home, and two
+    # answers to it would be two chances to disagree.
+    cards.append(_general(m, lang)[1])
+
+    # --- Washing and drying ------------------------------------------------
+    if m.rain_24h is None and m.prob_max_12h is None and m.humidity is None:
+        cards.append(_card(
+            "home_rain", "🧺", i18n.sentence("ri_home_rain_title", lang),
+            i18n.sentence("ri_no_data", lang), "info",
+        ))
+    else:
+        if m.rain_likely:
+            headline, tone = i18n.sentence("ri_home_rain_wet", lang), "caution"
+        elif m.rain_possible or (m.humidity is not None and m.humidity >= VERY_HUMID_PCT):
+            headline, tone = i18n.sentence("ri_home_rain_maybe", lang), "info"
+        else:
+            headline, tone = i18n.sentence("ri_home_rain_dry", lang), "safe"
+        if m.prob_max_12h is not None:
+            detail = i18n.sentence("ri_umbrella_prob", lang, prob=_r(m.prob_max_12h))
+        elif m.rain_24h is not None:
+            detail = i18n.sentence("ri_umbrella_mm", lang, mm=_r(m.rain_24h, 1))
+        else:
+            detail = ""
+        cards.append(_card(
+            "home_rain", "🧺", i18n.sentence("ri_home_rain_title", lang), headline, tone, detail,
+        ))
+
+    cards.append(_preparedness_card(m, lang))
+    cards.append(_reminder(m, lang))
+    return cards
+
+
+# ---------------------------------------------------------------------------
+# Student
+#
+# Built entirely from cards the other readings already own: a student's weather
+# questions are the journey, the afternoon outdoors, and when to leave. Writing
+# a second set of sentences for them would only create a way for the two to
+# disagree.
+# ---------------------------------------------------------------------------
+
+def _student(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    commute = _commuter(m, lang)
+    cards = [card for card in commute if card["id"] in {"commute_risk", "departure"}]
+    # Insert the outdoor-activity reading between the journey and the timing.
+    cards.insert(1, _general(m, lang)[2])
+    cards.append(_reminder(m, lang))
+    return cards
+
+
+# ---------------------------------------------------------------------------
+# Community / caregiver
+# ---------------------------------------------------------------------------
+
+def _caregiver(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    cards: list[dict[str, Any]] = []
+
+    # --- The people being cared for ----------------------------------------
+    reading = m.feels if m.feels is not None else m.temp
+    if reading is None:
+        cards.append(_card(
+            "vulnerable", "🧓", i18n.sentence("ri_vulnerable_title", lang),
+            i18n.sentence("ri_no_data", lang), "info",
+        ))
+    else:
+        if reading >= HOT_C or m.heat_score >= 40:
+            headline, tone = i18n.sentence("ri_vulnerable_heat", lang), "warn"
+        elif reading <= COOL_C:
+            headline, tone = i18n.sentence("ri_vulnerable_cold", lang), "caution"
+        else:
+            headline, tone = i18n.sentence("ri_vulnerable_ok", lang), "safe"
+        detail = i18n.sentence("ri_comfort_detail", lang, feels=_r(reading), hum=_r(m.humidity)) if (
+            m.humidity is not None
+        ) else i18n.sentence("ri_comfort_detail_temp", lang, feels=_r(reading))
+        cards.append(_card(
+            "vulnerable", "🧓", i18n.sentence("ri_vulnerable_title", lang), headline, tone, detail,
+        ))
+
+    # --- Exposure outdoors -------------------------------------------------
+    windy = (m.gust_or_wind or 0) >= WIND_BRISK_KMH
+    if m.severe or m.storm_score >= STORM_HIGH:
+        headline, tone = i18n.sentence("ri_exposure_high", lang), "danger"
+    elif m.rain_likely or windy:
+        headline, tone = i18n.sentence("ri_exposure_some", lang), "caution"
+    else:
+        headline, tone = i18n.sentence("ri_exposure_low", lang), "safe"
+    cards.append(_card(
+        "exposure", "🌧️", i18n.sentence("ri_exposure_title", lang), headline, tone,
+        i18n.sentence("ri_exposure_detail", lang) if tone != "safe" else "",
+    ))
+
+    cards.append(_preparedness_card(m, lang))
+    cards.append(_reminder(m, lang))
     return cards
 
 
@@ -614,6 +914,11 @@ _BUILDERS = {
     "farmer": _farmer,
     "fisherman": _fisherman,
     "traveler": _traveller,
+    "driver": _driver,
+    "outdoor_worker": _outdoor_worker,
+    "household": _household,
+    "student": _student,
+    "caregiver": _caregiver,
     "commuter": _commuter,
 }
 
@@ -622,10 +927,26 @@ _HEADINGS = {
     "farmer": "ri_heading_farmer",
     "fisherman": "ri_heading_fisherman",
     "traveler": "ri_heading_traveler",
+    "driver": "ri_heading_driver",
+    "outdoor_worker": "ri_heading_outdoor_worker",
+    "household": "ri_heading_household",
+    "student": "ri_heading_student",
+    "caregiver": "ri_heading_caregiver",
     "commuter": "ri_heading_commuter",
 }
 
-_ICONS = {"general": "🧭", "farmer": "🌾", "fisherman": "🎣", "traveler": "🧳", "commuter": "🚗"}
+_ICONS = {
+    "general": "🌤️",
+    "farmer": "🌾",
+    "fisherman": "🎣",
+    "traveler": "🧳",
+    "driver": "🚚",
+    "outdoor_worker": "🏗️",
+    "household": "🏠",
+    "student": "🏫",
+    "caregiver": "🏥",
+    "commuter": "🚗",
+}
 
 # Only the marine reading has to disclose an absence, because it is the only
 # role whose questions this app cannot fully answer.

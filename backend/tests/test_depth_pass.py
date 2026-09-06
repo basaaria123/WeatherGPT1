@@ -18,7 +18,11 @@ os.environ.setdefault("WEATHER_DATA_MODE", "fixture")
 from app.services import advisory, history, i18n, risk_engine, weather  # noqa: E402
 
 LANGS = ("en", "hi", "te", "bn", "mr", "as")
-PERSONAS = ("farmer", "fisherman", "traveler", "commuter", "general")
+# Every profile the selector offers, plus the legacy values still accepted.
+PERSONAS = (
+    "farmer", "fisherman", "traveler", "driver", "outdoor_worker",
+    "household", "student", "caregiver", "general", "commuter",
+)
 
 
 def bundle(city: str, scenario: str):
@@ -104,9 +108,36 @@ def test_every_persona_and_hazard_pair_is_covered_by_the_rules_table():
     gaps = []
     for hazard in ("Heavy Rainfall", "Flood Risk", "Strong Wind", "Extreme Heat", "Lightning/Storm"):
         for persona in PERSONAS:
-            if not i18n.profile_action(persona, hazard, "en"):
-                gaps.append((hazard, persona))
+            for lang in LANGS:
+                if not i18n.profile_action(persona, hazard, lang):
+                    gaps.append((hazard, persona, lang))
+                if not i18n.profile_reason(persona, hazard, lang):
+                    gaps.append((hazard, persona, lang, "reason"))
     assert not gaps, gaps
+
+
+def test_no_persona_silently_falls_back_to_another_reader():
+    """canonical_profile() answers "general" for anything it does not know, so a
+    role added to the selector but not to the rules table would look fine and
+    quietly hand its reader someone else's advice."""
+    strangers = []
+    for persona in PERSONAS:
+        if i18n.canonical_profile(persona) != persona:
+            strangers.append(persona)
+    assert not strangers, strangers
+
+
+def test_each_persona_gets_advice_written_for_it():
+    """Two profiles reading the same sentence for the same hazard means one of
+    them has a label the product cannot honour."""
+    for hazard in ("Heavy Rainfall", "Strong Wind", "Extreme Heat", "Lightning/Storm"):
+        seen: dict[str, str] = {}
+        for persona in PERSONAS:
+            if persona == "general":
+                continue
+            line = i18n.profile_action(persona, hazard, "en")
+            assert line not in seen, (hazard, persona, seen.get(line))
+            seen[line] = persona
 
 
 # ===========================================================================
@@ -309,3 +340,25 @@ def test_features_are_silent_when_inactive():
     assert advisory.build_emergency(b, risk, None, "en")["active"] is False
     assert history.similarity_for_bundle(b, risk)["matched"] is False
     assert advisory.build_advisory(risk, None, "en")["actions"] == []
+
+
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Is it safe to drive my truck to Chennai tonight?", "driver"),
+        ("I work on a construction site, will it rain?", "outdoor_worker"),
+        ("Can I dry my laundry at home today?", "household"),
+        ("Should I go to college tomorrow?", "student"),
+        ("I look after my elderly mother, is it too hot?", "caregiver"),
+        ("Will my paddy crop be damaged?", "farmer"),
+        ("Is it safe to take the boat out?", "fisherman"),
+        ("Planning a trip to Ooty next week", "traveler"),
+        ("What is the weather", None),
+    ],
+)
+def test_profile_detection_prefers_the_specific_reading(question, expected):
+    """First match wins, so a broad term must never shadow a specific one:
+    "I work on a construction site" is site work, not a commute."""
+    from app.services import nlp_fallback
+
+    assert nlp_fallback.detect_user_type(question) == expected

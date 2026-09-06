@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
+import { ROLE_IDS } from '../i18n/roles'
 import { profileLabel, t } from '../i18n/ui'
 import LanguagePicker from './LanguagePicker'
 import ProfileMenu from './ProfileMenu'
@@ -8,7 +9,7 @@ import { useStore } from '../store/useStore'
 
 /** Compact app bar: identity, location, language, profile, connection state. */
 
-const PROFILES = ['general', 'farmer', 'fisherman', 'traveler', 'commuter']
+const PROFILES = ROLE_IDS
 
 export default function Header({ onHome, onOpenLocation, onRefresh, refreshing, onSignIn }) {
   const language = useStore((s) => s.language)

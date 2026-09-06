@@ -10,7 +10,22 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-UserType = Literal["farmer", "fisherman", "traveler", "commuter", "aviation", "urban", "general"]
+UserType = Literal[
+    "farmer",
+    "fisherman",
+    "traveler",
+    "driver",
+    "outdoor_worker",
+    "household",
+    "student",
+    "caregiver",
+    "general",
+    # Still accepted so stored preferences and older clients keep working;
+    # each aliases onto one of the profiles above.
+    "commuter",
+    "aviation",
+    "urban",
+]
 ResponseMode = Literal["normal", "simple", "emergency"]
 RiskLevel = Literal["Low", "Moderate", "High", "Severe"]
 Intent = Literal["current_weather", "forecast", "alert_check", "climate_trend", "out_of_scope"]
@@ -24,7 +39,22 @@ SUPPORTED_LANGUAGES: dict[str, str] = {
     "mr": "मराठी",
 }
 
-USER_TYPES: tuple[str, ...] = ("farmer", "fisherman", "traveler", "commuter", "aviation", "urban", "general")
+# The nine profiles the product offers, then the three legacy values kept
+# valid so a stored preference never becomes an invalid request.
+USER_TYPES: tuple[str, ...] = (
+    "farmer",
+    "fisherman",
+    "traveler",
+    "driver",
+    "outdoor_worker",
+    "household",
+    "student",
+    "caregiver",
+    "general",
+    "commuter",
+    "aviation",
+    "urban",
+)
 
 HAZARDS: tuple[str, ...] = (
     "Heavy Rainfall",
