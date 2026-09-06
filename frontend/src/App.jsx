@@ -381,11 +381,11 @@ export default function App() {
                 audioMime={answerHere?.audio_mime}
               />
 
-              {/* Under an active emergency the actions come before the reading;
-                  nothing is hidden, it is reprioritised. */}
-              {emergency?.active && (
-                <AdvisoryCard advisory={advisory} onCompare={() => setCompareOpen(true)} />
-              )}
+              {/* The answer before the reading. A dashboard that opens on
+                  numbers makes the reader do the interpreting; this is the one
+                  section that tells them what to do about them, so it leads —
+                  in an emergency and on a quiet Tuesday alike. */}
+              <AdvisoryCard advisory={advisory} onCompare={() => setCompareOpen(true)} />
 
               <CommandCenter
                 data={currentData}
@@ -431,10 +431,6 @@ export default function App() {
                 />
                 <AlertsPanel onViewArea={viewArea} />
               </div>
-
-              {!emergency?.active && (
-                <AdvisoryCard advisory={advisory} onCompare={() => setCompareOpen(true)} />
-              )}
 
               <PipelinePanel answer={answerHere} />
 

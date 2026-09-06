@@ -128,7 +128,11 @@ def current_weather(
         insight=InsightOut(**advisory.headline_insight(bundle, risk, user_type, language)),
         # The dashboard reaches emergency mode without anyone having to ask a
         # question, and carries the same advisory the chat would give.
-        advisory=AdvisoryOut(**advisory.build_advisory(risk, user_type, language)),
+        # The bundle matters: without it a calm day returns no actions at all,
+        # and the section the dashboard now leads with would be blank on exactly
+        # the days nothing is wrong. Passing it lets the calm-day fallback give
+        # this reader their own reading of the measurements.
+        advisory=AdvisoryOut(**advisory.build_advisory(risk, user_type, language, bundle=bundle)),
         # The same bundle and the same risk, read for whoever is asking.
         role_intelligence=RoleIntelligenceOut(**role_intel.build(bundle, risk, user_type, language)),
         emergency=EmergencyOut(**advisory.build_emergency(bundle, risk, user_type, language)),

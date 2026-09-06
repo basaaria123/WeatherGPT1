@@ -362,3 +362,19 @@ def test_profile_detection_prefers_the_specific_reading(question, expected):
     from app.services import nlp_fallback
 
     assert nlp_fallback.detect_user_type(question) == expected
+
+
+@pytest.mark.parametrize("persona", ["farmer", "driver", "household", "caregiver", "general"])
+def test_the_dashboard_advisory_is_never_blank_on_a_calm_day(persona):
+    """The dashboard leads with this block, so an empty one is a blank answer to
+    the product's main question on exactly the days nothing is wrong."""
+    from fastapi.testclient import TestClient
+
+    from app.main import app
+
+    with TestClient(app) as client:
+        body = client.get(
+            f"/weather/current?location=Bengaluru&user_type={persona}&language=en"
+        ).json()
+    assert body["risk"]["risk_level"] in {"Low", "Moderate"}
+    assert body["advisory"]["actions"], persona
