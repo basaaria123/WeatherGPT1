@@ -38,7 +38,14 @@ export default function ImpactGrid({ impacts, loading }) {
         />
       ) : (
         <>
-          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-5">
+          {/* The column count follows the card count. A profile is shown two or
+              three sectors, and a five-column track would strand them in a row
+              of empty space. */}
+          <div
+            className={`grid grid-cols-2 gap-2 sm:grid-cols-3 ${
+              impacts.length >= 5 ? 'lg:grid-cols-5' : 'lg:grid-cols-3'
+            }`}
+          >
             {impacts.map((impact, index) => {
               const tone = statusOf(impact.status)
               const leads = index === 0 && userType && userType !== 'general'

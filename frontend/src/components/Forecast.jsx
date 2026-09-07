@@ -1,5 +1,6 @@
 import { motion } from 'framer-motion'
-import { t } from '../i18n/ui'
+import { weekdayLabel } from '../i18n/datetime'
+import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 import { EmptyState, Panel, Skeleton } from './ui/Primitives'
@@ -42,13 +43,13 @@ export default function Forecast({ data, loading, error }) {
               initial={{ opacity: 0, y: 8 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.04 }}
-              title={`${day.condition ?? ''} · ${day.risk_level} risk`}
+              title={`${day.condition ?? ''} · ${levelLabel(language, day.risk_level)}`}
               className={`flex w-[4.6rem] shrink-0 flex-col items-center gap-1 rounded-xl border p-2 text-center sm:w-auto ${
                 isToday ? 'border-primary/45 bg-primary/[0.08]' : 'border-[rgb(var(--wx-tint)/0.07)] bg-[rgb(var(--wx-tint)/0.03)]'
               }`}
             >
               <span className={`text-[11px] font-semibold ${isToday ? 'text-primary' : 'text-muted'}`}>
-                {isToday ? 'Today' : dayLabel(day.date)}
+                {isToday ? t(language, 'today') : weekdayLabel(day.date, language)}
               </span>
               <WeatherGlyph code={day.weather_code} size={26} />
               <span className="text-sm font-semibold text-ink">
@@ -60,7 +61,7 @@ export default function Forecast({ data, loading, error }) {
               {day.precipitation_sum_mm > 0 && (
                 <span className="text-[11px] text-accent">{day.precipitation_sum_mm.toFixed(0)}mm</span>
               )}
-              <span className="text-[10px]" style={{ color: tone.color }} aria-label={`${day.risk_level} risk`}>
+              <span className="text-[10px]" style={{ color: tone.color }} aria-label={levelLabel(language, day.risk_level)}>
                 <span aria-hidden="true">{tone.icon}</span>
               </span>
             </motion.div>
@@ -71,8 +72,3 @@ export default function Forecast({ data, loading, error }) {
   )
 }
 
-function dayLabel(iso) {
-  const parsed = new Date(iso)
-  if (Number.isNaN(parsed.getTime())) return iso?.slice(5) ?? '—'
-  return parsed.toLocaleDateString([], { weekday: 'short' })
-}

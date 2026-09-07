@@ -27,7 +27,7 @@ from ..schemas import (
     RoleIntelligenceOut,
     TimelineResponse,
 )
-from ..services import advisory, climate, map_insight, risk_engine, role_intel, weather
+from ..services import advisory, climate, i18n, map_insight, risk_engine, role_intel, weather
 from ..services.weather import WeatherError
 
 router = APIRouter(tags=["weather"])
@@ -120,8 +120,14 @@ def current_weather(
         location=_location_out(bundle.location),
         generated_at=_now(),
         data_source=bundle.source,
+        # `condition` arrives from the provider as an English phrase. Every other
+        # sentence on the dashboard is translated, so leaving this one in English
+        # put "Overcast" under a Tamil temperature — the one word on the card
+        # that had not been through i18n. It is rendered from the WMO code the
+        # same way the assistant renders it, so the two cannot disagree.
         current=CurrentWeatherOut(**{
-            k: v for k, v in (bundle.current or {}).items() if k in CurrentWeatherOut.model_fields
+            **{k: v for k, v in (bundle.current or {}).items() if k in CurrentWeatherOut.model_fields},
+            "condition": i18n.condition_label((bundle.current or {}).get("weather_code"), language),
         }),
         risk=risk,
         impacts=advisory.impact_cards(bundle, risk, language, user_type),
@@ -200,6 +206,7 @@ def forecast(
     latitude: float | None = None,
     longitude: float | None = None,
     days: int = Query(7, ge=1, le=7),
+    language: str = "en",
 ) -> ForecastResponse:
     resolved = _resolve(location, latitude, longitude)
     bundle = _bundle(resolved)
@@ -215,7 +222,7 @@ def forecast(
                 precipitation_probability_pct=day.get("precipitation_probability_pct"),
                 wind_speed_max_kmh=day.get("wind_speed_max_kmh"),
                 weather_code=day.get("weather_code"),
-                condition=day.get("condition"),
+                condition=i18n.condition_label(day.get("weather_code"), language),
                 risk_level=risk.risk_level,
                 risk_score=risk.risk_score,
             )

@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { t } from '../i18n/ui'
+import { hazardLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { EmptyState, Panel, SeverityPill } from './ui/Primitives'
 
@@ -45,10 +45,7 @@ export default function PipelinePanel({ answer }) {
   if (!answer) {
     return (
       <Panel title={t(language, 'pipeline')}>
-        <EmptyState
-          icon="◵"
-          message="Ask a question and this panel will show the measurements behind the answer, and what to do about them."
-        />
+        <EmptyState icon="◵" message={t(language, 'pipelineEmpty')} />
       </Panel>
     )
   }
@@ -88,7 +85,7 @@ export default function PipelinePanel({ answer }) {
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <SeverityPill level={answer.risk.risk_level} score={`${answer.risk.risk_score}/100`} compact />
               {answer.risk.detected_hazard !== 'None' && (
-                <span className="text-[11px] text-muted">{answer.risk.detected_hazard}</span>
+                <span className="text-[11px] text-muted">{hazardLabel(language, answer.risk.detected_hazard)}</span>
               )}
             </div>
           )}

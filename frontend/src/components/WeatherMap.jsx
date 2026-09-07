@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useReducedMotion } from '../hooks/useReducedMotion'
-import { t } from '../i18n/ui'
+import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { EmptyState, Panel, Skeleton } from './ui/Primitives'
 import { LAYERS, LAYER_ORDER, stepsAvailable, valueAt } from './map/mapLayers'
@@ -49,7 +49,7 @@ function Recenter({ center, zoom, token }) {
   return null
 }
 
-export default function WeatherMap({ data, hours, insights, loading, error }) {
+export default function WeatherMap({ data, hours, insights, loading, error, tall = false }) {
   const language = useStore((s) => s.language)
   const location = useStore((s) => s.location)
   const reduced = useReducedMotion()
@@ -127,6 +127,9 @@ export default function WeatherMap({ data, hours, insights, loading, error }) {
     setPlaying((value) => !value)
   }, [step, steps])
 
+  // On its own page the map gets the room the dashboard could not spare.
+  const mapHeight = tall ? 'min(68vh, 40rem)' : '20rem'
+
   if (loading && !entries.length) {
     return (
       <Panel title={t(language, 'weatherMap')}>
@@ -189,7 +192,7 @@ export default function WeatherMap({ data, hours, insights, loading, error }) {
             center={center}
             zoom={zoom}
             scrollWheelZoom={false}
-            style={{ height: '20rem', width: '100%', background: 'var(--wx-bg-deep)' }}
+            style={{ height: mapHeight, width: '100%', background: 'var(--wx-bg-deep)' }}
             aria-label={t(language, 'weatherMap')}
           >
             <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
@@ -370,7 +373,7 @@ function LayerMarker({ entry, layer, step, language, isHere }) {
             <div className="text-[11px] opacity-80">{t(language, 'direction')}: {Math.round(bearing)}°</div>
           )}
           <div className="mt-1 text-[11px] opacity-70">
-            {t(language, 'riskScore')}: {entry.risk_score}/100 · {entry.risk_level}
+            {t(language, 'riskScore')}: {entry.risk_score}/100 · {levelLabel(language, entry.risk_level)}
           </div>
         </div>
       </Popup>

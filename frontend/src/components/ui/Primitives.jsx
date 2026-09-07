@@ -1,3 +1,5 @@
+import { levelLabel } from '../../i18n/ui'
+import { useStore } from '../../store/useStore'
 import { motion } from 'framer-motion'
 import { severityOf, statusOf } from './severity'
 
@@ -32,6 +34,10 @@ export function Panel({ title, action, children, className = '', delay = 0, id }
 
 export function SeverityPill({ level, label, score, compact = false }) {
   const tone = severityOf(level)
+  // `level` is the backend's English enum. Every pill that showed it raw put
+  // "Low" beside a translated verdict, so the localised word is the default and
+  // an explicit `label` still wins.
+  const language = useStore((s) => s.language)
   return (
     <span
       className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-semibold ${
@@ -40,7 +46,7 @@ export function SeverityPill({ level, label, score, compact = false }) {
       style={{ background: tone.tint, borderColor: tone.ring, color: tone.color }}
     >
       <span aria-hidden="true">{tone.icon}</span>
-      <span>{label ?? level}</span>
+      <span>{label ?? levelLabel(language, level)}</span>
       {score !== undefined && score !== null && (
         <span className="opacity-70">{score}</span>
       )}

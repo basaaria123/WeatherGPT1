@@ -942,6 +942,11 @@ def terminator(lang: str) -> str:
 # ---------------------------------------------------------------------------
 _EXTRA_SENTENCES: dict[str, dict[str, str]] = {
     "en": {
+        "insight_factor_rain": "rain",
+        "insight_factor_wind": "wind",
+        "insight_factor_visibility": "visibility",
+        "insight_factor_heat": "heat",
+        "insight_factor_hazard": "hazard indicators",
         "advisory_generic": "Stay indoors where you can, keep your phone charged, and follow local advisories.",
         "insight_rain_from": "Rain becomes likely from around {time}, at about {prob}%.",
         "insight_rain_clear": "Rain is unlikely over the next {hours} hours.",
@@ -962,6 +967,11 @@ _EXTRA_SENTENCES: dict[str, dict[str, str]] = {
         "impact_outdoor_risk": "Outdoor plans are better postponed for now.",
     },
     "hi": {
+        "insight_factor_rain": "बारिश",
+        "insight_factor_wind": "हवा",
+        "insight_factor_visibility": "दृश्यता",
+        "insight_factor_heat": "गर्मी",
+        "insight_factor_hazard": "ख़तरे के संकेत",
         "advisory_generic": "जहाँ तक हो सके घर के अंदर रहें, फ़ोन चार्ज रखें और स्थानीय चेतावनियों का पालन करें।",
         "insight_rain_from": "लगभग {time} से बारिश की संभावना बढ़ती है, करीब {prob}%।",
         "insight_rain_clear": "अगले {hours} घंटों में बारिश की संभावना कम है।",
@@ -982,6 +992,11 @@ _EXTRA_SENTENCES: dict[str, dict[str, str]] = {
         "impact_outdoor_risk": "बाहर की योजनाएँ अभी टाल देना बेहतर है।",
     },
     "te": {
+        "insight_factor_rain": "వర్షం",
+        "insight_factor_wind": "గాలి",
+        "insight_factor_visibility": "దృశ్యమానత",
+        "insight_factor_heat": "వేడి",
+        "insight_factor_hazard": "ముప్పు సూచనలు",
         "advisory_generic": "వీలైనంత వరకు ఇంట్లోనే ఉండండి, ఫోన్ ఛార్జ్‌లో ఉంచండి, స్థానిక హెచ్చరికలు పాటించండి.",
         "insight_rain_from": "సుమారు {time} నుండి వర్షం పడే అవకాశం పెరుగుతుంది, దాదాపు {prob}%.",
         "insight_rain_clear": "వచ్చే {hours} గంటల్లో వర్షం పడే అవకాశం తక్కువ.",
@@ -1002,6 +1017,11 @@ _EXTRA_SENTENCES: dict[str, dict[str, str]] = {
         "impact_outdoor_risk": "బయటి ప్రణాళికలు ప్రస్తుతానికి వాయిదా వేయడం మేలు.",
     },
     "bn": {
+        "insight_factor_rain": "বৃষ্টি",
+        "insight_factor_wind": "বাতাস",
+        "insight_factor_visibility": "দৃশ্যমানতা",
+        "insight_factor_heat": "গরম",
+        "insight_factor_hazard": "ঝুঁকির লক্ষণ",
         "advisory_generic": "যতটা সম্ভব ঘরে থাকুন, ফোন চার্জ রাখুন এবং স্থানীয় সতর্কবার্তা মেনে চলুন।",
         "insight_rain_from": "প্রায় {time} থেকে বৃষ্টির সম্ভাবনা বাড়ে, প্রায় {prob}%।",
         "insight_rain_clear": "আগামী {hours} ঘণ্টায় বৃষ্টির সম্ভাবনা কম।",
@@ -1022,6 +1042,11 @@ _EXTRA_SENTENCES: dict[str, dict[str, str]] = {
         "impact_outdoor_risk": "বাইরের পরিকল্পনা আপাতত স্থগিত রাখাই ভালো।",
     },
     "mr": {
+        "insight_factor_rain": "पाऊस",
+        "insight_factor_wind": "वारा",
+        "insight_factor_visibility": "दृश्यमानता",
+        "insight_factor_heat": "उष्णता",
+        "insight_factor_hazard": "धोक्याचे संकेत",
         "advisory_generic": "शक्य तितके घरात राहा, फोन चार्ज ठेवा आणि स्थानिक सूचनांचे पालन करा.",
         "insight_rain_from": "सुमारे {time} पासून पावसाची शक्यता वाढते, अंदाजे {prob}%.",
         "insight_rain_clear": "पुढच्या {hours} तासांत पावसाची शक्यता कमी आहे.",
@@ -1042,6 +1067,11 @@ _EXTRA_SENTENCES: dict[str, dict[str, str]] = {
         "impact_outdoor_risk": "बाहेरील बेत सध्या पुढे ढकलणे बरे.",
     },
     "as": {
+        "insight_factor_rain": "বৰষুণ",
+        "insight_factor_wind": "বতাহ",
+        "insight_factor_visibility": "দৃশ্যমানতা",
+        "insight_factor_heat": "গৰম",
+        "insight_factor_hazard": "বিপদৰ লক্ষণ",
         "advisory_generic": "যিমান পাৰি ঘৰত থাকক, ফোন চাৰ্জ কৰি ৰাখক আৰু স্থানীয় সতৰ্কবাৰ্তা মানি চলক।",
         "insight_rain_from": "প্ৰায় {time} ৰ পৰা বৰষুণৰ সম্ভাৱনা বাঢ়ে, প্ৰায় {prob}%।",
         "insight_rain_clear": "অহা {hours} ঘণ্টাত বৰষুণৰ সম্ভাৱনা কম।",
@@ -1437,3 +1467,62 @@ def profile_reason(user_type: str | None, hazard: str, lang: str) -> str | None:
     if not entry:
         return None
     return entry.get(lang) or entry.get(DEFAULT_LANG)
+
+
+# ---------------------------------------------------------------------------
+# Languages added after the original six.
+#
+# The six above are written inline, one column per string, which reads well at
+# six and would not at thirteen. Everything since lives in `langs/`, one module
+# per language, and merges into these same tables — so every accessor above
+# serves them without knowing the difference.
+#
+# The merge is strict on purpose. Each accessor falls back to English when a key
+# is missing, which means a half-finished language would ship as a language that
+# quietly answers in English behind a translated name. `validate()` refuses that
+# at import: an incomplete pack is an ImportError, not a silent fallback.
+# ---------------------------------------------------------------------------
+from . import langs as _langs  # noqa: E402
+
+_REFERENCE: dict[str, Any] = {
+    "conditions": CONDITIONS[DEFAULT_LANG],
+    "hazards": HAZARD_NAMES[DEFAULT_LANG],
+    "levels": RISK_LEVELS[DEFAULT_LANG],
+    "sentences": {k: v for k, v in SENTENCES[DEFAULT_LANG].items() if not k.startswith(("ri_", "mi_"))},
+    "role_sentences": _ROLE_SENTENCES[DEFAULT_LANG],
+    "drivers": DRIVERS[DEFAULT_LANG],
+    "days": DAYS[DEFAULT_LANG],
+    "impact_categories": IMPACT_CATEGORIES[DEFAULT_LANG],
+    "impact_status": IMPACT_STATUS[DEFAULT_LANG],
+    "hazard_actions": {h: t[DEFAULT_LANG] for h, t in HAZARD_ACTIONS.items()},
+    "profile_actions": {p: {f: v[DEFAULT_LANG] for f, v in fams.items()} for p, fams in PROFILE_ACTIONS.items()},
+    "profile_reasons": {p: {f: v[DEFAULT_LANG] for f, v in fams.items()} for p, fams in PROFILE_REASONS.items()},
+}
+
+_PACKS: dict[str, dict[str, Any]] = _langs.load()
+
+for _code, _pack in sorted(_PACKS.items()):
+    _langs.validate(_code, _pack, _REFERENCE)
+
+    CONDITIONS[_code] = dict(_pack["conditions"])
+    HAZARD_NAMES[_code] = dict(_pack["hazards"])
+    RISK_LEVELS[_code] = dict(_pack["levels"])
+    DRIVERS[_code] = dict(_pack["drivers"])
+    DAYS[_code] = dict(_pack["days"])
+    IMPACT_CATEGORIES[_code] = dict(_pack["impact_categories"])
+    IMPACT_STATUS[_code] = dict(_pack["impact_status"])
+    TERMINATORS[_code] = _pack["terminator"]
+    SENTENCES[_code] = {**_pack["sentences"], **_pack["role_sentences"]}
+
+    for _hazard, _lines in _pack["hazard_actions"].items():
+        HAZARD_ACTIONS[_hazard][_code] = list(_lines)
+    for _profile, _families in _pack["profile_actions"].items():
+        for _family, _text in _families.items():
+            PROFILE_ACTIONS[_profile][_family][_code] = _text
+    for _profile, _families in _pack["profile_reasons"].items():
+        for _family, _text in _families.items():
+            PROFILE_REASONS[_profile][_family][_code] = _text
+
+    if _code not in LANGUAGES:
+        LANGUAGES = LANGUAGES + (_code,)
+

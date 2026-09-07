@@ -81,7 +81,7 @@ def build(hours: list[dict[str, Any]], user_type: str | None, lang: str = "en") 
         # engine's own level for the hour outranks the raw probability: once
         # the risk is High, "95% chance of rain" is the less useful sentence.
         if level in ("High", "Severe"):
-            lead = i18n.sentence("mi_storm", lang, time=clock, level=level)
+            lead = i18n.sentence("mi_storm", lang, time=clock, level=i18n.level_label(level, lang))
             active = True
         elif prob is not None and prob >= RAIN_LIKELY_PCT:
             lead = i18n.sentence("mi_rain_high", lang, time=clock, prob=int(round(prob)))

@@ -55,8 +55,8 @@ export const LANGUAGE_CATALOG = [
 
   // --- North, west and central India ---------------------------------------
   { id: 'ur', english: 'Urdu', native: 'اردو', short: 'UR', region: 'north', translation: false, voice: false, speechTag: 'ur-IN', aliases: ['urdu'] },
-  { id: 'pa', english: 'Punjabi', native: 'ਪੰਜਾਬੀ', short: 'ਪੰ', region: 'north', translation: false, voice: false, speechTag: 'pa-Guru-IN', aliases: ['panjabi', 'gurmukhi'] },
-  { id: 'gu', english: 'Gujarati', native: 'ગુજરાતી', short: 'ગુ', region: 'north', translation: false, voice: false, speechTag: 'gu-IN', aliases: ['gujrati'] },
+  { id: 'pa', english: 'Punjabi', native: 'ਪੰਜਾਬੀ', short: 'ਪੰ', region: 'north', translation: true, voice: true, speechTag: 'pa-Guru-IN', aliases: ['panjabi', 'gurmukhi'] },
+  { id: 'gu', english: 'Gujarati', native: 'ગુજરાતી', short: 'ગુ', region: 'north', translation: true, voice: true, speechTag: 'gu-IN', aliases: ['gujrati'] },
   { id: 'sa', english: 'Sanskrit', native: 'संस्कृतम्', short: 'सं', region: 'north', translation: false, voice: false, speechTag: null, aliases: ['sanskrutam', 'samskrutam'] },
   { id: 'ne', english: 'Nepali', native: 'नेपाली', short: 'ने', region: 'north', translation: false, voice: false, speechTag: 'ne-NP', aliases: ['gorkhali', 'khas kura'] },
   { id: 'kok', english: 'Konkani', native: 'कोंकणी', short: 'कों', region: 'north', translation: false, voice: false, speechTag: null, aliases: ['konknni', 'goan'] },
@@ -74,9 +74,9 @@ export const LANGUAGE_CATALOG = [
   { id: 'mwr', english: 'Marwari', native: 'मारवाड़ी', short: 'मार', region: 'north', translation: false, voice: false, speechTag: null, aliases: ['marwadi', 'merwari'] },
 
   // --- South India ----------------------------------------------------------
-  { id: 'ta', english: 'Tamil', native: 'தமிழ்', short: 'த', region: 'south', translation: false, voice: false, speechTag: 'ta-IN', aliases: ['thamizh', 'tamizh'] },
-  { id: 'kn', english: 'Kannada', native: 'ಕನ್ನಡ', short: 'ಕ', region: 'south', translation: false, voice: false, speechTag: 'kn-IN', aliases: ['canarese', 'kanada'] },
-  { id: 'ml', english: 'Malayalam', native: 'മലയാളം', short: 'മ', region: 'south', translation: false, voice: false, speechTag: 'ml-IN', aliases: ['malayalm', 'kerala'] },
+  { id: 'ta', english: 'Tamil', native: 'தமிழ்', short: 'த', region: 'south', translation: true, voice: true, speechTag: 'ta-IN', aliases: ['thamizh', 'tamizh'] },
+  { id: 'kn', english: 'Kannada', native: 'ಕನ್ನಡ', short: 'ಕ', region: 'south', translation: true, voice: true, speechTag: 'kn-IN', aliases: ['canarese', 'kanada'] },
+  { id: 'ml', english: 'Malayalam', native: 'മലയാളം', short: 'മ', region: 'south', translation: true, voice: true, speechTag: 'ml-IN', aliases: ['malayalm', 'kerala'] },
   { id: 'tcy', english: 'Tulu', native: 'ತುಳು', short: 'ತು', region: 'south', translation: false, voice: false, speechTag: null, aliases: ['tulu bhasa', 'thulu'] },
 
   // --- East and northeast India --------------------------------------------
@@ -189,4 +189,37 @@ export function bestMatchIndex(entries, query) {
     }
   })
   return best
+}
+
+/**
+ * A BCP-47 tag the browser can actually format in, or `null`.
+ *
+ * Dates, weekday names and relative times are better done by CLDR than by a
+ * hand-written table — but only if the formatter is told which locale, and only
+ * if it has data for it. Passing `[]` gives it the *browser's* locale, which is
+ * how a Tamil dashboard ended up printing Tue/Wed/Thu.
+ *
+ * The `null` matters as much as the tag. Chromium ships no data for Assamese,
+ * and resolves `pa-Guru-IN` to English rather than Punjabi, so asking it to
+ * format anyway just puts English back on the screen in a different place.
+ * Callers fall back to digits — a date, a clock time — which every reader can
+ * read and which claim nothing about a language we cannot render.
+ */
+export function localeTag(id) {
+  if (!id) return null
+  if (typeof Intl === 'undefined' || !Intl.DateTimeFormat?.supportedLocalesOf) return null
+  const entry = LANGUAGE_CATALOG.find((language) => language.id === id)
+  // Most specific first: "pa-Guru-IN", then "pa-IN", then "pa".
+  for (const tag of [entry?.speechTag, `${id}-IN`, id]) {
+    if (!tag) continue
+    try {
+      const [supported] = Intl.DateTimeFormat.supportedLocalesOf([tag])
+      // supportedLocalesOf answers for the *language*, so a tag it resolves to a
+      // different language than the one asked for is not a match.
+      if (supported && supported.split('-')[0] === id) return supported
+    } catch {
+      /* an invalid tag is simply not supported */
+    }
+  }
+  return null
 }

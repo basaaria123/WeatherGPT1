@@ -15,7 +15,13 @@ def test_health_reports_capabilities(client):
 
 def test_config_drives_the_ui(client):
     body = client.get("/config").json()
-    assert {lang["code"] for lang in body["languages"]} == {"en", "hi", "te", "bn", "mr", "as"}
+    # Pinned to the corpus rather than to a literal list: /config is what the
+    # picker believes, so it must name exactly the languages the app can answer
+    # in — no more (a promise it cannot keep) and no fewer (a translation
+    # nobody can reach).
+    from app.services import i18n
+
+    assert {lang["code"] for lang in body["languages"]} == set(i18n.LANGUAGES)
     assert "farmer" in body["user_types"] and "fisherman" in body["user_types"]
     assert [band["level"] for band in body["risk_bands"]] == ["Low", "Moderate", "High", "Severe"]
 

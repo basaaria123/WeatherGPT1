@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { hazardLabel, t } from '../i18n/ui'
+import { hazardLabel, levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 import { Panel } from './ui/Primitives'
@@ -41,7 +41,7 @@ export default function AdvisoryCard({ advisory, onCompare }) {
         <span className="text-[12px] font-semibold text-ink">
           {hazardLabel(language, advisory.hazard)}
         </span>
-        <span className="text-[11px] text-muted">· {advisory.risk_level}</span>
+        <span className="text-[11px] text-muted">· {levelLabel(language, advisory.risk_level)}</span>
       </div>
 
       <ol className="space-y-2">

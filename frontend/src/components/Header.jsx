@@ -11,7 +11,7 @@ import { useStore } from '../store/useStore'
 
 const PROFILES = ROLE_IDS
 
-export default function Header({ onHome, onOpenLocation, onRefresh, refreshing, onSignIn }) {
+export default function Header({ onHome, onBack, onOpenLocation, onRefresh, refreshing, onSignIn }) {
   const language = useStore((s) => s.language)
   const userType = useStore((s) => s.userType)
   const setUserType = useStore((s) => s.setUserType)
@@ -23,6 +23,24 @@ export default function Header({ onHome, onOpenLocation, onRefresh, refreshing, 
     <header className="sticky top-0 z-30 border-b border-[rgb(var(--wx-tint)/0.07)] bg-[rgb(var(--wx-scrim)/0.72)] backdrop-blur-xl">
       <div className="mx-auto w-full max-w-7xl px-4 py-2.5 sm:px-6">
         <div className="flex items-center justify-between gap-3">
+          {/* On a sub-page the way back rides in the header, where it stays
+              reachable however far down the page the reader has scrolled. A
+              back control that scrolls away is a back control you have to hunt
+              for. */}
+          {onBack && (
+            <button
+              type="button"
+              onClick={onBack}
+              aria-label={t(language, 'mapBack')}
+              title={t(language, 'mapBack')}
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full border
+                         border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] text-sm text-ink
+                         transition hover:border-[rgb(var(--wx-tint)/0.28)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
+            >
+              <span aria-hidden="true">←</span>
+            </button>
+          )}
+
           {/* The whole brand block is the home control, not just the mark.
               It returns to the landing page directly — the splash belongs to
               first load and is never replayed from here. */}

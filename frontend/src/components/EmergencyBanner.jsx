@@ -1,6 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
-import { hazardLabel, t } from '../i18n/ui'
+import { hazardLabel, levelLabel, t } from '../i18n/ui'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
@@ -145,7 +145,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
               className="rounded-[var(--radius-pill)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
               style={{ background: tone.color, color: '#fff' }}
             >
-              {t(language, 'emergencyNow')} · {emergency.risk_level}
+              {t(language, 'emergencyNow')} · {levelLabel(language, emergency.risk_level)}
             </span>
             <span className="text-[13px] font-semibold text-ink">
               {hazardLabel(language, emergency.hazard)}

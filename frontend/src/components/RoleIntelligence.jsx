@@ -1,7 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { isLatinText } from '../i18n/scriptSupport'
-import { t } from '../i18n/ui'
+import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { LoadingBlock, Panel } from './ui/Primitives'
 
@@ -171,7 +171,7 @@ function HourStrip({ hours, language, userType }) {
           return (
             <div
               key={hour.time}
-              title={`${time} · ${hour.risk_level}`}
+              title={`${time} · ${levelLabel(language, hour.risk_level)}`}
               className="flex shrink-0 flex-col items-center gap-1 rounded-lg border px-2 py-1.5"
               style={{ borderColor: tone.ring, background: tone.tint }}
             >

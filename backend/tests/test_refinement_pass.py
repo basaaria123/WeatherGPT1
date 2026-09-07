@@ -33,15 +33,23 @@ def bundle_for(city: str, scenario: str | None = None):
 # ---------------------------------------------------------------------------
 # Insight
 # ---------------------------------------------------------------------------
-def test_insight_is_never_empty_and_carries_named_factors():
+@pytest.mark.parametrize("lang", ["en", "hi", "ta"])
+def test_insight_is_never_empty_and_carries_named_factors(lang):
+    """The factors are chips on the dashboard, so they are words, not keys.
+
+    They were English tokens rendered verbatim beside translated sentences —
+    "rainfall" under a Hindi headline. Each is now a translated label, and each
+    must still be one of the five the generator actually evaluates.
+    """
+    allowed = {
+        advisory.i18n.sentence(f"insight_factor_{k}", lang)
+        for k in ("rain", "wind", "visibility", "heat", "hazard")
+    }
     for scenario in ("calm", "rain", "flood", "heat", "wind", "fog", "storm"):
         b = bundle_for("Guwahati", scenario)
-        insight = advisory.headline_insight(b, risk_engine.assess(b), "general", "en")
+        insight = advisory.headline_insight(b, risk_engine.assess(b), "general", lang)
         assert insight["headline"].strip(), scenario
-        # Every factor named must be one the generator actually evaluated.
-        assert set(insight["factors"]) <= {
-            "rainfall", "wind", "visibility", "temperature", "hazard indicators",
-        }
+        assert set(insight["factors"]) <= allowed, (lang, scenario, insight["factors"])
 
 
 def test_insight_leads_with_the_hazard_only_when_it_is_actionable():
@@ -109,15 +117,36 @@ def test_impact_cards_do_not_repeat_one_sentence_across_sectors():
         assert len(set(details)) == len(details), f"{scenario}: {details}"
 
 
-def test_profile_reorders_impact_cards_without_changing_their_verdicts():
+def test_profile_selects_impact_cards_without_changing_their_verdicts():
+    """A profile decides which sectors it is shown, never what they say.
+
+    "general" is the everything view, so every card another profile shows must
+    appear there with exactly the same verdict — otherwise the panel would be
+    telling two readers different things about the same weather.
+    """
     b = bundle_for("Chennai", "rain")
     risk = risk_engine.assess(b)
-    general = advisory.impact_cards(b, risk, "en", "general")
-    fisherman = advisory.impact_cards(b, risk, "en", "fisherman")
+    general = {c.category: c for c in advisory.impact_cards(b, risk, "en", "general")}
 
-    assert fisherman[0].category == i18n.category_label("fishing", "en")
-    # Same set of verdicts, only the order differs.
-    assert {(c.category, c.status) for c in general} == {(c.category, c.status) for c in fisherman}
+    for profile in ("farmer", "fisherman", "traveler", "driver", "outdoor_worker",
+                    "household", "student", "caregiver"):
+        cards = advisory.impact_cards(b, risk, "en", profile)
+        assert cards, profile
+        # The reader's own sector leads.
+        lead = advisory.PROFILE_IMPACT_CATEGORIES[profile][0]
+        assert cards[0].category == i18n.category_label(lead, "en"), profile
+        # Fewer cards than the everything view, and no sector invented for it.
+        assert len(cards) < len(general), profile
+        for card in cards:
+            assert card.category in general, (profile, card.category)
+            assert card.status == general[card.category].status, (profile, card.category)
+            assert card.detail == general[card.category].detail, (profile, card.category)
+
+
+def test_general_still_sees_every_sector():
+    b = bundle_for("Chennai", "rain")
+    cards = advisory.impact_cards(b, risk_engine.assess(b), "en", "general")
+    assert len(cards) == 5
 
 
 def test_avoid_status_requires_a_genuinely_high_sub_score():

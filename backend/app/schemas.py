@@ -37,6 +37,11 @@ SUPPORTED_LANGUAGES: dict[str, str] = {
     "as": "অসমীয়া",
     "bn": "বাংলা",
     "mr": "मराठी",
+    "ta": "தமிழ்",
+    "kn": "ಕನ್ನಡ",
+    "ml": "മലയാളം",
+    "gu": "ગુજરાતી",
+    "pa": "ਪੰਜਾਬੀ",
 }
 
 # The nine profiles the product offers, then the three legacy values kept

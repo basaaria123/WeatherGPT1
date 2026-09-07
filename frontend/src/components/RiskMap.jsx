@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { t } from '../i18n/ui'
+import { hazardLabel, levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 import { EmptyState, Panel, SeverityPill, Skeleton } from './ui/Primitives'
@@ -107,10 +107,10 @@ export default function RiskMap({ data, loading, error, onRetry, onSelect }) {
                           {entry.admin1 && <p className="text-[11px] text-muted">{entry.admin1}</p>}
                           <p className="mt-1.5 text-[11px] text-ink-soft">
                             <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>{' '}
-                            {entry.risk_level} · {entry.risk_score}/100
+                            {levelLabel(language, entry.risk_level)} · {entry.risk_score}/100
                           </p>
                           {entry.detected_hazard !== 'None' && (
-                            <p className="text-[11px] text-muted">{entry.detected_hazard}</p>
+                            <p className="text-[11px] text-muted">{hazardLabel(language, entry.detected_hazard)}</p>
                           )}
                           {onSelect && !isSelected && (
                             <button

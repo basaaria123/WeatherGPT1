@@ -1,5 +1,6 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
+import { relativeLabel } from '../i18n/datetime'
 import { hazardLabel, t } from '../i18n/ui'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useStore } from '../store/useStore'
@@ -45,17 +46,6 @@ function AnimatedNumber({ value, decimals = 0 }) {
   return <>{Number(display).toFixed(decimals)}</>
 }
 
-function relativeTime(iso) {
-  if (!iso) return null
-  const then = new Date(iso)
-  if (Number.isNaN(then.getTime())) return null
-  const minutes = Math.max(0, Math.round((Date.now() - then.getTime()) / 60000))
-  if (minutes < 1) return 'just now'
-  if (minutes < 60) return `${minutes} min ago`
-  const hours = Math.round(minutes / 60)
-  return `${hours} h ago`
-}
-
 export default function CommandCenter({ data, loading, error, onRetry }) {
   const language = useStore((s) => s.language)
   // Only used to word the compass heading — the role itself is untouched.
@@ -91,7 +81,7 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
   if (!data) return null
 
   const { current = {}, risk, location } = data
-  const updated = relativeTime(data.generated_at)
+  const updated = relativeLabel(data.generated_at, language)
   const officialCount = data.official_alert_count ?? 0
 
   return (

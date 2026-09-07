@@ -2,7 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
 import { ROLE_ICONS } from '../i18n/roles'
-import { hazardLabel, profileLabel, t } from '../i18n/ui'
+import { hazardLabel, levelLabel, profileLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 
@@ -114,7 +114,7 @@ export default function PersonaCompare({ open, onClose, location }) {
                         {hazardLabel(language, data.risk.detected_hazard)}
                       </span>
                       <span className="text-muted">
-                        · {data.risk.risk_level} {data.risk.risk_score}/100
+                        · {levelLabel(language, data.risk.risk_level)} {data.risk.risk_score}/100
                       </span>
                     </p>
                   )}

@@ -26,20 +26,31 @@ STRONG_WIND_KMH = 35
 HOT_FEELS_C = 36
 
 
-# Which sector card leads for each profile, and which factors that reader
-# cares about first. Both are presentation-order only: no profile unlocks a
-# weather fact another profile cannot see.
-PROFILE_LEAD_CATEGORY: dict[str, str] = {
-    "farmer": "farming",
-    "fisherman": "fishing",
-    "traveler": "travel",
-    "driver": "travel",
-    "student": "travel",
-    "outdoor_worker": "outdoor",
-    "caregiver": "outdoor",
-    "household": "household",
-    "commuter": "travel",
-    "general": "",
+# Which sector cards a profile is shown, in the order it is shown them — the
+# first is that reader's own sector. Five cards for everyone made the panel
+# read as a directory rather than an answer: a fisherman has no use for a
+# spraying verdict, and a driver has none for one about livestock.
+#
+# This is a *view*, not a permission. Every card is still computed from the
+# same scores, "general" still shows all five, and a card this profile does see
+# says exactly what it says for every other profile — the ones left out are the
+# ones that were never about this reader.
+#
+# One table, not two: an order that disagreed with the selection would put a
+# reader's own sector somewhere other than first.
+PROFILE_IMPACT_CATEGORIES: dict[str, tuple[str, ...]] = {
+    "farmer": ("farming", "outdoor", "travel"),
+    "fisherman": ("fishing", "outdoor", "travel"),
+    "traveler": ("travel", "outdoor", "household"),
+    "driver": ("travel", "outdoor"),
+    "outdoor_worker": ("outdoor", "travel", "household"),
+    "household": ("household", "outdoor", "travel"),
+    "student": ("travel", "outdoor", "household"),
+    # Exposure of the people being cared for first, then the home they are in.
+    "caregiver": ("outdoor", "household", "travel"),
+    "commuter": ("travel", "outdoor", "household"),
+    # No stated role means no basis for leaving anything out.
+    "general": ("farming", "fishing", "travel", "household", "outdoor"),
 }
 
 # What each reader wants to hear first. "hazard" is not in these lists: an
@@ -306,11 +317,13 @@ def impact_cards(
         ("outdoor", max(rain, storm, heat, wind * 0.9)),
     ]
 
-    # The reader's own sector leads. Ordering only — every card still shows,
-    # and none of their content changes with the profile.
-    lead = PROFILE_LEAD_CATEGORY.get(i18n.canonical_profile(user_type))
-    if lead:
-        spec.sort(key=lambda item: 0 if item[0] == lead else 1)
+    # The reader's own sectors, in their own order. The content of a card never
+    # changes with the profile — only whether this reader is shown it.
+    profile = i18n.canonical_profile(user_type)
+    wanted = PROFILE_IMPACT_CATEGORIES.get(profile)
+    if wanted:
+        scores = dict(spec)
+        spec = [(key, scores[key]) for key in wanted if key in scores]
 
     cards: list[ImpactCard] = []
     for key, score in spec:
@@ -560,10 +573,10 @@ def headline_insight(
         clock = _clock(hour.get("time"))
         if clock:
             candidates["rain"] = i18n.sentence("insight_rain_from", lang, time=clock, prob=_r(prob))
-            factors.append("rainfall")
+            factors.append(i18n.sentence("insight_factor_rain", lang))
     elif window:
         candidates["rain"] = i18n.sentence("insight_rain_clear", lang, hours=len(window))
-        factors.append("rainfall")
+        factors.append(i18n.sentence("insight_factor_rain", lang))
 
     # --- Wind -------------------------------------------------------------
     winds = [_num(h.get("wind_speed_kmh")) for h in window]
@@ -575,20 +588,20 @@ def headline_insight(
             if profile == "fisherman"
             else i18n.sentence("insight_wind_later", lang, wind=_r(peak_wind))
         )
-        factors.append("wind")
+        factors.append(i18n.sentence("insight_factor_wind", lang))
     elif profile == "fisherman" and wind_now is not None:
         candidates["wind"] = i18n.sentence("impact_fishing_calm", lang, wind=_r(wind_now))
-        factors.append("wind")
+        factors.append(i18n.sentence("insight_factor_wind", lang))
 
     # --- Visibility -------------------------------------------------------
     if vis is not None and vis <= LOW_VISIBILITY_KM:
         candidates["visibility"] = i18n.sentence("insight_visibility_low", lang, vis=_r(vis, 1))
-        factors.append("visibility")
+        factors.append(i18n.sentence("insight_factor_visibility", lang))
 
     # --- Heat -------------------------------------------------------------
     if feels is not None and feels >= HOT_FEELS_C:
         candidates["heat"] = i18n.sentence("heat_note", lang, feels=_r(feels, 1))
-        factors.append("temperature")
+        factors.append(i18n.sentence("insight_factor_heat", lang))
 
     # --- Hazard, straight from the shared engine --------------------------
     if risk.detected_hazard != "None" and risk.risk_score >= 31:
@@ -597,7 +610,7 @@ def headline_insight(
             hazard=i18n.hazard_label(risk.detected_hazard, lang),
             level=i18n.level_label(risk.risk_level, lang),
         )
-        factors.append("hazard indicators")
+        factors.append(i18n.sentence("insight_factor_hazard", lang))
 
     order = PROFILE_FACTOR_ORDER.get(profile, PROFILE_FACTOR_ORDER["general"])
     # A hazard the engine calls actionable outranks everything; below that the

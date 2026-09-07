@@ -241,7 +241,11 @@ def _general(m: _Reading, lang: str) -> list[dict[str, Any]]:
         headline, tone = i18n.sentence("ri_outdoor_good", lang), "safe"
     cards.append(_card(
         "outdoor", "🚶", i18n.sentence("ri_outdoor_title", lang), headline, tone,
-        i18n.sentence("ri_from_risk", lang, level=m.level, hazard=i18n.hazard_label(m.hazard, lang)),
+        i18n.sentence(
+            "ri_from_risk", lang,
+            level=i18n.level_label(m.level, lang),
+            hazard=i18n.hazard_label(m.hazard, lang),
+        ),
     ))
 
     return cards

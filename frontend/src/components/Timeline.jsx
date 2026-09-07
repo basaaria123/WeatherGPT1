@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { t } from '../i18n/ui'
+import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { severityOf, isActionable } from './ui/severity'
 import { EmptyState, LoadingBlock, Panel, Skeleton } from './ui/Primitives'
@@ -51,7 +51,9 @@ export default function Timeline({ data, loading, error }) {
       action={
         isActionable(peak.risk_level) ? (
           <span className="text-[11px] text-muted">
-            Peak {peak.risk_level.toLowerCase()} risk at {formatHour(peak.time)}
+            {t(language, 'peakRisk')
+              .replace('{level}', levelLabel(language, peak.risk_level))
+              .replace('{time}', formatHour(peak.time))}
           </span>
         ) : null
       }
@@ -74,7 +76,7 @@ function HourCard({ hour, index, isNow, language }) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.018, 0.4) }}
-      title={`${formatHour(hour.time)} · ${hour.condition ?? ''} · ${hour.risk_level} risk (${hour.risk_score}/100)`}
+      title={`${formatHour(hour.time)} · ${hour.condition ?? ''} · ${levelLabel(language, hour.risk_level)} (${hour.risk_score}/100)`}
       className="flex w-[4.4rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-2 text-center"
       style={{
         borderColor: risky ? tone.ring : 'rgb(var(--wx-tint) / 0.07)',

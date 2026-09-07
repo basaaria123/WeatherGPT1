@@ -25,6 +25,7 @@ import LocationDialog from './components/LocationDialog'
 import PipelinePanel from './components/PipelinePanel'
 import RiskMap from './components/RiskMap'
 import RoleIntelligence from './components/RoleIntelligence'
+import MapLauncher from './components/MapLauncher'
 import WeatherMap from './components/WeatherMap'
 import SplashScreen from './components/SplashScreen'
 import Timeline from './components/Timeline'
@@ -142,7 +143,7 @@ export default function App() {
         api.timeline({ location: location.name, hours: 24, user_type: userType, language }),
         setTimelineData,
       ),
-      settle('forecast', api.forecast({ location: location.name, days: 7 }), setForecastData),
+      settle('forecast', api.forecast({ location: location.name, days: 7, language }), setForecastData),
       settle('map', api.riskMap({ limit: 16, hours: 6 }), setMapData),
     ])
   }, [location?.name, language, userType, setConditions, setDataSource])
@@ -314,7 +315,7 @@ export default function App() {
 
   return (
     <>
-      <WeatherScene scene={scene} light={lightTheme} intensity={stage === 'app' ? 0.75 : 1} />
+      <WeatherScene scene={scene} light={lightTheme} intensity={stage === 'app' || stage === 'map' ? 0.75 : 1} />
 
       {/* Greets the dashboard with the sky it just read. Reads the same payload
           the cards render, so it can never introduce a condition they disagree
@@ -394,16 +395,10 @@ export default function App() {
                 onRetry={refresh}
               />
 
-              {/* The same watched locations the risk map plots, read as weather
-                  rather than as risk, and steppable through their own forecast
-                  hours. It shares that one response — no request of its own. */}
-              <WeatherMap
-                data={mapData}
-                hours={timelineData?.hours}
-                insights={timelineData?.insights}
-                loading={loading.map}
-                error={errors.map}
-              />
+              {/* The map has a page of its own — see the `map` stage below.
+                  Inline, it cost the dashboard a whole screen between the
+                  reading and the advice that follows it. */}
+              <MapLauncher ready={Boolean(mapData?.locations?.length)} onOpen={() => setStage('map')} />
 
               {/* What that same weather means for whoever is reading it. The
                   server derives it from this response's own bundle and risk,
@@ -447,6 +442,56 @@ export default function App() {
                 loading={loading.current}
               />
 
+              <footer className="flex flex-wrap items-center justify-between gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setDemoOpen(true)}
+                  className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] px-4 py-2
+                             text-xs font-medium text-ink transition hover:border-[rgb(var(--wx-tint)/0.28)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
+                >
+                  ◧ {t(language, 'demoMode')}
+                </button>
+                <DataProvenance generatedAt={currentData?.generated_at} />
+              </footer>
+            </main>
+          </motion.div>
+        )}
+
+        {/* --- The map, on a page of its own ------------------------------ */}
+        {/* Same header, same store, same already-fetched response: this is a
+            different view of the dashboard's data, not a second app. Leaving
+            the header in place means the location, role and language controls
+            keep working here, which is the whole reason to look at a map. */}
+        {stage === 'map' && (
+          <motion.div
+            key="map"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+            className="min-h-dvh"
+          >
+            <Header
+              onHome={() => setStage('landing')}
+              onBack={() => setStage('app')}
+              onOpenLocation={() => setLocationOpen(true)}
+              onRefresh={refresh}
+              refreshing={refreshing}
+              onSignIn={() => { setOnboardAt('identity'); setStage('onboarding') }}
+            />
+
+            <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-16 pt-3 sm:px-6 sm:pt-5">
+              <WeatherMap
+                tall
+                data={mapData}
+                hours={timelineData?.hours}
+                insights={timelineData?.insights}
+                loading={loading.map}
+                error={errors.map}
+              />
+
+              {/* The country risk view belongs beside the weather view rather
+                  than three screens below it: both plot the same watched
+                  locations, one as weather and one as risk. */}
               <RiskMap
                 data={mapData}
                 loading={loading.map}
@@ -462,15 +507,7 @@ export default function App() {
                 }
               />
 
-              <footer className="flex flex-wrap items-center justify-between gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setDemoOpen(true)}
-                  className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] px-4 py-2
-                             text-xs font-medium text-ink transition hover:border-[rgb(var(--wx-tint)/0.28)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
-                >
-                  ◧ {t(language, 'demoMode')}
-                </button>
+              <footer className="flex justify-end pt-2">
                 <DataProvenance generatedAt={currentData?.generated_at} />
               </footer>
             </main>
