@@ -13,7 +13,7 @@ from fastapi import APIRouter, HTTPException, Query
 
 from ..config import get_settings
 from ..schemas import MapHour, RiskMapEntry, RiskMapResponse, RiskOutput
-from ..services import risk_engine, weather
+from ..services import map_insight, risk_engine, weather
 from ..services.alerts import DEFAULT_WATCH
 from ..services.weather import WeatherError
 
@@ -42,7 +42,29 @@ def risk_for_location(
     return risk_engine.assess(bundle)
 
 
-def _score_one(name: str, hours: int = 0) -> tuple[RiskMapEntry | None, str | None]:
+def _peak_insight(series: list[dict], user_type: str | None, lang: str) -> str | None:
+    """This location's most eventful hour, in one sentence.
+
+    The map's detail box has room for a single line, so it gets the hour that
+    decides the score rather than the hour that happens to come first. Composed
+    by the same module the map page's hourly readings come from, in the same
+    translated corpus — a preview cannot say something the timeline below it
+    then contradicts.
+    """
+    if not series:
+        return None
+    lines = map_insight.build(series, user_type, lang)
+    if not lines:
+        return None
+    peak = max(range(len(series)), key=lambda i: series[i].get("risk_score") or 0)
+    # An hour with nothing measured yields an empty line; fall back to the first
+    # hour that had something to say rather than showing a blank.
+    return lines[peak] or next((line for line in lines if line), None)
+
+
+def _score_one(
+    name: str, hours: int = 0, user_type: str | None = None, lang: str = "en"
+) -> tuple[RiskMapEntry | None, str | None]:
     """Score one watched location, and carry out the readings already fetched.
 
     The bundle is retrieved to compute the risk either way; returning the
@@ -60,9 +82,12 @@ def _score_one(name: str, hours: int = 0) -> tuple[RiskMapEntry | None, str | No
     current = bundle.current or {}
 
     forward: list[MapHour] = []
+    insight: str | None = None
     if hours > 0:
-        for hour in risk_engine.timeline(bundle, hours=hours):
+        series = risk_engine.timeline(bundle, hours=hours)
+        for hour in series:
             forward.append(MapHour(**{k: v for k, v in hour.items() if k in MapHour.model_fields}))
+        insight = _peak_insight(series, user_type, lang)
 
     return (
         RiskMapEntry(
@@ -80,6 +105,7 @@ def _score_one(name: str, hours: int = 0) -> tuple[RiskMapEntry | None, str | No
             wind_direction_deg=current.get("wind_direction_deg"),
             cloud_cover_pct=current.get("cloud_cover_pct"),
             hours=forward,
+            insight=insight,
         ),
         None,
     )
@@ -90,6 +116,8 @@ async def risk_map(
     limit: int = Query(24, ge=1, le=85),
     all_locations: bool = Query(False, description="Score the whole gazetteer instead of the watchlist"),
     hours: int = Query(0, ge=0, le=12, description="Forward hours to carry per location; 0 omits them"),
+    user_type: str | None = Query(None, description="Whose reading the per-location line is written for"),
+    language: str = Query("en", description="Language for the per-location line"),
 ) -> RiskMapResponse:
     """Per-location risk for the India map, from the same engine as everything else.
 
@@ -102,7 +130,9 @@ async def risk_map(
     else:
         names = list(DEFAULT_WATCH)[:limit]
 
-    results = await asyncio.gather(*(asyncio.to_thread(_score_one, name, hours) for name in names))
+    results = await asyncio.gather(
+        *(asyncio.to_thread(_score_one, name, hours, user_type, language) for name in names)
+    )
 
     entries = [entry for entry, _ in results if entry is not None]
     errors = [error for _, error in results if error]

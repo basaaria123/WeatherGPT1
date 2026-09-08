@@ -153,3 +153,54 @@ def test_no_cloud_cover_in_the_forward_hours():
     body = client.get("/risk-map?limit=1&hours=2").json()
     for hour in body["locations"][0]["hours"]:
         assert "cloud_cover_pct" not in hour
+
+
+def test_risk_map_has_no_insight_without_forward_hours():
+    """The line is derived from the hours; no hours, no line.
+
+    A caller that asked for the cheap response must not be handed a sentence
+    built from a series it did not receive and cannot check.
+    """
+    body = client.get("/risk-map?limit=2").json()
+    for entry in body["locations"]:
+        assert entry["insight"] is None
+
+
+def test_risk_map_reads_each_location_for_the_caller():
+    body = client.get("/risk-map?limit=3&hours=6&user_type=farmer").json()
+    assert body["locations"], "no locations scored"
+    for entry in body["locations"]:
+        assert entry["insight"], f"{entry['location']} got no reading"
+        # One sentence for the preview box, not the whole hourly rundown.
+        assert entry["insight"].count(".") <= 3
+
+
+def test_risk_map_reading_is_about_the_hour_that_decides_the_score():
+    """The preview names the peak hour, not whichever hour happens to be first.
+
+    A box that leads with a calm 20:00 while the score behind it comes from a
+    severe 00:00 is describing a different afternoon from the one it scored.
+    """
+    body = client.get("/risk-map?limit=4&hours=6&user_type=general").json()
+    for entry in body["locations"]:
+        peak = max(entry["hours"], key=lambda hour: hour["risk_score"])
+        assert peak["time"][11:16] in entry["insight"], (
+            f"{entry['location']}: {entry['insight']} does not mention {peak['time']}"
+        )
+
+
+def test_risk_map_reading_is_translated():
+    body = client.get("/risk-map?limit=2&hours=4&user_type=farmer&language=te").json()
+    for entry in body["locations"]:
+        assert re.search(r"[ఀ-౿]", entry["insight"]), entry["insight"]
+
+
+def test_risk_map_reading_is_written_for_the_profile():
+    """Two roles reading the same location must not be handed the same advice."""
+    def readings(role):
+        body = client.get(f"/risk-map?limit=3&hours=6&user_type={role}").json()
+        return {entry["location"]: entry["insight"] for entry in body["locations"]}
+
+    farmer, fisherman = readings("farmer"), readings("fisherman")
+    assert farmer and farmer.keys() == fisherman.keys()
+    assert any(farmer[name] != fisherman[name] for name in farmer)

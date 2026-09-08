@@ -428,6 +428,9 @@ class RiskMapEntry(BaseModel):
     cloud_cover_pct: float | None = None
     # Forward hours for this point, only when the caller asked for them.
     hours: list[MapHour] = Field(default_factory=list)
+    # One sentence about this point, in the caller's language and for their
+    # role. Derived from `hours`, so it is absent whenever they are.
+    insight: str | None = None
 
 
 class RiskMapResponse(BaseModel):

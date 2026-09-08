@@ -50,6 +50,7 @@ export default function App() {
   const language = useStore((s) => s.language)
   const userType = useStore((s) => s.userType)
   const location = useStore((s) => s.location)
+  const setLocation = useStore((s) => s.setLocation)
   const sessionId = useStore((s) => s.sessionId)
   const setSessionId = useStore((s) => s.setSessionId)
   const setConditions = useStore((s) => s.setConditions)
@@ -144,7 +145,13 @@ export default function App() {
         setTimelineData,
       ),
       settle('forecast', api.forecast({ location: location.name, days: 7, language }), setForecastData),
-      settle('map', api.riskMap({ limit: 16, hours: 6 }), setMapData),
+      // `user_type` and `language` are what let each mapped location carry its
+      // own one-line reading, written for whoever is looking at the map.
+      settle(
+        'map',
+        api.riskMap({ limit: 16, hours: 6, user_type: userType, language }),
+        setMapData,
+      ),
     ])
   }, [location?.name, language, userType, setConditions, setDataSource])
 
@@ -308,9 +315,37 @@ export default function App() {
   const viewArea = useCallback(
     (alert) => {
       setMapFocus({ latitude: alert.latitude, longitude: alert.longitude, at: Date.now() })
-      document.getElementById('risk-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      setStage('map')
+      // After the map page has mounted; the panel does not exist before it.
+      setTimeout(
+        () => document.getElementById('risk-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
+        220,
+      )
     },
     [setMapFocus],
+  )
+
+  /**
+   * Step two of the map's selection: the previewed place becomes *the* place.
+   *
+   * There is no separate location-detail page to send anyone to. The home page
+   * is the destination, and it is already built to repaint itself around
+   * whatever `location` holds — current conditions, risk, role advice, both
+   * forecasts, the alert feed, the chat's context and the sky behind all of it
+   * are keyed on it, so committing the location is the whole update.
+   */
+  const openLocalDetails = useCallback(
+    (entry) => {
+      setLocation({
+        name: entry.location,
+        admin1: entry.admin1,
+        latitude: entry.latitude,
+        longitude: entry.longitude,
+      })
+      setStage('app')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+    [setLocation],
   )
 
   return (
@@ -497,14 +532,7 @@ export default function App() {
                 loading={loading.map}
                 error={errors.map}
                 onRetry={refresh}
-                onSelect={(entry) =>
-                  useStore.getState().setLocation({
-                    name: entry.location,
-                    admin1: entry.admin1,
-                    latitude: entry.latitude,
-                    longitude: entry.longitude,
-                  })
-                }
+                onCommit={openLocalDetails}
               />
 
               <footer className="flex justify-end pt-2">
