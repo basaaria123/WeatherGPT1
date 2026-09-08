@@ -95,6 +95,9 @@ export const api = {
   current: (params) => request(`/weather/current${qs(params)}`),
   timeline: (params) => request(`/weather/timeline${qs(params)}`),
   forecast: (params) => request(`/weather/forecast${qs(params)}`),
+  // Synthesis costs a round trip to the voice provider, so this is only ever
+  // called by a reader pressing play — never as part of a dashboard load.
+  spokenAdvice: (params) => request(`/weather/spoken-advice${qs(params)}`, { timeout: 45000 }),
   climateTrend: (params) => request(`/climate-trend${qs(params)}`, { timeout: 45000 }),
 
   alerts: (params) => request(`/alerts${qs(params)}`),

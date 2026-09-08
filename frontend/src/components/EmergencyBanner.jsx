@@ -34,6 +34,7 @@ function formatUntil(value, language) {
 
 export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
   const language = useStore((s) => s.language)
+  const audibleAlerts = useStore((s) => s.audibleAlerts)
   const reduced = useReducedMotion()
   const [dismissed, setDismissed] = useState(false)
   const [speaking, setSpeaking] = useState(false)
@@ -92,7 +93,10 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
     }
   }
 
-  const canSpeak = Boolean(audioBase64) || speechSupported()
+  // Settings decide whether a severe alert is allowed to have a voice at all.
+  // It still never speaks on its own — this gates the control, not an autoplay
+  // that does not exist.
+  const canSpeak = audibleAlerts && (Boolean(audioBase64) || speechSupported())
 
   // Dismissed does not mean resolved: a compact indicator stays while the risk
   // does, so a cleared banner can never read as an all-clear.

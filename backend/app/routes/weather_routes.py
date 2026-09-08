@@ -25,9 +25,20 @@ from ..schemas import (
     HourPoint,
     LocationOut,
     RoleIntelligenceOut,
+    SpokenAdviceResponse,
     TimelineResponse,
 )
-from ..services import advisory, climate, i18n, map_insight, risk_engine, role_intel, weather
+from ..services import (
+    advisory,
+    climate,
+    i18n,
+    map_insight,
+    risk_engine,
+    role_intel,
+    speech,
+    voice_brief,
+    weather,
+)
 from ..services.weather import WeatherError
 
 router = APIRouter(tags=["weather"])
@@ -197,6 +208,70 @@ def timeline(
         data_source=bundle.source,
         hours=[HourPoint(**hour) for hour in series],
         insights=map_insight.build(series, user_type, language) if user_type else [],
+    )
+
+
+@router.get("/weather/spoken-advice", response_model=SpokenAdviceResponse)
+def spoken_advice(
+    location: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    language: str = "en",
+    user_type: str | None = Query(None, description="Whose advice is being read out"),
+) -> SpokenAdviceResponse:
+    """The "what should you do now" advice, written and rendered to be heard.
+
+    Deliberately a request of its own rather than a field on the dashboard
+    response: synthesis costs a network round trip to the voice provider, and
+    nobody should pay for it on every refresh when most readers never press
+    play. It is only ever called by a reader pressing a button, which is also
+    what keeps audio from ever starting on its own.
+
+    The script is composed from this location's own bundle — the same risk, the
+    same advisory, the same forecast hours and the same official alert count the
+    dashboard is showing — so what is heard cannot differ from what is on
+    screen.
+    """
+    resolved = _resolve(location, latitude, longitude)
+    bundle = _bundle(resolved)
+    risk = risk_engine.assess(bundle)
+    lang = i18n.normalise_lang(language)
+    profile = i18n.canonical_profile(user_type)
+
+    try:
+        official = len(fetch_alerts(location=bundle.location.name, limit=20))
+    except Exception:  # noqa: BLE001 - an alert-store hiccup must not silence the advice
+        official = 0
+
+    text = voice_brief.compose(
+        location=bundle.location.name,
+        risk=risk,
+        advisory=advisory.build_advisory(risk, user_type, lang, bundle=bundle),
+        # Six hours is as far ahead as "act now" advice can usefully point.
+        hours=risk_engine.timeline(bundle, hours=6),
+        alert_count=official,
+        lang=lang,
+    )
+    if not text:
+        raise HTTPException(status_code=404, detail="There is no advice to read aloud for this place yet.")
+
+    audio = mime = note = None
+    tts_error = None
+    try:
+        audio, mime, note = speech.synthesize(text, lang)
+    except speech.SynthesisError as exc:
+        tts_error = str(exc)
+
+    return SpokenAdviceResponse(
+        location=bundle.location.name,
+        language=lang,
+        user_type=profile,
+        risk_level=risk.risk_level,
+        text=text,
+        audio_base64=audio,
+        audio_mime=mime,
+        voice_note=note,
+        tts_error=tts_error,
     )
 
 

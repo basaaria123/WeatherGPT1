@@ -17,12 +17,58 @@ import { useStore } from '../store/useStore'
  * A toggle that silently does nothing is worse than no toggle.
  */
 
+/** The one toggle shape this menu uses, so four of them cannot drift apart. */
+function Switch({ checked, onChange, label }) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-label={label}
+      onClick={() => onChange(!checked)}
+      className={`relative h-[22px] w-10 shrink-0 rounded-full border transition ${
+        checked
+          ? 'border-primary/60 bg-primary/25'
+          : 'border-[rgb(var(--wx-tint)/0.15)] bg-[rgb(var(--wx-tint)/0.06)]'
+      }`}
+    >
+      <span
+        aria-hidden="true"
+        className="absolute top-[2px] h-[16px] w-[16px] rounded-full transition-all"
+        style={{
+          left: checked ? '20px' : '2px',
+          background: checked ? 'var(--color-primary)' : 'rgb(var(--wx-tint) / 0.4)',
+        }}
+      />
+    </button>
+  )
+}
+
+/** One line of the voice section: an icon, a name, and the switch. */
+function AudioRow({ icon, label, checked, onChange }) {
+  return (
+    <div className="flex items-center justify-between gap-3 py-1.5">
+      <span className="flex min-w-0 items-center gap-2 text-[12.5px] text-ink">
+        <span aria-hidden="true" className="shrink-0">{icon}</span>
+        <span className="truncate">{label}</span>
+      </span>
+      <Switch checked={checked} onChange={onChange} label={label} />
+    </div>
+  )
+}
+
 export default function ProfileMenu({ onSignIn }) {
   const language = useStore((s) => s.language)
   const session = useStore((s) => s.session)
   const signOut = useStore((s) => s.signOut)
   const smsOptIn = useStore((s) => s.smsOptIn)
   const setSmsOptIn = useStore((s) => s.setSmsOptIn)
+  const spokenAdvice = useStore((s) => s.spokenAdvice)
+  const setSpokenAdvice = useStore((s) => s.setSpokenAdvice)
+  const audibleAlerts = useStore((s) => s.audibleAlerts)
+  const setAudibleAlerts = useStore((s) => s.setAudibleAlerts)
+  const voiceQuestions = useStore((s) => s.voiceQuestions)
+  const setVoiceQuestions = useStore((s) => s.setVoiceQuestions)
   const reduced = useReducedMotion()
 
   const [open, setOpen] = useState(false)
@@ -91,26 +137,11 @@ export default function ProfileMenu({ onSignIn }) {
               <div className="flex items-center justify-between gap-3">
                 <span className="text-[12.5px] font-medium text-ink">{t(language, 'smsAlerts')}</span>
                 {signedIn ? (
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={smsOptIn}
-                    onClick={() => setSmsOptIn(!smsOptIn)}
-                    className={`relative h-[22px] w-10 shrink-0 rounded-full border transition ${
-                      smsOptIn
-                        ? 'border-primary/60 bg-primary/25'
-                        : 'border-[rgb(var(--wx-tint)/0.15)] bg-[rgb(var(--wx-tint)/0.06)]'
-                    }`}
-                  >
-                    <span
-                      aria-hidden="true"
-                      className="absolute top-[2px] h-[16px] w-[16px] rounded-full transition-all"
-                      style={{
-                        left: smsOptIn ? '20px' : '2px',
-                        background: smsOptIn ? 'var(--color-primary)' : 'rgb(var(--wx-tint) / 0.4)',
-                      }}
-                    />
-                  </button>
+                  <Switch
+                    checked={smsOptIn}
+                    onChange={setSmsOptIn}
+                    label={t(language, 'smsAlerts')}
+                  />
                 ) : (
                   <span className="shrink-0 text-[11px] text-faint">{t(language, 'smsOff')}</span>
                 )}
@@ -140,6 +171,39 @@ export default function ProfileMenu({ onSignIn }) {
                   </button>
                 </>
               )}
+            </div>
+
+            {/* Voice and audio. Three switches and one sentence: nothing here
+                is a mode, a level, or a voice to choose between. */}
+            <div className="border-b border-[rgb(var(--wx-tint)/0.08)] px-3.5 py-2.5">
+              <div className="text-[10px] uppercase tracking-[0.14em] text-faint">
+                {t(language, 'voiceAndAudio')}
+              </div>
+              <div className="mt-1">
+                <AudioRow
+                  icon="🔊"
+                  label={t(language, 'prefSpokenAdvice')}
+                  checked={spokenAdvice}
+                  onChange={setSpokenAdvice}
+                />
+                <AudioRow
+                  icon="🚨"
+                  label={t(language, 'prefAudibleAlerts')}
+                  checked={audibleAlerts}
+                  onChange={setAudibleAlerts}
+                />
+                <AudioRow
+                  icon="🎙"
+                  label={t(language, 'prefVoiceQuestions')}
+                  checked={voiceQuestions}
+                  onChange={setVoiceQuestions}
+                />
+              </div>
+              {/* Said once, here, because it is the thing a reader most needs
+                  to trust about an app that can talk. */}
+              <p className="mt-1.5 text-[10.5px] leading-relaxed text-faint">
+                {t(language, 'audioNeverAutoplays')}
+              </p>
             </div>
 
             <div className="px-2 py-2">

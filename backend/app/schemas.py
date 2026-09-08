@@ -433,6 +433,28 @@ class RiskMapEntry(BaseModel):
     insight: str | None = None
 
 
+class SpokenAdviceResponse(BaseModel):
+    """The advice for this reader, written to be heard rather than read.
+
+    ``text`` is always present and always the exact script; ``audio_base64`` is
+    absent whenever synthesis failed, with ``tts_error`` saying so. Losing the
+    audio must never mean losing the advice, and the UI shows the script either
+    way.
+    """
+
+    location: str
+    language: str
+    user_type: str = "general"
+    risk_level: RiskLevel = "Low"
+    text: str
+    audio_base64: str | None = None
+    audio_mime: str | None = None
+    # Set when no voice exists for the chosen language and a neighbouring one
+    # was read instead — the reader is told, never quietly given the wrong one.
+    voice_note: str | None = None
+    tts_error: str | None = None
+
+
 class RiskMapResponse(BaseModel):
     generated_at: str
     data_source: str

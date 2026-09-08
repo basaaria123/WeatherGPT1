@@ -73,6 +73,26 @@ export const useStore = create((set, get) => ({
     savePrefs({ ...loadPrefs(), smsOptIn })
     set({ smsOptIn })
   },
+  // --- Voice and audio ------------------------------------------------------
+  // All three default on, because all three are things the reader has to press
+  // before anything makes a sound. Nothing here can autoplay, so defaulting
+  // them off would hide capabilities without protecting anyone from noise.
+  spokenAdvice: prefs.spokenAdvice ?? true,
+  setSpokenAdvice: (spokenAdvice) => {
+    savePrefs({ ...loadPrefs(), spokenAdvice })
+    set({ spokenAdvice })
+  },
+  audibleAlerts: prefs.audibleAlerts ?? true,
+  setAudibleAlerts: (audibleAlerts) => {
+    savePrefs({ ...loadPrefs(), audibleAlerts })
+    set({ audibleAlerts })
+  },
+  voiceQuestions: prefs.voiceQuestions ?? true,
+  setVoiceQuestions: (voiceQuestions) => {
+    savePrefs({ ...loadPrefs(), voiceQuestions })
+    set({ voiceQuestions })
+  },
+
   smsSeverity: prefs.smsSeverity ?? 'high',
   setSmsSeverity: (smsSeverity) => {
     savePrefs({ ...loadPrefs(), smsSeverity })

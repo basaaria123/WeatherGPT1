@@ -417,3 +417,25 @@
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;
 }
+
+/* Playback waveform.
+   Three short bars that rise and fall only while audio is actually coming out.
+   Deliberately small and slow: this answers "is it playing?", it is not a
+   visualiser, and it is not tied to the audio signal — claiming to draw a
+   waveform we never measured would be a decoration pretending to be data. */
+.wx-wave {
+  height: 5px;
+  animation: wx-wave 1s ease-in-out infinite;
+}
+
+@keyframes wx-wave {
+  0%, 100% { height: 4px; opacity: 0.55; }
+  50%      { height: 10px; opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wx-wave {
+    animation: none;
+    height: 7px;
+  }
+}

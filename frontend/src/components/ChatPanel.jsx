@@ -3,15 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
+import { SPEECH_LOCALE, browserSpeechSupported } from '../audio/speech'
 import { Chip, SeverityPill } from './ui/Primitives'
-
-/** BCP-47 voices for the six supported languages. */
-const SPEECH_LOCALE = {
-  en: 'en-IN', hi: 'hi-IN', te: 'te-IN', bn: 'bn-IN', mr: 'mr-IN', as: 'as-IN',
-}
-
-const browserSpeechSupported = () =>
-  typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
 
 /**
  * Can this answer be read aloud at all?
@@ -46,6 +39,7 @@ export default function ChatPanel({
   serverTranscribes,
 }) {
   const language = useStore((s) => s.language)
+  const voiceQuestions = useStore((s) => s.voiceQuestions)
   const [draft, setDraft] = useState('')
   const listRef = useRef(null)
   const audioRef = useRef(null)
@@ -257,7 +251,7 @@ export default function ChatPanel({
                      focus:border-primary/50 focus:outline-none disabled:opacity-60"
         />
 
-        {recorder.supported && (
+        {recorder.supported && voiceQuestions && (
           <button
             type="button"
             onClick={toggleRecording}

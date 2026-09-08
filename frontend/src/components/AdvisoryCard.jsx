@@ -1,6 +1,7 @@
 import { motion } from 'framer-motion'
 import { hazardLabel, levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
+import SpokenAdvice from './audio/SpokenAdvice'
 import { severityOf } from './ui/severity'
 import { Panel } from './ui/Primitives'
 
@@ -14,6 +15,8 @@ import { Panel } from './ui/Primitives'
  */
 export default function AdvisoryCard({ advisory, onCompare }) {
   const language = useStore((s) => s.language)
+  const location = useStore((s) => s.location)
+  const userType = useStore((s) => s.userType)
 
   // Optional field: an older client, or a calm day, simply renders nothing.
   if (!advisory?.actions?.length) return null
@@ -72,6 +75,10 @@ export default function AdvisoryCard({ advisory, onCompare }) {
           </motion.li>
         ))}
       </ol>
+
+      {/* The same actions, said out loud. Sits with the advice rather than in
+          a toolbar somewhere: hearing it is one of the ways to read it. */}
+      <SpokenAdvice location={location?.name} userType={userType} />
 
       {advisory.disclaimer && (
         <p className="mt-3 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2 text-[11px] leading-relaxed text-faint">
