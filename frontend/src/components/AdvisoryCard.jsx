@@ -12,6 +12,17 @@ import { Panel } from './ui/Primitives'
  * deterministic rules table keyed by (hazard, user_type) — nothing here selects
  * or rewrites them, so what a reviewer reads in the rules file is exactly what
  * a citizen sees on screen.
+ *
+ * It answers three questions in the order a reader has them:
+ *
+ *   what is happening?     the situation line — the measured thing that is
+ *                          happening or about to, with its own clock time
+ *   what should I do?      the actions, the lead one carrying the most weight
+ *   why am I told this?    the drivers, as the numbers the engine actually
+ *                          scored — not a restatement of the advice
+ *
+ * The middle one is the point of the panel and is set largest. The other two
+ * are context for it, not competitors with it.
  */
 export default function AdvisoryCard({ advisory, onCompare }) {
   const language = useStore((s) => s.language)
@@ -39,13 +50,22 @@ export default function AdvisoryCard({ advisory, onCompare }) {
         ) : null
       }
     >
-      <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+      <div className="mb-2 flex flex-wrap items-center gap-1.5">
         <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>
         <span className="text-[12px] font-semibold text-ink">
           {hazardLabel(language, advisory.hazard)}
         </span>
         <span className="text-[11px] text-muted">· {levelLabel(language, advisory.risk_level)}</span>
       </div>
+
+      {/* What is happening. Sits above the actions because it is the thing the
+          actions are about, and stays one line: the forecast has panels of its
+          own and this is not one of them. */}
+      {advisory.situation && (
+        <p data-testid="advisory-situation" className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">
+          {advisory.situation}
+        </p>
+      )}
 
       <ol className="space-y-2">
         {advisory.actions.map((item, index) => (
@@ -75,6 +95,16 @@ export default function AdvisoryCard({ advisory, onCompare }) {
           </motion.li>
         ))}
       </ol>
+
+      {/* Why any of this was said — the values the engine scored, not a
+          paraphrase of the advice above. Labelled rather than run together so
+          it reads as evidence and not as another instruction. */}
+      {advisory.reason && (
+        <p data-testid="advisory-reason" className="mt-3 text-[11.5px] leading-relaxed text-muted">
+          <span className="font-semibold text-ink-soft">{t(language, 'becauseLabel')}: </span>
+          {advisory.reason}
+        </p>
+      )}
 
       {/* The same actions, said out loud. Sits with the advice rather than in
           a toolbar somewhere: hearing it is one of the ways to read it. */}

@@ -317,6 +317,53 @@ const CONDITION_TO_SCENE = {
   [CONDITION.UNKNOWN]: 'clear',
 }
 
+/**
+ * How much of the decoration survives as the reading gets worse.
+ *
+ * The instinct with severe weather is to make the interface shout — more rain,
+ * faster clouds, brighter lightning. That is backwards. The moment the advice
+ * matters most is the moment it must be easiest to read, so motion is pulled
+ * back rather than pushed up, and the storm is carried by the risk score, the
+ * alert and the words. The sky stays a background.
+ *
+ * `motion` scales particle counts and speeds; `flash` scales the lightning.
+ */
+const DAMPING = {
+  Low: { motion: 1, flash: 1 },
+  Moderate: { motion: 1, flash: 1 },
+  High: { motion: 0.72, flash: 0.6 },
+  Severe: { motion: 0.45, flash: 0.32 },
+}
+
+export function dampingFor(riskLevel) {
+  return DAMPING[riskLevel] ?? DAMPING.Low
+}
+
+/**
+ * How much a sky outranks another, for deciding what is "coming".
+ *
+ * Only ever used to pick between forecast hours — a quiet hour never displaces
+ * a stormy one in the reader's attention, whichever comes first.
+ */
+const SCENE_WEIGHT = { clear: 0, cloudy: 1, fog: 2, snow: 3, rain: 4, storm: 5, heat: 3 }
+
+/**
+ * The worst sky in the next few hours, when it is worse than the present one.
+ *
+ * Returns nothing when the hours ahead are no worse than now — the atmosphere
+ * only ever leans towards deterioration, because "it will be nicer later" is
+ * not something a reader needs the background to tell them.
+ */
+export function approachingScene(hours, current, lookahead = 4) {
+  if (!hours?.length || !current) return null
+  let worst = current
+  for (const hour of hours.slice(0, lookahead)) {
+    const scene = CONDITION_TO_SCENE[normalizeCondition(hour.weather_code)] ?? 'clear'
+    if ((SCENE_WEIGHT[scene] ?? 0) > (SCENE_WEIGHT[worst] ?? 0)) worst = scene
+  }
+  return worst === current ? null : worst
+}
+
 export function sceneForCondition({ weatherCode, riskLevel, hazard } = {}) {
   if (hazard === 'Extreme Heat') return 'heat'
   if (hazard === 'Lightning/Storm') return 'storm'

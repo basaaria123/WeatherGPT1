@@ -6,7 +6,7 @@ import { t } from './i18n/ui'
 import { useStore } from './store/useStore'
 import WeatherScene from './scene/WeatherScene'
 import { isNightFor } from './theme/daynight'
-import { THEMES, applyTheme, resolveTheme, sceneForCondition } from './theme/weatherTheme'
+import { THEMES, applyTheme, approachingScene, resolveTheme, sceneForCondition } from './theme/weatherTheme'
 
 import AdvisoryCard from './components/AdvisoryCard'
 import AlertsPanel from './components/AlertsPanel'
@@ -312,6 +312,14 @@ export default function App() {
     [shown?.weather_code, shownRisk?.risk_level, shownRisk?.detected_hazard],
   )
 
+  // What the next few hours hold, when they hold something worse than now. The
+  // timeline is already fetched for the strip below; nothing extra is requested
+  // to colour the sky with it.
+  const approaching = useMemo(
+    () => approachingScene(timelineData?.hours, scene),
+    [timelineData?.hours, scene],
+  )
+
   const themeKey = useMemo(
     () =>
       resolveTheme({
@@ -343,12 +351,8 @@ export default function App() {
   const viewArea = useCallback(
     (alert) => {
       setMapFocus({ latitude: alert.latitude, longitude: alert.longitude, at: Date.now() })
-      setStage('map')
-      // After the map page has mounted; the panel does not exist before it.
-      setTimeout(
-        () => document.getElementById('risk-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' }),
-        220,
-      )
+      // The risk map is on this page, so this is a scroll and not a journey.
+      document.getElementById('risk-map')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     },
     [setMapFocus],
   )
@@ -382,6 +386,8 @@ export default function App() {
         scene={scene}
         light={lightTheme}
         night={night}
+        riskLevel={shownRisk?.risk_level}
+        approaching={approaching}
         intensity={stage === 'app' || stage === 'map' ? 0.75 : 1}
       />
 
@@ -504,6 +510,22 @@ export default function App() {
 
               <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
 
+              {/* Where risk is developing across the country, on the home page
+                  and not a screen away: it is the one panel that answers a
+                  question about somewhere the reader is not, and its whole job
+                  is to hand a place back to this dashboard. Its two-step
+                  selection is what keeps it from taking the page over — a
+                  marker previews, only the call to action commits. The
+                  interactive weather map is the one that has a page of its own,
+                  behind the launcher above. */}
+              <RiskMap
+                data={mapData}
+                loading={loading.map}
+                error={errors.map}
+                onRetry={refresh}
+                onCommit={openLocalDetails}
+              />
+
               <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
 
               <ImpactGrid
@@ -556,17 +578,6 @@ export default function App() {
                 insights={timelineData?.insights}
                 loading={loading.map}
                 error={errors.map}
-              />
-
-              {/* The country risk view belongs beside the weather view rather
-                  than three screens below it: both plot the same watched
-                  locations, one as weather and one as risk. */}
-              <RiskMap
-                data={mapData}
-                loading={loading.map}
-                error={errors.map}
-                onRetry={refresh}
-                onCommit={openLocalDetails}
               />
 
               <footer className="flex justify-end pt-2">

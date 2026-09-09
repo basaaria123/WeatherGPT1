@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { CircleMarker, MapContainer, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { t } from '../i18n/ui'
+import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import RiskDetail from './map/RiskDetail'
 import { severityOf } from './ui/severity'
@@ -231,13 +231,13 @@ export default function RiskMap({ data, loading, error, onRetry, onCommit }) {
               return (
                 <span key={level} className="flex items-center gap-1 text-[11px] text-muted">
                   <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>
-                  {level}
+                  {levelLabel(language, level)}
                 </span>
               )
             })}
             {data?.errors?.length > 0 && (
               <span className="ml-auto text-[11px] text-caution">
-                {data.errors.length} location(s) unavailable
+                {t(language, 'mapPartial').replace('{n}', data.errors.length)}
               </span>
             )}
             {onRetry && (

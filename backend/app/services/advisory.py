@@ -90,6 +90,10 @@ PROFILE_HORIZON_HOURS: dict[str, int] = {
 
 # Below this, a forecast hour does not count as "rain is coming".
 RAIN_ONSET_PROB = 55
+# Below this the engine has a hazard name but not enough score to lead with it,
+# so the insight panel does not mention it — and, by the same token, is still
+# allowed to say conditions look fine.
+HAZARD_MENTION_SCORE = 31
 RAIN_ONSET_MM = 0.4
 LOW_VISIBILITY_KM = 2.0
 
@@ -559,6 +563,12 @@ def headline_insight(
     candidates: dict[str, str] = {}
     factors: list[str] = []
 
+    # Whether this reading has a hazard worth naming at all. Decided once and
+    # used twice: to offer the hazard sentence, and to withhold the reassuring
+    # ones. A line that says conditions are fine has no business appearing
+    # beside advice that says stay off the water.
+    hazard_named = risk.detected_hazard != "None" and risk.risk_score >= HAZARD_MENTION_SCORE
+
     # --- Rain: when does it start, if at all? -----------------------------
     onset = None
     for hour in window:
@@ -589,7 +599,10 @@ def headline_insight(
             else i18n.sentence("insight_wind_later", lang, wind=_r(peak_wind))
         )
         factors.append(i18n.sentence("insight_factor_wind", lang))
-    elif profile == "fisherman" and wind_now is not None:
+    elif profile == "fisherman" and wind_now is not None and not hazard_named:
+        # Only offered when nothing is flagged. "Wind is light" is perfectly
+        # true under a flood warning and reads as an all-clear beside one —
+        # the same rule the closing lines below already follow.
         candidates["wind"] = i18n.sentence("impact_fishing_calm", lang, wind=_r(wind_now))
         factors.append(i18n.sentence("insight_factor_wind", lang))
 
@@ -604,7 +617,7 @@ def headline_insight(
         factors.append(i18n.sentence("insight_factor_heat", lang))
 
     # --- Hazard, straight from the shared engine --------------------------
-    if risk.detected_hazard != "None" and risk.risk_score >= 31:
+    if hazard_named:
         candidates["hazard"] = i18n.sentence(
             "insight_hazard_active", lang,
             hazard=i18n.hazard_label(risk.detected_hazard, lang),
@@ -649,6 +662,12 @@ def headline_insight(
     return {
         "headline": chosen[0],
         "supporting": " ".join(chosen[1:3]),
+        # The situation, for a card that already names the hazard elsewhere:
+        # the highest-priority line that is *not* the hazard sentence, which is
+        # the measured thing happening or about to. Reusing the ordering above
+        # rather than re-deriving it means the advisory card and this panel can
+        # never disagree about what matters most here.
+        "situation": next((line for line in chosen if line != candidates.get("hazard")), None),
         "factors": sorted(set(factors)),
         "user_type": profile,
         "actionable": risk_engine.is_actionable(risk),
@@ -732,10 +751,24 @@ def build_advisory(
             }
         ]
 
+    # What is happening, and the numbers behind it — the two halves of "why am
+    # I being told this" that a list of actions alone cannot answer. Both are
+    # lines this response already carries: the situation from the same ordering
+    # the insight panel uses, the reason from the engine's own drivers. Nothing
+    # here is a new claim, which is why neither needs a threshold of its own.
+    situation = None
+    if bundle is not None:
+        situation = headline_insight(bundle, risk, profile, lang).get("situation")
+    drivers = i18n.driver_labels(risk.driver_details, lang)
+
     return {
         "user_type": profile,
         "hazard": hazard,
         "risk_level": risk.risk_level,
+        "situation": situation,
+        # Three is what a reader takes in at a glance; the rest stay in "why
+        # this score", which is the panel built for the full list.
+        "reason": " · ".join(drivers[:3]) or None,
         "actions": actions[:wanted],
         "disclaimer": disclaimer(lang),
         "source": "rules",

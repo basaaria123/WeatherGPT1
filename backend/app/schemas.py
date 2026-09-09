@@ -182,6 +182,11 @@ class AdvisoryOut(BaseModel):
     user_type: str = "general"
     hazard: str = "None"
     risk_level: RiskLevel = "Low"
+    # What is happening, and the measured values behind it. Both are assembled
+    # from lines the response already carries elsewhere, so the card that shows
+    # them cannot state a situation the insight panel contradicts.
+    situation: str | None = None
+    reason: str | None = None
     actions: list[AdvisoryAction] = Field(default_factory=list)
     disclaimer: str = ""
     source: str = "rules"

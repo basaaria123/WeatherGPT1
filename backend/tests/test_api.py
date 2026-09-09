@@ -133,3 +133,85 @@ def test_fixture_mode_is_labelled_everywhere(client):
     assert client.post("/chat", json={"query": "Weather in Guwahati?"}).json()["data_source"] == "fixture"
     assert client.get("/weather/timeline", params={"location": "Guwahati"}).json()["data_source"] == "fixture"
     assert client.get("/risk-map", params={"limit": 4}).json()["data_source"] == "fixture"
+
+
+# ---------------------------------------------------------------------------
+# The advisory answers three questions, not one
+# ---------------------------------------------------------------------------
+def test_advisory_states_the_situation_and_the_numbers_behind_it(client):
+    """A list of actions does not say what is happening or why it was said.
+
+    Both are assembled from lines the same response already carries — the
+    situation from the ordering the insight panel uses, the reason from the
+    engine's own drivers — so neither can contradict the panels beside it.
+    """
+    body = client.get(
+        "/weather/current", params={"location": "Guwahati", "user_type": "farmer"}
+    ).json()
+    advisory = body["advisory"]
+    assert advisory["situation"], "no situation line"
+    assert advisory["reason"], "no reason line"
+    # The reason is measured values, not a paraphrase of the advice.
+    assert any(ch.isdigit() for ch in advisory["reason"])
+    assert advisory["reason"].count("·") <= 2, "more than three drivers is a list, not a glance"
+
+
+def test_the_situation_does_not_merely_repeat_the_hazard_chip(client):
+    """The card already names the hazard and the level above this line."""
+    body = client.get(
+        "/weather/current", params={"location": "Guwahati", "user_type": "farmer"}
+    ).json()
+    situation = body["advisory"]["situation"]
+    hazard = body["advisory"]["hazard"]
+    assert hazard.lower() not in situation.lower()
+
+
+def test_the_same_weather_reads_differently_for_each_role(client):
+    """The role-switch demonstration, asserted rather than hoped for.
+
+    One location, one set of measurements, four readers: the advice must differ
+    and the risk score must not.
+    """
+    seen = {}
+    scores = set()
+    for role in ("farmer", "fisherman", "driver", "outdoor_worker"):
+        body = client.get(
+            "/weather/current", params={"location": "Guwahati", "user_type": role}
+        ).json()
+        seen[role] = body["advisory"]["actions"][0]["action"]
+        scores.add(body["risk"]["risk_score"])
+    assert len(set(seen.values())) == len(seen), seen
+    assert len(scores) == 1, "the weather changed between roles; only the reader should have"
+
+
+def test_a_calm_day_claims_no_drivers(client):
+    """No hazard means nothing to cite, and an empty `Because:` is worse than none."""
+    body = client.get(
+        "/weather/current", params={"location": "Vijayawada", "user_type": "farmer"}
+    ).json()
+    assert body["advisory"]["reason"] is None
+
+
+@pytest.mark.parametrize("place", ["Guwahati", "Chennai"])
+def test_a_reassuring_line_is_not_offered_when_a_hazard_is_named(client, place):
+    """"Wind is light" is true in a flood and reads as an all-clear beside one.
+
+    Both places are checked because the mismatch is not only a Severe problem:
+    a Moderate flood advisory that opens "wind is light" contradicts the very
+    next line telling the reader to stay off the water.
+    """
+    body = client.get(
+        "/weather/current", params={"location": place, "user_type": "fisherman"}
+    ).json()
+    assert body["risk"]["detected_hazard"] != "None"
+    situation = (body["advisory"]["situation"] or "").lower()
+    assert "light" not in situation, situation
+
+
+def test_a_calm_day_may_still_reassure(client):
+    """The rule is about contradiction, not about never saying anything is fine."""
+    body = client.get(
+        "/weather/current", params={"location": "Vijayawada", "user_type": "fisherman"}
+    ).json()
+    assert body["risk"]["risk_level"] == "Low"
+    assert body["advisory"]["situation"]

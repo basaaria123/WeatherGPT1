@@ -1,7 +1,9 @@
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { motion } from 'framer-motion'
 import { Suspense, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useReducedMotion } from '../hooks/useReducedMotion'
+import { dampingFor } from '../theme/weatherTheme'
 
 /**
  * Full-bleed animated background that reacts to the current condition.
@@ -11,6 +13,10 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
  * deliberate-looking background rather than a black box), reduced-motion skips
  * the canvas entirely, and geometry counts stay low with a clamped DPR.
  */
+
+// Long enough to be a change of weather rather than a change of screen, short
+// enough that a reader who switched location on purpose is not left waiting.
+const SKY_FADE_MS = 6000
 
 const PALETTES = {
   clear:  { top: '#0a2647', bottom: '#050d1a', cloud: '#7dd3fc', cloudOpacity: 0.1,  clouds: 5,  rain: 0 },
@@ -43,6 +49,37 @@ const NIGHT = {
 
 export function nightFor(scene) {
   return NIGHT[scene] ?? NIGHT.clear
+}
+
+/** Blend two `#rrggbb` colours. Used only for the sky, never for text. */
+function mix(from, to, amount) {
+  const parse = (hex) => [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16))
+  const [ar, ag, ab] = parse(from)
+  const [br, bg, bb] = parse(to)
+  const channel = (a, b) => Math.round(a + (b - a) * amount).toString(16).padStart(2, '0')
+  return `#${channel(ar, br)}${channel(ag, bg)}${channel(ab, bb)}`
+}
+
+/**
+ * The sky, leaning towards what is coming.
+ *
+ * A dashboard that only ever paints the present hour tells a reader nothing
+ * about the rain due at four. So when the next few hours hold something worse,
+ * the ground colour drifts a third of the way towards it — cooler and greyer
+ * ahead of the rain, darker ahead of the storm.
+ *
+ * Colour only, and deliberately: the *particles* stay keyed to what is actually
+ * falling now. Drawing rain over "partly cloudy" would be the same lie as a sun
+ * at midnight, and a lean in the palette is a mood where falling water is a
+ * claim.
+ */
+const LEAN = 0.34
+
+export function skyFor(scene, { night = false, approaching } = {}) {
+  const base = paletteFor(scene, night)
+  if (!approaching || approaching === scene) return base
+  const ahead = paletteFor(approaching, night)
+  return { ...base, top: mix(base.top, ahead.top, LEAN), bottom: mix(base.bottom, ahead.bottom, LEAN) }
 }
 
 export function paletteFor(scene, night = false) {
@@ -155,7 +192,7 @@ function Rain({ count, colour = '#7dd3fc', slant = 0.25, speed = 14 }) {
 }
 
 /** Occasional lightning: a brief ambient spike, never a rapid strobe. */
-function Lightning() {
+function Lightning({ strength = 1 }) {
   const light = useRef()
   const next = useRef(2 + Math.random() * 4)
   const flash = useRef(0)
@@ -164,11 +201,13 @@ function Lightning() {
     next.current -= delta
     if (next.current <= 0) {
       flash.current = 0.16
-      next.current = 4 + Math.random() * 7
+      // Rarer as well as dimmer when the risk is high: a severe storm gets a
+      // quieter sky, not a strobe over the advice about it.
+      next.current = (4 + Math.random() * 7) / Math.max(0.2, strength)
     }
     if (flash.current > 0) {
       flash.current -= delta
-      if (light.current) light.current.intensity = 2.4 * Math.max(0, flash.current / 0.16)
+      if (light.current) light.current.intensity = 2.4 * strength * Math.max(0, flash.current / 0.16)
     } else if (light.current) {
       light.current.intensity = 0
     }
@@ -292,9 +331,10 @@ function Moon({ strength = 1 }) {
   )
 }
 
-function SceneContents({ scene, light = false, night = false }) {
+function SceneContents({ scene, light = false, night = false, riskLevel }) {
   const palette = paletteFor(scene, night)
   const after = nightFor(scene)
+  const damp = dampingFor(riskLevel)
   // Pale clouds vanish against a bright sky, so a light theme darkens them and
   // leans on opacity instead. Counts and motion are unchanged.
   const cloudColor = light ? '#8fa8bd' : night ? '#3d5680' : palette.cloud
@@ -306,22 +346,36 @@ function SceneContents({ scene, light = false, night = false }) {
       {night && after.stars > 0 && <Stars count={after.stars} />}
       {night && after.moon > 0 && <Moon strength={after.moon} />}
       <Clouds
-        count={palette.clouds}
+        count={Math.round(palette.clouds * damp.motion)}
         color={cloudColor}
         opacity={cloudOpacity}
-        speed={scene === 'storm' ? 2.4 : 1}
+        speed={(scene === 'storm' ? 2.4 : 1) * damp.motion}
       />
       {palette.rain > 0 && scene !== 'snow' && (
-        <Rain count={palette.rain} slant={scene === 'storm' ? 0.5 : 0.2} speed={scene === 'storm' ? 20 : 13} />
+        <Rain
+          count={Math.round(palette.rain * damp.motion)}
+          slant={scene === 'storm' ? 0.5 : 0.2}
+          speed={(scene === 'storm' ? 20 : 13) * damp.motion}
+        />
       )}
-      {scene === 'snow' && <Rain count={palette.rain} colour="#e2e8f0" slant={0.06} speed={2.4} />}
-      {scene === 'storm' && <Lightning />}
+      {scene === 'snow' && (
+        <Rain count={Math.round(palette.rain * damp.motion)} colour="#e2e8f0" slant={0.06} speed={2.4} />
+      )}
+      {scene === 'storm' && <Lightning strength={damp.flash} />}
       {scene === 'heat' && <HeatHaze />}
     </>
   )
 }
 
-export default function WeatherScene({ scene = 'clear', intensity = 1, light = false, night = false, className = '' }) {
+export default function WeatherScene({
+  scene = 'clear',
+  intensity = 1,
+  light = false,
+  night = false,
+  riskLevel,
+  approaching,
+  className = '',
+}) {
   const reduced = useReducedMotion()
   const [webglFailed, setWebglFailed] = useState(false)
   const palette = paletteFor(scene, night)
@@ -329,21 +383,38 @@ export default function WeatherScene({ scene = 'clear', intensity = 1, light = f
   // On a light theme the scene's own dark palette would fight the interface,
   // so the ground comes from the theme variables and only the weather motion
   // (clouds, rain) stays scene-specific.
+  const sky = skyFor(scene, { night, approaching })
   const gradient = light
-    ? {
-        background:
-          'radial-gradient(120% 90% at 50% -10%, var(--wx-bg-deep) 0%, var(--wx-bg) 58%, var(--wx-bg) 100%)',
-      }
-    : {
-        background: `radial-gradient(120% 90% at 50% -10%, ${palette.top} 0%, ${palette.bottom} 62%, var(--wx-bg-deep) 100%)`,
-      }
+    ? 'radial-gradient(120% 90% at 50% -10%, var(--wx-bg-deep) 0%, var(--wx-bg) 58%, var(--wx-bg) 100%)'
+    : `radial-gradient(120% 90% at 50% -10%, ${sky.top} 0%, ${sky.bottom} 62%, var(--wx-bg-deep) 100%)`
+
+  // Browsers cannot interpolate one gradient into another, so a CSS transition
+  // on `background` snaps however long it is set to. Two stacked layers can
+  // cross-fade, which is what makes cloudy → rain → storm a drift the reader
+  // never catches happening rather than a cut.
+  const previous = useRef(gradient)
+  const settled = previous.current
+  if (settled !== gradient) {
+    // Held until the incoming layer has finished; the outgoing one sits under
+    // it, fully covered by the time it is swapped.
+    setTimeout(() => { previous.current = gradient }, SKY_FADE_MS)
+  }
 
   return (
     <div className={`pointer-events-none fixed inset-0 -z-10 ${className}`} aria-hidden="true">
       {/* Always painted: the canvas is an enhancement on top of this. The
-          1s cross-fade is what makes sunset and sunrise a transition rather
-          than a jump — the theme variables ease over the same window. */}
-      <div className="absolute inset-0 transition-[background] duration-1000" style={gradient} />
+          outgoing sky sits beneath the incoming one and the top layer fades in
+          over several seconds, which is what makes sunset, sunrise and an
+          approaching front all read as drift rather than as a cut. */}
+      <div className="absolute inset-0" style={{ background: settled }} />
+      <motion.div
+        key={gradient}
+        className="absolute inset-0"
+        initial={{ opacity: settled === gradient ? 1 : 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ duration: SKY_FADE_MS / 1000, ease: 'easeInOut' }}
+        style={{ background: gradient }}
+      />
 
       {/* Stars for readers who have asked not to be moved. The canvas below is
           skipped entirely for them, so without this a clear night would be a
@@ -361,7 +432,7 @@ export default function WeatherScene({ scene = 'clear', intensity = 1, light = f
             fallback={null}
             onError={() => setWebglFailed(true)}
           >
-            <SceneContents scene={scene} light={light} night={night} />
+            <SceneContents scene={scene} light={light} night={night} riskLevel={riskLevel} />
           </Canvas>
         </Suspense>
       )}
