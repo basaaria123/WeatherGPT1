@@ -46,7 +46,10 @@ function AnimatedNumber({ value, decimals = 0 }) {
   return <>{Number(display).toFixed(decimals)}</>
 }
 
-export default function CommandCenter({ data, loading, error, onRetry }) {
+// `night` is resolved once, in App, from the same response this card renders —
+// passed down rather than recomputed here so the icon, the theme and the sky
+// behind them cannot answer the question differently.
+export default function CommandCenter({ data, loading, error, onRetry, night = false }) {
   const language = useStore((s) => s.language)
   // Only used to word the compass heading — the role itself is untouched.
   const userType = useStore((s) => s.userType)
@@ -101,8 +104,23 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
           burst ends. */}
       <WeatherMicroBurst token={burst} weatherCode={current.weather_code} />
       <div className="mb-4 flex items-start justify-between gap-3">
-        <h2 className="text-[12px] font-semibold uppercase tracking-[0.14em] text-muted">
+        <h2 className="flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.14em] text-muted">
           {t(language, 'conditionsNow')}
+          {/* The night marker goes in the space the heading already had, next
+              to the label it qualifies. It says which sky the reading below was
+              taken under; it does not restate the weather, which the card's own
+              condition line already gives in the provider's own words. */}
+          {night && (
+            <span
+              data-testid="night-badge"
+              className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] border
+                         border-[rgb(var(--wx-tint)/0.14)] bg-[rgb(var(--wx-tint)/0.06)]
+                         px-1.5 py-px text-[10px] font-medium tracking-normal text-ink-soft"
+            >
+              <span aria-hidden="true">🌙</span>
+              {t(language, 'nightLabel')}
+            </span>
+          )}
         </h2>
         {risk && <SeverityPill level={risk.risk_level} score={`${risk.risk_score}/100`} />}
       </div>
@@ -121,14 +139,14 @@ export default function CommandCenter({ data, loading, error, onRetry }) {
               swapping between two unrelated pictures. */}
           <AnimatePresence mode="wait" initial={false}>
             <motion.span
-              key={current.weather_code ?? 'none'}
+              key={`${current.weather_code ?? 'none'}-${night ? 'n' : 'd'}`}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               exit={{ opacity: 0, scale: 0.9 }}
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               className="block"
             >
-              <WeatherGlyph code={current.weather_code} size={76} />
+              <WeatherGlyph code={current.weather_code} isDay={!night} size={76} />
             </motion.span>
           </AnimatePresence>
         </button>

@@ -22,8 +22,34 @@ const PALETTES = {
   heat:   { top: '#2a1a10', bottom: '#0b0a14', cloud: '#fbbf24', cloudOpacity: 0.1,  clouds: 3,  rain: 0 },
 }
 
-export function paletteFor(scene) {
-  return PALETTES[scene] ?? PALETTES.clear
+/**
+ * What each sky becomes after dark.
+ *
+ * `top`/`bottom` deepen towards indigo; `stars` and `moon` say how much of the
+ * night is actually visible through the weather. A clear night gets both, a
+ * thunderstorm gets neither — the cloud deck is the point, and a moon shining
+ * through storm cover would be a picture of weather that is not happening.
+ * Nothing here is large or bright: it is the ground the dashboard sits on.
+ */
+const NIGHT = {
+  clear:  { top: '#122a52', bottom: '#050b18', stars: 120, moon: 1 },
+  cloudy: { top: '#101f3c', bottom: '#050a16', stars: 45,  moon: 0.62 },
+  rain:   { top: '#0b1830', bottom: '#03070f', stars: 0,   moon: 0.28 },
+  storm:  { top: '#0a1224', bottom: '#02050b', stars: 0,   moon: 0 },
+  fog:    { top: '#101c2e', bottom: '#070e1a', stars: 18,  moon: 0.3 },
+  snow:   { top: '#0e2038', bottom: '#050c18', stars: 40,  moon: 0.5 },
+  heat:   { top: '#1d1424', bottom: '#080711', stars: 55,  moon: 0.5 },
+}
+
+export function nightFor(scene) {
+  return NIGHT[scene] ?? NIGHT.clear
+}
+
+export function paletteFor(scene, night = false) {
+  const base = PALETTES[scene] ?? PALETTES.clear
+  if (!night) return base
+  const after = nightFor(scene)
+  return { ...base, top: after.top, bottom: after.bottom }
 }
 
 /** Soft radial sprite texture, generated once — no external image to load. */
@@ -187,15 +213,98 @@ function HeatHaze({ count = 220 }) {
   )
 }
 
-function SceneContents({ scene, light = false }) {
-  const palette = paletteFor(scene)
+/**
+ * A star field, in two layers that breathe out of phase.
+ *
+ * Two `points` objects rather than one: twinkling per star would need a custom
+ * shader, and two slow opacity oscillations read as the same thing for two
+ * draw calls and one material write per frame. They do not move — drifting
+ * stars are a rotating sky, which is a different and much busier idea.
+ */
+function Stars({ count }) {
+  const layers = useMemo(
+    () =>
+      [0, 1].map((layer) => {
+        const size = Math.round(count / 2)
+        const array = new Float32Array(size * 3)
+        for (let i = 0; i < size; i += 1) {
+          array[i * 3] = (Math.random() - 0.5) * 40
+          // Weighted to the upper frame, where the dashboard is not, but
+          // reaching a little below the horizon line so the sky does not stop
+          // in a straight edge behind the first card.
+          array[i * 3 + 1] = -2 + Math.random() * 17
+          array[i * 3 + 2] = -14 - Math.random() * 10
+        }
+        return { array, layer }
+      }),
+    [count],
+  )
+
+  const materials = useRef([])
+  useFrame((state) => {
+    const time = state.clock.elapsedTime
+    materials.current.forEach((material, index) => {
+      // Floor kept well above zero: a star that fades out entirely reads as a
+      // rendering glitch rather than as twinkling.
+      if (material) material.opacity = 0.5 + 0.18 * Math.sin(time * 0.32 + index * Math.PI)
+    })
+  })
+
+  return (
+    <>
+      {layers.map(({ array, layer }) => (
+        <points key={layer}>
+          <bufferGeometry>
+            <bufferAttribute attach="attributes-position" args={[array, 3]} />
+          </bufferGeometry>
+          <pointsMaterial
+            ref={(material) => { materials.current[layer] = material }}
+            color="#e8f0ff"
+            size={layer === 0 ? 0.13 : 0.095}
+            transparent
+            opacity={0.5}
+            sizeAttenuation
+            depthWrite={false}
+          />
+        </points>
+      ))}
+    </>
+  )
+}
+
+/**
+ * The moon: one soft disc and one wider glow, both from the same generated
+ * texture the clouds use. No image is loaded, and `strength` is how much of it
+ * survives the weather in front of it.
+ */
+function Moon({ strength = 1 }) {
+  const disc = useCloudTexture('#eef4ff')
+  const glow = useCloudTexture('#9dc0f0')
+  return (
+    <group position={[8.5, 7.4, -13]}>
+      <sprite scale={7}>
+        <spriteMaterial map={glow} transparent opacity={0.14 * strength} depthWrite={false} blending={THREE.AdditiveBlending} />
+      </sprite>
+      <sprite scale={1.5}>
+        <spriteMaterial map={disc} transparent opacity={0.72 * strength} depthWrite={false} />
+      </sprite>
+    </group>
+  )
+}
+
+function SceneContents({ scene, light = false, night = false }) {
+  const palette = paletteFor(scene, night)
+  const after = nightFor(scene)
   // Pale clouds vanish against a bright sky, so a light theme darkens them and
   // leans on opacity instead. Counts and motion are unchanged.
-  const cloudColor = light ? '#8fa8bd' : palette.cloud
+  const cloudColor = light ? '#8fa8bd' : night ? '#3d5680' : palette.cloud
   const cloudOpacity = light ? Math.min(0.5, palette.cloudOpacity + 0.22) : palette.cloudOpacity
   return (
     <>
-      <ambientLight intensity={0.35} />
+      <ambientLight intensity={night ? 0.22 : 0.35} />
+      {/* Behind the clouds, so a cloudy night covers its own moon. */}
+      {night && after.stars > 0 && <Stars count={after.stars} />}
+      {night && after.moon > 0 && <Moon strength={after.moon} />}
       <Clouds
         count={palette.clouds}
         color={cloudColor}
@@ -212,10 +321,10 @@ function SceneContents({ scene, light = false }) {
   )
 }
 
-export default function WeatherScene({ scene = 'clear', intensity = 1, light = false, className = '' }) {
+export default function WeatherScene({ scene = 'clear', intensity = 1, light = false, night = false, className = '' }) {
   const reduced = useReducedMotion()
   const [webglFailed, setWebglFailed] = useState(false)
-  const palette = paletteFor(scene)
+  const palette = paletteFor(scene, night)
 
   // On a light theme the scene's own dark palette would fight the interface,
   // so the ground comes from the theme variables and only the weather motion
@@ -231,8 +340,15 @@ export default function WeatherScene({ scene = 'clear', intensity = 1, light = f
 
   return (
     <div className={`pointer-events-none fixed inset-0 -z-10 ${className}`} aria-hidden="true">
-      {/* Always painted: the canvas is an enhancement on top of this. */}
+      {/* Always painted: the canvas is an enhancement on top of this. The
+          1s cross-fade is what makes sunset and sunrise a transition rather
+          than a jump — the theme variables ease over the same window. */}
       <div className="absolute inset-0 transition-[background] duration-1000" style={gradient} />
+
+      {/* Stars for readers who have asked not to be moved. The canvas below is
+          skipped entirely for them, so without this a clear night would be a
+          bare gradient; the CSS paints them once and never animates. */}
+      {night && reduced && <div className="wx-still-stars absolute inset-0" />}
 
       {!reduced && !webglFailed && (
         <Suspense fallback={null}>
@@ -245,7 +361,7 @@ export default function WeatherScene({ scene = 'clear', intensity = 1, light = f
             fallback={null}
             onError={() => setWebglFailed(true)}
           >
-            <SceneContents scene={scene} light={light} />
+            <SceneContents scene={scene} light={light} night={night} />
           </Canvas>
         </Suspense>
       )}

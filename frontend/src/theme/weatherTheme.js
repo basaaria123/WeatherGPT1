@@ -232,10 +232,12 @@ export function resolveTheme({ weatherCode, isDay = true, riskLevel, hazard } = 
   if (riskLevel === 'Severe' && STORMY_HAZARDS.has(hazard)) return 'storm'
 
   const byCondition = CONDITION_TO_THEME[condition] ?? 'base'
-  // Night only reclaims the calm themes; rain at night still looks like rain.
-  if (isDay === false && (byCondition === 'clear' || byCondition === 'cloudy' || byCondition === 'base')) {
-    return 'night'
-  }
+  // Night reclaims every theme that is painted light. Rain and storm are dark
+  // already and keep their own character; clear, cloudy and fog are bright by
+  // day, and a bright interface at two in the morning is the same mismatch as a
+  // sun over "clear night" — fog was the one that slipped through.
+  if (isDay === false && THEMES[byCondition]?.scheme === 'light') return 'night'
+  if (isDay === false && byCondition === 'base') return 'night'
   return byCondition
 }
 

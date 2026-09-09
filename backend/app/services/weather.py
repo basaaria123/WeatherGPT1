@@ -524,6 +524,12 @@ def _local_now(location: Location) -> datetime:
     return datetime.now(tz).replace(tzinfo=None, minute=0, second=0, microsecond=0)
 
 
+# The fixture's solar day, in minutes past midnight. Matches the sunrise and
+# sunset it already writes into its daily block, so the two cannot disagree.
+_FIXTURE_SUNRISE = 5 * 60 + 52
+_FIXTURE_SUNSET = 18 * 60 + 24
+
+
 def _fixture_bundle(location: Location) -> WeatherBundle:
     """Deterministic synthetic weather. Never reachable in live mode."""
     scenario = _scenario_for(location)
@@ -594,7 +600,12 @@ def _fixture_bundle(location: Location) -> WeatherBundle:
         "visibility_km": first["visibility_km"],
         "weather_code": spec["code"],
         "condition": wmo.describe(spec["code"]),
-        "is_day": True,
+        # Derived from this fixture's own solar bounds and its own clock, not
+        # pinned true: a fixture that is permanently daytime cannot show the
+        # night interface, and "always day" is a claim about the world.
+        "is_day": _FIXTURE_SUNRISE <= (now.hour * 60 + now.minute) < _FIXTURE_SUNSET,
+        "sunrise": f"{now.date().isoformat()}T05:52",
+        "sunset": f"{now.date().isoformat()}T18:24",
         "observed_at": first["time"],
     }
 

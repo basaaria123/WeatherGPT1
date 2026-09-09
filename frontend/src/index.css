@@ -439,3 +439,26 @@
     height: 7px;
   }
 }
+
+/* Reduced-motion night sky.
+   The WebGL scene is skipped entirely for reduced-motion readers, which would
+   leave them a plain gradient on a clear night while everyone else gets stars.
+   These are the same stars, painted once and never animated: fixed radial
+   gradients, no elements, no timers, no asset. Applied only under the night
+   theme, and only where the canvas is not running. */
+@media (prefers-reduced-motion: reduce) {
+  [data-weather-theme='night'] .wx-still-stars {
+    background-image:
+      radial-gradient(1.4px 1.4px at 12% 14%, rgb(232 240 255 / 0.55), transparent),
+      radial-gradient(1.2px 1.2px at 27% 8%, rgb(232 240 255 / 0.40), transparent),
+      radial-gradient(1.6px 1.6px at 41% 19%, rgb(232 240 255 / 0.50), transparent),
+      radial-gradient(1.1px 1.1px at 58% 6%, rgb(232 240 255 / 0.38), transparent),
+      radial-gradient(1.5px 1.5px at 69% 22%, rgb(232 240 255 / 0.48), transparent),
+      radial-gradient(1.2px 1.2px at 81% 11%, rgb(232 240 255 / 0.42), transparent),
+      radial-gradient(1.3px 1.3px at 91% 26%, rgb(232 240 255 / 0.36), transparent),
+      radial-gradient(1.1px 1.1px at 34% 31%, rgb(232 240 255 / 0.30), transparent),
+      radial-gradient(1.4px 1.4px at 6% 30%, rgb(232 240 255 / 0.34), transparent),
+      /* One moon, in the corner the canvas puts it in. */
+      radial-gradient(120px 120px at 84% 16%, rgb(157 192 240 / 0.10), transparent 70%);
+  }
+}

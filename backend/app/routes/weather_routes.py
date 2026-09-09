@@ -139,6 +139,11 @@ def current_weather(
         current=CurrentWeatherOut(**{
             **{k: v for k, v in (bundle.current or {}).items() if k in CurrentWeatherOut.model_fields},
             "condition": i18n.condition_label((bundle.current or {}).get("weather_code"), language),
+            # Lifted from the daily block of the same bundle rather than fetched
+            # again. `is_day` is only true at the moment of the reading; these
+            # two are what let the client tell day from night an hour later.
+            "sunrise": (bundle.daily or [{}])[0].get("sunrise"),
+            "sunset": (bundle.daily or [{}])[0].get("sunset"),
         }),
         risk=risk,
         impacts=advisory.impact_cards(bundle, risk, language, user_type),

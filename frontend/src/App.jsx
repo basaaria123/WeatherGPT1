@@ -5,6 +5,7 @@ import { useAlertsSocket } from './hooks/useAlertsSocket'
 import { t } from './i18n/ui'
 import { useStore } from './store/useStore'
 import WeatherScene from './scene/WeatherScene'
+import { isNightFor } from './theme/daynight'
 import { THEMES, applyTheme, resolveTheme, sceneForCondition } from './theme/weatherTheme'
 
 import AdvisoryCard from './components/AdvisoryCard'
@@ -274,6 +275,33 @@ export default function App() {
   const shown = currentData?.current
   const shownRisk = currentData?.risk
 
+  /**
+   * Night at the *selected location*, re-asked every minute.
+   *
+   * The reading carries `is_day`, but that is only true of the instant it was
+   * taken: a dashboard opened at five in the afternoon would still be claiming
+   * daylight at nine at night. The response also carries the day's sunrise and
+   * sunset and the place's timezone, so the answer can be recomputed locally,
+   * for free, for as long as the tab is open — no second fetch, no polling, and
+   * no reliance on the reader's own clock or region.
+   *
+   * A minute is the right cadence: it is the resolution the solar bounds are
+   * given in, and it costs one comparison.
+   */
+  const [minuteTick, setMinuteTick] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => setMinuteTick((n) => n + 1), 60_000)
+    return () => clearInterval(timer)
+  }, [])
+
+  const night = useMemo(
+    () => isNightFor(currentData),
+    // `minuteTick` is not decoration: without it this memo would hold the
+    // answer it computed at load until the next fetch, which is exactly what
+    // "midnight flips it back to daytime" looks like from the inside.
+    [currentData, minuteTick],
+  )
+
   const scene = useMemo(
     () =>
       sceneForCondition({
@@ -288,11 +316,11 @@ export default function App() {
     () =>
       resolveTheme({
         weatherCode: shown?.weather_code,
-        isDay: shown?.is_day,
+        isDay: !night,
         riskLevel: shownRisk?.risk_level,
         hazard: shownRisk?.detected_hazard,
       }),
-    [shown?.weather_code, shown?.is_day, shownRisk?.risk_level, shownRisk?.detected_hazard],
+    [shown?.weather_code, night, shownRisk?.risk_level, shownRisk?.detected_hazard],
   )
 
   useEffect(() => {
@@ -350,7 +378,12 @@ export default function App() {
 
   return (
     <>
-      <WeatherScene scene={scene} light={lightTheme} intensity={stage === 'app' || stage === 'map' ? 0.75 : 1} />
+      <WeatherScene
+        scene={scene}
+        light={lightTheme}
+        night={night}
+        intensity={stage === 'app' || stage === 'map' ? 0.75 : 1}
+      />
 
       {/* Greets the dashboard with the sky it just read. Reads the same payload
           the cards render, so it can never introduce a condition they disagree
@@ -428,6 +461,7 @@ export default function App() {
                 loading={loading.current}
                 error={errors.current}
                 onRetry={refresh}
+                night={night}
               />
 
               {/* The map has a page of its own — see the `map` stage below.

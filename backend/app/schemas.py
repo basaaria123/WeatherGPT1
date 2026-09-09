@@ -122,6 +122,12 @@ class CurrentWeatherOut(BaseModel):
     weather_code: int | None = None
     condition: str | None = None
     is_day: bool | None = None
+    # Today's solar bounds at this location, as the provider gave them. They are
+    # already in the bundle the risk was scored from, so carrying them costs no
+    # extra request — and they are what lets the interface stay in its night
+    # state all night instead of only until the reading goes stale.
+    sunrise: str | None = None
+    sunset: str | None = None
     observed_at: str | None = None
 
 

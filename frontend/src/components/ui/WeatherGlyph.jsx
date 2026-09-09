@@ -1,3 +1,4 @@
+import { useId } from 'react'
 import { motion } from 'framer-motion'
 import { useReducedMotion } from '../../hooks/useReducedMotion'
 
@@ -7,6 +8,13 @@ import { useReducedMotion } from '../../hooks/useReducedMotion'
  * Drawn as inline SVG rather than an emoji or a cartoon set: it inherits the
  * palette, stays crisp at any size, and its motion can be switched off cleanly
  * for reduced-motion users.
+ *
+ * The sky it draws depends on the condition *and* on whether it is night where
+ * the reading was taken. Without that second input this drew a rayed sun over
+ * "mainly clear skies" at two in the morning — the condition was right and the
+ * picture of it was not. Only the light source changes: rain at night is still
+ * rain, and the cloud, rain, snow and fog marks are unchanged, taking their
+ * darker night colours from the theme variables they already paint with.
  */
 const SCENE_BY_CODE = (code) => {
   if (code === null || code === undefined) return 'clear'
@@ -24,9 +32,33 @@ export function sceneForCode(code) {
   return SCENE_BY_CODE(code)
 }
 
-export default function WeatherGlyph({ code, size = 72, className = '' }) {
+/**
+ * The moon that stands in for the sun after dark.
+ *
+ * A crescent cut from one disc by another, so it reads as a moon at 26px in a
+ * forecast row as well as at 76px on the card. It does not rotate the way the
+ * sun does — a spinning moon is a detail nobody asked for.
+ */
+function Moon({ id, cx = 32, cy = 30, r = 11, opacity = 0.95 }) {
+  return (
+    <>
+      <mask id={id}>
+        <circle cx={cx} cy={cy} r={r} fill="#fff" />
+        <circle cx={cx + r * 0.62} cy={cy - r * 0.42} r={r * 0.92} fill="#000" />
+      </mask>
+      <circle cx={cx} cy={cy} r={r} fill="var(--color-accent)" opacity={opacity} mask={`url(#${id})`} />
+    </>
+  )
+}
+
+export default function WeatherGlyph({ code, isDay = true, size = 72, className = '' }) {
   const reduced = useReducedMotion()
   const scene = SCENE_BY_CODE(code)
+  const uid = useId()
+  // Several glyphs share a page, so the mask needs an id of its own or they all
+  // render through the first one's.
+  const moonId = `wx-moon-${uid.replace(/[^a-zA-Z0-9]/g, '')}`
+  const night = isDay === false
   const drift = reduced ? {} : { animate: { x: [0, 3, 0] }, transition: { duration: 7, repeat: Infinity, ease: 'easeInOut' } }
 
   return (
@@ -37,9 +69,30 @@ export default function WeatherGlyph({ code, size = 72, className = '' }) {
       fill="none"
       className={className}
       role="img"
-      aria-label={`Weather condition: ${scene}`}
+      aria-label={`Weather condition: ${scene}${night ? ' at night' : ''}`}
     >
-      {(scene === 'clear' || scene === 'fog') && (
+      {(scene === 'clear' || scene === 'fog') && night && (
+        <g>
+          <Moon id={moonId} />
+          {/* Three, not a constellation: at 26px any more is noise. */}
+          {[[16, 16, 1.5], [48, 20, 1.2], [43, 11, 1]].map(([x, y, r], index) => (
+            <motion.circle
+              key={x}
+              cx={x}
+              cy={y}
+              r={r}
+              fill="var(--color-ink)"
+              opacity="0.7"
+              animate={reduced ? undefined : { opacity: [0.35, 0.8, 0.35] }}
+              transition={
+                reduced ? undefined : { duration: 4 + index, repeat: Infinity, ease: 'easeInOut' }
+              }
+            />
+          ))}
+        </g>
+      )}
+
+      {(scene === 'clear' || scene === 'fog') && !night && (
         <motion.g
           animate={reduced ? undefined : { rotate: 360 }}
           transition={reduced ? undefined : { duration: 90, repeat: Infinity, ease: 'linear' }}
@@ -61,6 +114,12 @@ export default function WeatherGlyph({ code, size = 72, className = '' }) {
           ))}
         </motion.g>
       )}
+
+      {/* Partly cloudy and cloudy nights get a moon behind the cloud, the way
+          the daytime versions get none — the cloud is what is being drawn, and
+          the moon only says which sky it is in. Rain, storm and snow keep their
+          covered sky. */}
+      {scene === 'cloudy' && night && <Moon id={moonId} cx={41} cy={20} r={7.5} opacity={0.8} />}
 
       {scene !== 'clear' && (
         <motion.g {...drift}>
