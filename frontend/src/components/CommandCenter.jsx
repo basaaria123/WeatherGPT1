@@ -6,6 +6,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 import { LoadingBlock, Metric, SeverityPill } from './ui/Primitives'
+import SpokenAdvice from './audio/SpokenAdvice'
 import WeatherGlyph from './ui/WeatherGlyph'
 import WeatherCompass from './WeatherCompass'
 import WeatherMicroBurst from './WeatherMicroBurst'
@@ -166,6 +167,16 @@ export default function CommandCenter({ data, loading, error, onRetry, night = f
             {location?.admin1 && location.admin1 !== location.name ? `, ${location.admin1}` : ''}
             {updated ? ` · ${t(language, 'updated')} ${updated}` : ''}
           </p>
+
+          {/* What is happening, in a sentence. Sits under the reading it
+              summarises, and says none of the numbers beside it — a listener
+              cannot hold "humidity 82%" and would not act on it. */}
+          <SpokenAdvice
+            location={location?.name}
+            userType={userType}
+            topic="conditions"
+            compact
+          />
         </div>
 
         {risk && <RiskExplainer risk={risk} language={language} />}

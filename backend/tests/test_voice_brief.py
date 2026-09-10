@@ -98,13 +98,18 @@ def test_severity_changes_the_register_not_only_the_words():
     assert peak not in severe
 
 
-def test_severe_gives_one_more_step_and_no_padding():
-    severe = voice_brief.compose(location="Puri", risk=risk("Severe"), advisory=ADVISORY)
-    moderate = voice_brief.compose(location="Puri", risk=risk("Moderate"), advisory=ADVISORY)
-    assert "Keep documents and medicines in a waterproof bag" in severe
-    assert "Keep documents and medicines in a waterproof bag" not in moderate
-    # Four actions exist; a listener is never given all of them.
-    assert "Do not walk through moving flood water" not in severe
+@pytest.mark.parametrize("level", ["Low", "Moderate", "High", "Severe"])
+def test_the_voice_gives_one_action_however_bad_it_gets(level):
+    """The screen ranks three to five; the voice speaks the one that matters.
+
+    A reader can scan a list. A listener cannot — by the fourth item the first
+    is gone — so a spoken list is the thing people stop listening to. The extra
+    steps stay on the card, which is where a list belongs.
+    """
+    spoken = voice_brief.compose(location="Puri", risk=risk(level), advisory=ADVISORY)
+    assert ADVISORY["actions"][0]["action"].rstrip(".") in spoken
+    for extra in ADVISORY["actions"][1:]:
+        assert extra["action"].rstrip(".") not in spoken, (level, spoken)
 
 
 def test_a_window_is_only_claimed_when_the_forecast_shows_one():

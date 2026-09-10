@@ -37,7 +37,7 @@ import { Panel } from './ui/Primitives'
  * It says what the actions do not: an action is a next step, this is the
  * consequence that makes the step worth taking.
  */
-function WeatherImpact({ impacts, language }) {
+function WeatherImpact({ impacts, language, location, userType }) {
   if (!impacts?.length) return null
   const [mine, ...others] = impacts
   const tone = STATUS[mine.status] ?? STATUS.Safe
@@ -67,6 +67,10 @@ function WeatherImpact({ impacts, language }) {
       </div>
 
       <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">{mine.detail}</p>
+
+      {/* Why it matters, said aloud — a different question from the actions
+          above it, so a different sentence. */}
+      <SpokenAdvice location={location} userType={userType} topic="impact" compact />
 
       {/* Everyone else's, small enough that they cannot compete with it. */}
       {others.length > 0 && (
@@ -188,7 +192,12 @@ export default function AdvisoryCard({ advisory, impacts, onCompare }) {
         </p>
       )}
 
-      <WeatherImpact impacts={impacts} language={language} />
+      <WeatherImpact
+        impacts={impacts}
+        language={language}
+        location={location?.name}
+        userType={userType}
+      />
 
       {/* The same actions, said out loud. Sits with the advice rather than in
           a toolbar somewhere: hearing it is one of the ways to read it. */}

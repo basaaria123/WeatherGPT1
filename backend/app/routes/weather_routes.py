@@ -223,8 +223,23 @@ def spoken_advice(
     longitude: float | None = None,
     language: str = "en",
     user_type: str | None = Query(None, description="Whose advice is being read out"),
+    topic: str = Query(
+        "advice",
+        pattern="^(advice|conditions|impact)$",
+        description="Which of the dashboard's three questions to answer aloud",
+    ),
 ) -> SpokenAdviceResponse:
-    """The "what should you do now" advice, written and rendered to be heard.
+    """One of three short scripts, written and rendered to be heard.
+
+    The dashboard asks three questions and this answers whichever was pressed:
+
+        conditions   what is happening
+        advice       what should I do
+        impact       why it matters to me
+
+    Three separate scripts rather than one, because a listener who presses
+    three buttons and hears the same paragraph three times has learned that the
+    buttons are decoration.
 
     Deliberately a request of its own rather than a field on the dashboard
     response: synthesis costs a network round trip to the voice provider, and
@@ -248,32 +263,58 @@ def spoken_advice(
     except Exception:  # noqa: BLE001 - an alert-store hiccup must not silence the advice
         official = 0
 
-    spoken = voice_brief.compose_parts(
-        location=bundle.location.name,
-        risk=risk,
-        advisory=advisory.build_advisory(risk, user_type, lang, bundle=bundle),
-        # Six hours is as far ahead as "act now" advice can usefully point.
-        hours=risk_engine.timeline(bundle, hours=6),
-        alert_count=official,
-        lang=lang,
-    )
+    # Six hours is as far ahead as "act now" advice can usefully point.
+    hours = risk_engine.timeline(bundle, hours=6)
+    spoken = {"framing": "", "steps": ""}
+
+    if topic == "conditions":
+        spoken["framing"] = voice_brief.conditions_brief(
+            location=bundle.location.name, current=bundle.current or {}, hours=hours, lang=lang
+        )
+    elif topic == "impact":
+        spoken["framing"] = voice_brief.impact_brief(
+            impacts=advisory.impact_cards(bundle, risk, lang, user_type), lang=lang
+        )
+    else:
+        spoken = voice_brief.compose_parts(
+            location=bundle.location.name,
+            risk=risk,
+            advisory=advisory.build_advisory(risk, user_type, lang, bundle=bundle),
+            hours=hours,
+            alert_count=official,
+            lang=lang,
+        )
+
     text = " ".join(x for x in (spoken["framing"], spoken["steps"]) if x)
     if not text:
-        raise HTTPException(status_code=404, detail="There is no advice to read aloud for this place yet.")
+        raise HTTPException(
+            status_code=404, detail="There is nothing to read aloud for this place yet."
+        )
 
     # Made easier to listen to, never re-decided. The model may only rephrase
     # what the rules already produced, and anything it returns that grew or
     # that carries a figure the advice did not is discarded in favour of the
     # text above. This endpoint is only ever reached by a reader pressing play,
     # which is also what keeps it off the dashboard's render path.
-    framing = voice_brief.polish(
-        spoken["framing"],
-        lang=lang,
-        user_type=profile,
-        location=bundle.location.name,
-        risk_level=risk.risk_level,
-    )
-    text = " ".join(x for x in (framing, spoken["steps"]) if x)
+    # Only the advice framing is ever handed to a model, and only because the
+    # instructions it belongs to are held back separately (see `voice_brief`).
+    #
+    # The other two topics have no such half to protect — their whole script is
+    # the message — and the model does not treat that as a description. Asked to
+    # smooth "Right now in Guwahati it is 24°C with very heavy rain showers", it
+    # returned "Head ashore immediately and secure your boat, as heavy rain
+    # showers are starting now": an instruction, in the panel whose entire job
+    # is to say what is happening rather than what to do. So they go out as
+    # composed — already short, already simple, already translated.
+    if topic == "advice":
+        spoken["framing"] = voice_brief.polish(
+            spoken["framing"],
+            lang=lang,
+            user_type=profile,
+            location=bundle.location.name,
+            risk_level=risk.risk_level,
+        )
+    text = " ".join(x for x in (spoken["framing"], spoken["steps"]) if x)
 
     audio = mime = note = provider = None
     tts_error = None

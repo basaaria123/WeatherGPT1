@@ -118,6 +118,8 @@ const STRINGS = {
     askHint: 'Ask in any supported language, or tap the microphone.',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'Hear this advice',
+    listen: 'Listen',
+    listened: 'Played',
     preparingAudio: 'Preparing audio…',
     audioPlaying: 'Playing…',
     audioPaused: 'Resume',
@@ -409,6 +411,8 @@ const STRINGS = {
     askHint: 'किसी भी समर्थित भाषा में पूछें, या माइक दबाएँ।',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'यह सलाह सुनें',
+    listen: 'सुनें',
+    listened: 'सुन लिया',
     preparingAudio: 'ऑडियो तैयार हो रहा है…',
     audioPlaying: 'चल रहा है…',
     audioPaused: 'जारी रखें',
@@ -700,6 +704,8 @@ const STRINGS = {
     askHint: 'మద్దతు ఉన్న ఏ భాషలోనైనా అడగండి, లేదా మైక్ నొక్కండి.',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'ఈ సలహా వినండి',
+    listen: 'వినండి',
+    listened: 'విన్నారు',
     preparingAudio: 'ఆడియో సిద్ధమవుతోంది…',
     audioPlaying: 'వినిపిస్తోంది…',
     audioPaused: 'కొనసాగించు',
@@ -991,6 +997,8 @@ const STRINGS = {
     askHint: 'সমর্থিত যেকোনো ভাষায় জিজ্ঞাসা করুন, বা মাইকে চাপ দিন।',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'এই পরামর্শ শুনুন',
+    listen: 'শুনুন',
+    listened: 'শোনা হয়েছে',
     preparingAudio: 'অডিও তৈরি হচ্ছে…',
     audioPlaying: 'বাজছে…',
     audioPaused: 'আবার চালান',
@@ -1282,6 +1290,8 @@ const STRINGS = {
     askHint: 'कोणत्याही समर्थित भाषेत विचारा, किंवा माइक दाबा.',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'हा सल्ला ऐका',
+    listen: 'ऐका',
+    listened: 'ऐकले',
     preparingAudio: 'ऑडिओ तयार होत आहे…',
     audioPlaying: 'सुरू आहे…',
     audioPaused: 'पुढे सुरू करा',
@@ -1573,6 +1583,8 @@ const STRINGS = {
     askHint: 'সমৰ্থিত যিকোনো ভাষাত সোধক, বা মাইক টিপক।',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'এই পৰামৰ্শ শুনক',
+    listen: 'শুনক',
+    listened: 'শুনা হ’ল',
     preparingAudio: 'অডিঅো প্ৰস্তুত হৈ আছে…',
     audioPlaying: 'বাজি আছে…',
     audioPaused: 'আকৌ আৰম্ভ কৰক',
@@ -1863,6 +1875,8 @@ const STRINGS = {
     askHint: 'ஆதரிக்கப்படும் எந்த மொழியிலும் கேளுங்கள், அல்லது ஒலிவாங்கியைத் தட்டுங்கள்.',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'இந்த ஆலோசனையைக் கேளுங்கள்',
+    listen: 'கேளுங்கள்',
+    listened: 'கேட்டாயிற்று',
     preparingAudio: 'ஒலி தயாராகிறது…',
     audioPlaying: 'ஒலிக்கிறது…',
     audioPaused: 'தொடரவும்',
@@ -2153,6 +2167,8 @@ const STRINGS = {
     askHint: 'ಬೆಂಬಲಿತ ಯಾವುದೇ ಭಾಷೆಯಲ್ಲಿ ಕೇಳಿ, ಅಥವಾ ಮೈಕ್ ಒತ್ತಿ.',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'ಈ ಸಲಹೆಯನ್ನು ಕೇಳಿ',
+    listen: 'ಕೇಳಿ',
+    listened: 'ಕೇಳಲಾಯಿತು',
     preparingAudio: 'ಆಡಿಯೋ ಸಿದ್ಧವಾಗುತ್ತಿದೆ…',
     audioPlaying: 'ಪ್ಲೇ ಆಗುತ್ತಿದೆ…',
     audioPaused: 'ಮುಂದುವರಿಸಿ',
@@ -2443,6 +2459,8 @@ const STRINGS = {
     askHint: 'പിന്തുണയുള്ള ഏതു ഭാഷയിലും ചോദിക്കുക, അല്ലെങ്കിൽ മൈക്ക് അമർത്തുക.',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'ഈ ഉപദേശം കേൾക്കുക',
+    listen: 'കേൾക്കുക',
+    listened: 'കേട്ടു',
     preparingAudio: 'ഓഡിയോ തയ്യാറാകുന്നു…',
     audioPlaying: 'പ്ലേ ചെയ്യുന്നു…',
     audioPaused: 'തുടരുക',
@@ -2733,6 +2751,8 @@ const STRINGS = {
     askHint: 'સમર્થિત કોઈ પણ ભાષામાં પૂછો, અથવા માઇક દબાવો.',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'આ સલાહ સાંભળો',
+    listen: 'સાંભળો',
+    listened: 'સાંભળ્યું',
     preparingAudio: 'ઑડિયો તૈયાર થઈ રહ્યો છે…',
     audioPlaying: 'વાગી રહ્યું છે…',
     audioPaused: 'ચાલુ રાખો',
@@ -3023,6 +3043,8 @@ const STRINGS = {
     askHint: 'ਕਿਸੇ ਵੀ ਸਮਰਥਿਤ ਭਾਸ਼ਾ ਵਿੱਚ ਪੁੱਛੋ, ਜਾਂ ਮਾਈਕ ਦਬਾਓ।',
     // --- Voice and audio -------------------------------------------------
     hearAdvice: 'ਇਹ ਸਲਾਹ ਸੁਣੋ',
+    listen: 'ਸੁਣੋ',
+    listened: 'ਸੁਣ ਲਿਆ',
     preparingAudio: 'ਆਡੀਓ ਤਿਆਰ ਹੋ ਰਿਹਾ ਹੈ…',
     audioPlaying: 'ਚੱਲ ਰਿਹਾ ਹੈ…',
     audioPaused: 'ਜਾਰੀ ਰੱਖੋ',

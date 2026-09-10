@@ -1,11 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../api/client'
+import { claimPlayback, releasePlayback } from '../../audio/session'
 import { browserSpeechSupported, puterSpeak, utteranceFor } from '../../audio/speech'
 import { t } from '../../i18n/ui'
 import { useStore } from '../../store/useStore'
 
 /**
- * "Hear this advice" — one control, five states, no surprises.
+ * A Listen control — one of three, each answering a different question.
+ *
+ * `topic` decides which script the server writes and which label the button
+ * carries. The machinery below is identical for all three, which is the point:
+ * a reader learns the control once.
  *
  *   idle       🔊 Hear this advice
  *   loading    the script is being written and rendered
@@ -40,9 +45,16 @@ import { useStore } from '../../store/useStore'
 
 const PROGRESS_STATES = new Set(['playing', 'paused'])
 
-export default function SpokenAdvice({ location, userType }) {
+const LABELS = {
+  advice: { idle: 'hearAdvice', done: 'adviceHeard' },
+  conditions: { idle: 'listen', done: 'listened' },
+  impact: { idle: 'listen', done: 'listened' },
+}
+
+export default function SpokenAdvice({ location, userType, topic = 'advice', compact = false }) {
   const language = useStore((s) => s.language)
   const spokenAdvice = useStore((s) => s.spokenAdvice)
+  const labels = LABELS[topic] ?? LABELS.advice
 
   const [state, setState] = useState('idle')
   const [progress, setProgress] = useState(0)
@@ -51,11 +63,28 @@ export default function SpokenAdvice({ location, userType }) {
   const audioRef = useRef(null)
   const scriptRef = useRef(null)
 
+  /**
+   * What another control calls when it takes the slot.
+   *
+   * Silencing the audio is not enough on its own: a button still reading
+   * "Playing…" beside one that actually is leaves the reader looking for a
+   * second voice that is not there. Whoever loses the slot goes back to idle.
+   */
+  const surrender = useCallback(() => {
+    audioRef.current?.pause()
+    audioRef.current = null
+    if (browserSpeechSupported()) window.speechSynthesis.cancel()
+    setState('idle')
+    setProgress(0)
+  }, [])
+
   const stop = useCallback(() => {
     audioRef.current?.pause()
     audioRef.current = null
     if (browserSpeechSupported()) window.speechSynthesis.cancel()
-  }, [])
+    releasePlayback(surrender)
+  }, [surrender])
+
 
   // Leaving the page, or moving to another place or another reader, must not
   // leave a voice talking about the last one.
@@ -65,7 +94,7 @@ export default function SpokenAdvice({ location, userType }) {
     setNote(null)
     scriptRef.current = null
     return stop
-  }, [location, userType, language, stop])
+  }, [location, userType, language, topic, stop])
 
   useEffect(() => stop, [stop])
 
@@ -107,13 +136,15 @@ export default function SpokenAdvice({ location, userType }) {
   )
 
   const start = useCallback(async () => {
-    // "Try again" after a half-started attempt must not leave two voices going.
+    // "Try again" after a half-started attempt must not leave two voices going,
+    // and neither must a press on one of the other two controls.
     stop()
+    claimPlayback(surrender)
     setState('loading')
     setProgress(0)
     setNote(null)
     try {
-      const data = await api.spokenAdvice({ location, user_type: userType, language })
+      const data = await api.spokenAdvice({ location, user_type: userType, language, topic })
       scriptRef.current = data.text
       setNote(data.voice_note ?? null)
 
@@ -137,7 +168,7 @@ export default function SpokenAdvice({ location, userType }) {
     } catch {
       setState('error')
     }
-  }, [location, userType, language, playServerAudio, playElement, speakLocally, stop])
+  }, [location, userType, language, topic, playServerAudio, playElement, speakLocally, stop, surrender])
 
   const pause = useCallback(() => {
     if (audioRef.current) audioRef.current.pause()
@@ -173,20 +204,22 @@ export default function SpokenAdvice({ location, userType }) {
   if (!spokenAdvice) return null
 
   const label = {
-    idle: t(language, 'hearAdvice'),
+    idle: t(language, labels.idle),
     loading: t(language, 'preparingAudio'),
     playing: t(language, 'audioPlaying'),
     paused: t(language, 'audioPaused'),
-    completed: t(language, 'adviceHeard'),
+    completed: t(language, labels.done),
     error: t(language, 'audioFailed'),
   }[state]
 
   return (
-    <div className="mt-3 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2.5">
+    <div className={compact ? 'mt-2' : 'mt-3 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2.5'}>
       <div className="flex flex-wrap items-center gap-2">
         <PrimaryControl
           state={state}
           label={label}
+          topic={topic}
+          compact={compact}
           onStart={start}
           onResume={resume}
           onReplay={replay}
@@ -229,7 +262,7 @@ export default function SpokenAdvice({ location, userType }) {
   )
 }
 
-function PrimaryControl({ state, label, onStart, onResume, onReplay }) {
+function PrimaryControl({ state, label, topic, compact, onStart, onResume, onReplay }) {
   const onClick = { idle: onStart, paused: onResume, completed: onReplay, error: onStart }[state]
   const icon = { idle: '🔊', loading: '🔊', playing: '🔊', paused: '▶', completed: '✓', error: '⚠' }[state]
   const busy = state === 'loading' || state === 'playing'
@@ -237,13 +270,13 @@ function PrimaryControl({ state, label, onStart, onResume, onReplay }) {
   return (
     <button
       type="button"
-      data-testid="hear-advice"
+      data-testid={`listen-${topic}`}
       data-audio-state={state}
       onClick={onClick}
       disabled={busy}
       aria-label={label}
-      className={`flex items-center gap-1.5 rounded-[var(--radius-pill)] border px-3 py-1.5 text-[12px]
-                  font-medium transition disabled:cursor-default ${
+      className={`flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-medium transition
+                  disabled:cursor-default ${compact ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-[12px]'} ${
         state === 'error'
           ? 'border-danger/45 bg-danger/10 text-danger'
           : state === 'completed'

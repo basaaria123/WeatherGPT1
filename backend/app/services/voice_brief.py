@@ -36,9 +36,14 @@ from . import i18n, language as language_service, llm
 
 log = logging.getLogger("weathergpt.voice_brief")
 
-# How many actions a listener is given before the list stops being a list.
-# Severe gets one more because each of its steps is shorter.
-ACTIONS_SPOKEN = {"Low": 2, "Moderate": 2, "High": 2, "Severe": 3}
+# One action, at every level.
+#
+# The screen lists three to five, ranked, and a reader can scan them. A
+# listener cannot: by the time the fourth arrives the first is gone, and a
+# spoken list is the thing people stop listening to. So the voice gives the
+# one that matters and leaves the rest on the card, which is where a list
+# belongs.
+ACTIONS_SPOKEN = {"Low": 1, "Moderate": 1, "High": 1, "Severe": 1}
 
 URGENT_LEVELS = ("High", "Severe")
 
@@ -206,3 +211,89 @@ def polish(
         log.warning("voice framing discarded: introduced a figure the advice did not contain")
         return framing
     return spoken
+
+
+# --- The other two things worth hearing -------------------------------------
+# Three buttons, three questions, three answers that must not be the same
+# sentence in different clothes:
+#
+#   conditions   what is happening
+#   advice       what I should do          (compose_parts, above)
+#   impact       why it matters to me
+#
+# Both of the briefs below are assembled from sentences the corpus already
+# carries, so they are translated everywhere the app is and neither invents a
+# reading. They are also deliberately short: a spoken summary that runs past
+# two sentences has stopped being a summary.
+
+
+def conditions_brief(*, location: str, current: dict[str, Any], hours: list[dict[str, Any]] | None = None,
+                     lang: str = "en") -> str:
+    """What the sky is doing, and what it is about to do.
+
+    Temperature and condition, then the one near-term change worth knowing.
+    Everything else the card shows — humidity, pressure, gust direction — is a
+    number a listener cannot hold and would not act on, so it stays on the card.
+    """
+    lang = i18n.normalise_lang(lang)
+    if not current:
+        return ""
+
+    temp = current.get("temperature_c")
+    parts: list[str] = []
+    if temp is not None:
+        parts.append(
+            i18n.sentence(
+                "now", lang,
+                loc=location,
+                temp=int(round(float(temp))),
+                cond=i18n.condition_label(current.get("weather_code"), lang),
+            )
+        )
+
+    # The near-term change, from the same forecast hours the timeline draws.
+    # Only when it is actually ahead of the listener: rain that started an hour
+    # ago is not news, and the first line already said it is raining.
+    onset = _rain_onset(hours or [])
+    if onset:
+        parts.append(i18n.sentence("insight_rain_from", lang, time=onset[0], prob=onset[1]))
+
+    end = i18n.terminator(lang)
+    return " ".join(part.rstrip(" .।") + end for part in parts if part).strip()
+
+
+# Matches the threshold `advisory.headline_insight` uses to call rain likely,
+# so the spoken line and the panel cannot disagree about when it starts.
+RAIN_ONSET_PROB = 55
+
+
+def _rain_onset(hours: list[dict[str, Any]]) -> tuple[str, int] | None:
+    for hour in hours[1:]:
+        prob = hour.get("precipitation_probability_pct")
+        if prob is not None and float(prob) >= RAIN_ONSET_PROB:
+            clock = _clock(hour.get("time"))
+            if clock:
+                return clock, int(round(float(prob)))
+    return None
+
+
+def impact_brief(*, impacts: list[Any], lang: str = "en") -> str:
+    """Why this weather matters to *this* reader, in their own category.
+
+    The first card is theirs — the backend orders them by profile — and it is
+    the only one spoken. The others are on screen as chips precisely because
+    they are context rather than the answer to the question this button asks.
+    """
+    lang = i18n.normalise_lang(lang)
+    if not impacts:
+        return ""
+    mine = impacts[0]
+    category = getattr(mine, "category", None) or mine.get("category", "")
+    headline = getattr(mine, "headline", None) or mine.get("headline", "")
+    detail = getattr(mine, "detail", None) or mine.get("detail", "")
+    if not detail:
+        return ""
+
+    end = i18n.terminator(lang)
+    verdict = f"{category} — {headline}".strip(" —") if category or headline else ""
+    return " ".join(part.rstrip(" .।") + end for part in (verdict, detail) if part).strip()
