@@ -22,7 +22,7 @@ Voice chat reuses this module wholesale; it does not reimplement any of it.
 from __future__ import annotations
 
 import logging
-from typing import Any
+from typing import Any, Callable
 
 from ..config import get_settings
 from ..schemas import (
@@ -470,7 +470,27 @@ def handle_chat(
         actions = []
 
     # --- 11. Ensure the answer really is in the user's language ------------
-    answer, explanation, degraded = _ensure_language(answer, explanation, out_lang, degraded)
+    # The fallback is passed as a callable rather than built up front: on the
+    # common path the generated answer is already in the right language and the
+    # template is never needed.
+    def _localised_fallback() -> tuple[str, str | None]:
+        return (
+            advisory.templated_answer(
+                bundle,
+                risk,
+                intent=extraction["intent"],
+                user_type=extraction["user_type"],
+                lang=out_lang,
+                mode=mode,
+                day_offset=day_offset,
+                advice_question=extraction["advice_question"],
+            ),
+            advisory.smart_explanation(bundle, risk, out_lang, mode="simple") or None,
+        )
+
+    answer, explanation, degraded = _ensure_language(
+        answer, explanation, out_lang, degraded, localised=_localised_fallback
+    )
 
     comparison = history.comparison_for_bundle(bundle, risk)
 
@@ -557,12 +577,25 @@ def _extra_context(bundle: Any, risk: RiskOutput, mode: str, user_type: str, lan
 
 
 def _ensure_language(
-    answer: str, explanation: str | None, target: str, degraded: DegradationInfo
+    answer: str,
+    explanation: str | None,
+    target: str,
+    degraded: DegradationInfo,
+    localised: Callable[[], tuple[str, str | None]] | None = None,
 ) -> tuple[str, str | None, DegradationInfo]:
     """Catch the case where generation came back in the wrong language.
 
     Composition is asked to write directly in the user's language, which beats a
-    translate-back round trip. This is the safety net for when it does not.
+    translate-back round trip. This is the safety net for when it does not — and
+    for when the safety net itself cannot run.
+
+    That last case used to return the English answer. It is the failure mode a
+    remote deployment hits most: composition succeeds, the extra translate call
+    is the one that meets the rate limit or the function's time budget, and a
+    reader who chose Telugu is handed English with nothing on screen to say why.
+    Falling back to the localised template instead costs the fluency of a
+    generated sentence and keeps the language the reader actually asked for,
+    which is the trade this app has always made everywhere else.
     """
     if target == "en" or not answer:
         return answer, explanation, degraded
@@ -577,10 +610,30 @@ def _ensure_language(
                 except language.TranslationError:
                     pass
             return translated, explanation, degraded
+        degraded.translation_error = degraded.translation_error or "translation returned nothing"
     except language.TranslationError as exc:
         degraded.translation_error = str(exc)
     except Exception as exc:  # noqa: BLE001 - never lose an answer over wording
         log.warning("language safety net failed: %s", exc)
+        degraded.translation_error = degraded.translation_error or str(exc)
+
+    # Nothing above produced the target language. Templates are written in it.
+    if localised is not None:
+        try:
+            template_answer, template_explanation = localised()
+        except Exception as exc:  # noqa: BLE001 - a broken template is not worth an outage
+            log.warning("localised fallback failed: %s", exc)
+        else:
+            if template_answer:
+                degraded.fallback_reason = (
+                    degraded.fallback_reason
+                    or "translation unavailable; answered from the localised template"
+                )
+                # The explanation is replaced rather than carried over: an
+                # English "why this answer" under a Telugu answer is the same
+                # bug one panel down.
+                return template_answer, template_explanation, degraded
+
     return answer, explanation, degraded
 
 

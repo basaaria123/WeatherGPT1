@@ -4,7 +4,7 @@ import { speechTagFor } from '../i18n/languages'
 /**
  * Microphone capture for /voice-chat.
  *
- * Also opportunistically runs the browser's own SpeechRecognition when it
+ * The browser's own SpeechRecognition is the primary transcriber; it
  * exists. That transcript is sent alongside the audio as `client_transcript`,
  * which the backend uses only if server-side Whisper is unavailable — so voice
  * still works on a deployment without the Whisper model installed.
@@ -23,9 +23,34 @@ const PUTER_TIMEOUT_MS = 12000
  * It is strictly optional: if the script never loaded, the call fails, or it
  * takes too long, we return null and the caller uses the browser transcript.
  */
+/**
+ * Is Puter usable right now without sending the reader anywhere?
+ *
+ * `speech2txt` on a signed-out visitor does not fail — it opens Puter's own
+ * sign-in flow, which took a citizen who pressed a microphone in a weather app
+ * to puter.com and asked them for an account. Nothing in this product asks
+ * anyone to register with a third party, least of all to ask about the rain.
+ *
+ * `auth.isSignedIn()` is a local check against a stored token: it makes no
+ * request and opens nothing. Gating on it keeps Puter as the free bonus it was
+ * meant to be for the handful of people already signed in, and makes it
+ * invisible to everyone else.
+ */
+function puterReady() {
+  if (typeof window.puter?.ai?.speech2txt !== 'function') return false
+  const signedIn = window.puter?.auth?.isSignedIn
+  // No auth surface at all means we cannot prove it is safe to call, so we
+  // do not call it. Silence beats a redirect.
+  if (typeof signedIn !== 'function') return false
+  try {
+    return signedIn() === true
+  } catch {
+    return false
+  }
+}
+
 async function transcribeWithPuter(blob, language) {
-  const speech2txt = window.puter?.ai?.speech2txt
-  if (typeof speech2txt !== 'function' || !blob?.size) return null
+  if (!puterReady() || !blob?.size) return null
   try {
     const file = new File([blob], 'question.webm', { type: blob.type || 'audio/webm' })
     const result = await Promise.race([
@@ -140,16 +165,24 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
         setRecording(false)
         setSeconds(0)
 
-        // Puter first — it handles every browser and needs nothing from the
-        // server — then whatever the browser's own recogniser heard.
-        setTranscribing(true)
-        const puterText = await transcribeWithPuter(blob, language)
-        setTranscribing(false)
+        // The browser's own recogniser leads. It has already run alongside the
+        // recording, in the language the reader picked, and it needs no account
+        // and no round trip — so when it heard something, there is nothing left
+        // to ask. Puter is consulted only when it heard nothing *and* Puter can
+        // answer without sending anyone to a sign-in page; failing both, the
+        // blob still goes to the server, which has its own transcription.
+        const heard = transcriptRef.current?.trim()
+        let puterText = null
+        if (!heard) {
+          setTranscribing(true)
+          puterText = await transcribeWithPuter(blob, language)
+          setTranscribing(false)
+        }
 
         resolveRef.current?.({
           blob,
-          transcript: puterText || transcriptRef.current,
-          transcriptSource: puterText ? 'puter' : (transcriptRef.current ? 'browser' : 'none'),
+          transcript: heard || puterText || '',
+          transcriptSource: heard ? 'browser' : (puterText ? 'puter' : 'none'),
           // So the caller can distinguish "said nothing" from "the browser
           // could not listen at all", which need different advice.
           recognitionError: recognitionErrorRef.current,
@@ -212,7 +245,7 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
     setSeconds(0)
   }, [cleanup])
 
-  const puterAvailable = typeof window !== 'undefined' && typeof window.puter?.ai?.speech2txt === 'function'
+  const puterAvailable = typeof window !== 'undefined' && puterReady()
 
   return {
     supported,
