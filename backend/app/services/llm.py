@@ -499,6 +499,61 @@ def compose_answer(
     return _tool_input(response, COMPOSE_TOOL["name"])
 
 
+VOICE_SYSTEM = (
+    "You are WeatherGPT's voice. You will be given advice that has already been "
+    "written and verified. Rewrite it to be heard rather than read.\n\n"
+    "RULES, in order of importance:\n"
+    "1. Change no facts. Every place, time, number and instruction in your "
+    "version must appear in the source. Add nothing — not a figure, not a "
+    "hazard, not a reassurance, not an official warning.\n"
+    "2. Reply in the same language as the source. Do not translate it.\n"
+    "3. Keep it shorter than the source, and at most three sentences.\n"
+    "4. Match the register to the severity you are given: conversational when "
+    "the risk is low, direct when it is high, and short instructions when it "
+    "is severe. Never dramatic, never an emergency broadcast, never cheerful.\n"
+    "5. Lead with what to do. Drop any statistic that is not needed to explain "
+    "the action.\n\n"
+    "Reply with the rewritten advice and nothing else — no preamble, no "
+    "quotation marks, no explanation of what you changed."
+)
+
+
+def voice_line(
+    text: str, *, language_name: str, user_type: str, location: str, risk_level: str
+) -> str | None:
+    """A natural spoken version of advice that has already been written.
+
+    Returns None on any failure, which is the whole design: the caller keeps
+    the deterministic script it came in with. The model is allowed to make the
+    sentence easier to listen to and nothing else — it never decides *what* the
+    advice is, so an outage, a rate limit or a refusal costs the reader
+    phrasing, never guidance.
+    """
+    try:
+        response = _call(
+            max_tokens=400,
+            system=VOICE_SYSTEM,
+            messages=[
+                {
+                    "role": "user",
+                    "content": (
+                        f"LANGUAGE: {language_name}\n"
+                        f"LISTENER: {user_type} in {location}\n"
+                        f"SEVERITY: {risk_level}\n\n"
+                        f"ADVICE TO REWRITE:\n{text}"
+                    ),
+                }
+            ],
+        )
+    except LLMUnavailable:
+        return None
+    except Exception as exc:  # noqa: BLE001
+        log.warning("voice rewrite failed: %s", exc)
+        return None
+    spoken = _text(response).strip()
+    return spoken or None
+
+
 def translate_text(text: str, *, source: str, target: str, system: str) -> str | None:
     """Translate text. Returns None on failure so the caller can use templates."""
     try:

@@ -687,7 +687,17 @@ def headline_insight(
 # An LLM never chooses these. Where one is available it may rephrase them into
 # the reader's language and response mode; it does not decide what they are.
 # ---------------------------------------------------------------------------
-ACTIONS_BY_LEVEL: dict[str, int] = {"Severe": 4, "High": 3, "Moderate": 2, "Low": 1}
+# How many actions a reader is offered, by how bad the reading is. These are
+# ceilings, not quotas: the rules table supplies what it genuinely has for a
+# given hazard and profile, and a calm day with two real next steps gets two.
+# Padding a list to five with restatements is worse than a short list, because
+# a reader who finds item four says nothing new stops reading at item two.
+ACTIONS_BY_LEVEL: dict[str, int] = {"Severe": 5, "High": 4, "Moderate": 3, "Low": 3}
+
+# The level at or above which "watch the official channel" is a real next step
+# rather than noise. It says to follow the official feed; it never claims a
+# warning has been issued, which is the alert panel's job alone.
+WATCH_OFFICIAL_FROM = ("High", "Severe")
 
 
 def build_advisory(
@@ -710,21 +720,48 @@ def build_advisory(
     wanted = ACTIONS_BY_LEVEL.get(risk.risk_level, 1)
 
     actions: list[dict[str, Any]] = []
+    # At elevated risk the official channel earns a slot of its own, so the
+    # steps above it stop one short rather than crowding it out of the list.
+    watch_official = risk.risk_level in WATCH_OFFICIAL_FROM
+    fill_to = wanted - 1 if watch_official else wanted
 
-    # 1 — the persona's own action leads, and is the one carrying a reason.
-    lead = i18n.profile_action(profile, hazard, lang)
-    if lead:
+    # 1 — this reader's own actions lead, one per hazard actually contributing.
+    #
+    # A storm day is rarely one hazard: a flood warning usually carries heavy
+    # rain and strong wind inside it, and the rules table has a *different*
+    # action for this profile under each. Taking them in score order turns one
+    # personalised line followed by three generic ones into a list that is
+    # this reader's the whole way down — and it invents nothing, because a
+    # hazard only speaks if the engine actually scored it.
+    #
+    # Only the first carries a reason. Four "Why:" lines is a paragraph, and
+    # the one that matters is the one under the action being led with.
+    contributing = sorted(
+        ((name, score) for name, score in (risk.hazard_scores or {}).items()
+         if score >= HAZARD_MENTION_SCORE),
+        key=lambda pair: pair[1],
+        reverse=True,
+    )
+    # The detected hazard leads whatever the sub-scores say — it is the one the
+    # rest of the dashboard is named after.
+    ordered = [hazard] + [name for name, _ in contributing if name != hazard]
+    for name in ordered:
+        if len(actions) >= fill_to:
+            break
+        line = i18n.profile_action(profile, name, lang)
+        if not line or any(existing["action"] == line for existing in actions):
+            continue
         actions.append(
             {
-                "action": lead,
-                "reason": i18n.profile_reason(profile, hazard, lang),
-                "priority": 1,
+                "action": line,
+                "reason": i18n.profile_reason(profile, name, lang) if not actions else None,
+                "priority": len(actions) + 1,
             }
         )
 
     # 2 — the hazard's shared safety actions.
     for text in i18n.hazard_actions(hazard, lang):
-        if len(actions) >= wanted:
+        if len(actions) >= fill_to:
             break
         if any(existing["action"] == text for existing in actions):
             continue
@@ -735,13 +772,30 @@ def build_advisory(
     # demo is most likely to run, so the reader still gets their own reading of
     # the measurements — theirs, not a generic one, and still measured.
     if not actions and bundle is not None:
-        guidance = persona_guidance(bundle, risk, profile, lang, limit=3)
-        if guidance:
-            # The profile's closing line is appended last by ``headline_insight``,
-            # so it is the sentence that speaks to this reader specifically.
-            actions.append({"action": guidance[-1], "reason": None, "priority": 1})
+        guidance = persona_guidance(bundle, risk, profile, lang, limit=4)
+        # The profile's closing line is appended last by ``headline_insight``,
+        # so it is the sentence that speaks to this reader specifically — it
+        # leads, and the rest follow while they still say something new. The
+        # situation line above the list is drawn from the same source, so it is
+        # excluded here rather than printed twice with a number beside it.
+        situation_line = headline_insight(bundle, risk, profile, lang).get("situation")
+        for line in reversed(guidance):
+            if len(actions) >= wanted:
+                break
+            if line == situation_line or any(existing["action"] == line for existing in actions):
+                continue
+            actions.append({"action": line, "reason": None, "priority": len(actions) + 1})
 
-    # 4 — never leave a dangerous situation without guidance.
+    # 4 — at elevated risk, pointing at the official channel is its own step.
+    # Last in the list because it is the one action that is about somebody
+    # else's information rather than about this reader's own next move.
+    if watch_official and actions and len(actions) < wanted:
+        actions.append(
+            {"action": i18n.sentence("advisory_watch_official", lang), "reason": None,
+             "priority": len(actions) + 1}
+        )
+
+    # 5 — never leave a dangerous situation without guidance.
     if not actions and risk_engine.is_actionable(risk):
         actions = [
             {

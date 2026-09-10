@@ -248,7 +248,7 @@ def spoken_advice(
     except Exception:  # noqa: BLE001 - an alert-store hiccup must not silence the advice
         official = 0
 
-    text = voice_brief.compose(
+    spoken = voice_brief.compose_parts(
         location=bundle.location.name,
         risk=risk,
         advisory=advisory.build_advisory(risk, user_type, lang, bundle=bundle),
@@ -257,8 +257,23 @@ def spoken_advice(
         alert_count=official,
         lang=lang,
     )
+    text = " ".join(x for x in (spoken["framing"], spoken["steps"]) if x)
     if not text:
         raise HTTPException(status_code=404, detail="There is no advice to read aloud for this place yet.")
+
+    # Made easier to listen to, never re-decided. The model may only rephrase
+    # what the rules already produced, and anything it returns that grew or
+    # that carries a figure the advice did not is discarded in favour of the
+    # text above. This endpoint is only ever reached by a reader pressing play,
+    # which is also what keeps it off the dashboard's render path.
+    framing = voice_brief.polish(
+        spoken["framing"],
+        lang=lang,
+        user_type=profile,
+        location=bundle.location.name,
+        risk_level=risk.risk_level,
+    )
+    text = " ".join(x for x in (framing, spoken["steps"]) if x)
 
     audio = mime = note = provider = None
     tts_error = None

@@ -132,7 +132,13 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: reduced ? 0.15 : 0.4, ease: [0.22, 1, 0.36, 1] }}
-        className="sticky top-[3.25rem] z-20 mb-3 overflow-hidden rounded-2xl border-2"
+        /* Pinned only where there is room to pin it. A severe banner runs to
+           about 630px, which on a 844px phone leaves a fifth of the screen for
+           everything it is warning you to act on — the advice below it scrolled
+           underneath a translucent panel and became unreadable. It is the first
+           thing on the page either way, so on a narrow screen it simply scrolls
+           like everything else. */
+        className="top-[3.25rem] z-20 mb-3 overflow-hidden rounded-2xl border-2 sm:sticky"
         style={{ borderColor: tone.color, background: tone.tint }}
       >
         <div className="p-4 sm:p-5">

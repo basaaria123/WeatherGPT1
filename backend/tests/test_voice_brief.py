@@ -182,3 +182,94 @@ def test_spoken_advice_speaks_the_language_it_was_asked_for():
     ).json()
     assert body["language"] == "ta"
     assert re.search(r"[\u0b80-\u0bff]", body["text"]), body["text"]
+
+
+# ---------------------------------------------------------------------------
+# What a model is and is not allowed to touch
+# ---------------------------------------------------------------------------
+def test_the_brief_splits_framing_from_instructions():
+    """The split is the safety property, so it is asserted rather than assumed."""
+    parts = voice_brief.compose_parts(location="Puri", risk=risk("Severe"), advisory=ADVISORY)
+    assert parts["framing"], parts
+    assert parts["steps"], parts
+    # The framing describes; it never instructs.
+    for action in (a["action"] for a in ADVISORY["actions"]):
+        assert action.rstrip(".") not in parts["framing"]
+    # Every spoken step is the advisory's own sentence, unchanged.
+    assert ADVISORY["actions"][0]["action"].rstrip(".") in parts["steps"]
+
+
+def test_polish_is_never_handed_an_instruction(monkeypatch):
+    """Structural, not filtered — the model cannot rewrite what it never sees.
+
+    Asked to rewrite a farmer's flood advice, Gemini once turned "move
+    harvested grain and fertiliser to a dry, raised place" into "move harvested
+    grain, fertilizer, and livestock to higher ground": fluent, plausible, and
+    an instruction nobody wrote. No output check short of understanding the
+    domain would have caught it, so the instructions are simply never sent.
+    """
+    seen: list[str] = []
+
+    def fake_voice_line(text, **kwargs):
+        seen.append(text)
+        return None
+
+    monkeypatch.setattr(voice_brief.llm, "available", lambda: True)
+    monkeypatch.setattr(voice_brief.llm, "voice_line", fake_voice_line)
+
+    parts = voice_brief.compose_parts(location="Puri", risk=risk("Severe"), advisory=ADVISORY)
+    voice_brief.polish(
+        parts["framing"], lang="en", user_type="farmer", location="Puri", risk_level="Severe"
+    )
+    assert len(seen) == 1
+    for action in (a["action"] for a in ADVISORY["actions"]):
+        assert action.rstrip(".") not in seen[0], seen[0]
+
+
+def test_a_rewrite_that_invents_a_figure_is_discarded(monkeypatch):
+    monkeypatch.setattr(voice_brief.llm, "available", lambda: True)
+    monkeypatch.setattr(
+        voice_brief.llm, "voice_line", lambda text, **kw: "Flood risk in Puri, 95% chance."
+    )
+    framing = "Flood Risk in Puri. Do this now."
+    assert voice_brief.polish(
+        framing, lang="en", user_type="farmer", location="Puri", risk_level="Severe"
+    ) == framing
+
+
+def test_a_rewrite_that_rambles_is_discarded(monkeypatch):
+    monkeypatch.setattr(voice_brief.llm, "available", lambda: True)
+    monkeypatch.setattr(voice_brief.llm, "voice_line", lambda text, **kw: text + " " + text)
+    framing = "Flood Risk in Puri. Do this now."
+    assert voice_brief.polish(
+        framing, lang="en", user_type="farmer", location="Puri", risk_level="Severe"
+    ) == framing
+
+
+def test_a_good_rewrite_is_kept(monkeypatch):
+    monkeypatch.setattr(voice_brief.llm, "available", lambda: True)
+    monkeypatch.setattr(voice_brief.llm, "voice_line", lambda text, **kw: "Flooding in Puri. Act now.")
+    assert voice_brief.polish(
+        "Flood Risk in Puri. Do this now.",
+        lang="en", user_type="farmer", location="Puri", risk_level="Severe",
+    ) == "Flooding in Puri. Act now."
+
+
+def test_no_model_means_the_deterministic_text_verbatim(monkeypatch):
+    monkeypatch.setattr(voice_brief.llm, "available", lambda: False)
+    framing = "Flood Risk in Puri. Do this now."
+    assert voice_brief.polish(
+        framing, lang="ta", user_type="farmer", location="Puri", risk_level="Severe"
+    ) == framing
+
+
+def test_the_endpoint_speaks_the_advisory_word_for_word(client):
+    """Whatever the model did to the framing, the steps are the rules table's."""
+    current = client.get(
+        "/weather/current", params={"location": "Guwahati", "user_type": "farmer"}
+    ).json()
+    spoken = client.get(
+        "/weather/spoken-advice", params={"location": "Guwahati", "user_type": "farmer"}
+    ).json()
+    lead = current["advisory"]["actions"][0]["action"]
+    assert lead.rstrip(".") in spoken["text"], spoken["text"]

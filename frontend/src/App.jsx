@@ -19,7 +19,6 @@ import DemoMode from './components/DemoMode'
 import Forecast from './components/Forecast'
 import Header from './components/Header'
 import HistoricalNote from './components/HistoricalNote'
-import ImpactGrid from './components/ImpactGrid'
 import Landing from './components/Landing'
 import Onboarding from './components/onboarding/Onboarding'
 import LocationDialog from './components/LocationDialog'
@@ -460,7 +459,17 @@ export default function App() {
                   numbers makes the reader do the interpreting; this is the one
                   section that tells them what to do about them, so it leads —
                   in an emergency and on a quiet Tuesday alike. */}
-              <AdvisoryCard advisory={advisory} onCompare={() => setCompareOpen(true)} />
+              {/* One section, not two. The impact cards used to have a screen of
+                  their own near the foot of the page, which put "what this
+                  weather means for you" a long way from "what to do about it"
+                  — and gave a generic Travel verdict the same weight as the
+                  reader's own. They are now a line inside the advice they
+                  belong to. */}
+              <AdvisoryCard
+                advisory={advisory}
+                impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
+                onCompare={() => setCompareOpen(true)}
+              />
 
               <CommandCenter
                 data={currentData}
@@ -527,11 +536,6 @@ export default function App() {
               />
 
               <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
-
-              <ImpactGrid
-                impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
-                loading={loading.current}
-              />
 
               <footer className="flex flex-wrap items-center justify-between gap-3 pt-2">
                 <button
