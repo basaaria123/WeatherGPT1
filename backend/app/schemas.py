@@ -460,6 +460,12 @@ class SpokenAdviceResponse(BaseModel):
     text: str
     audio_base64: str | None = None
     audio_mime: str | None = None
+    # Which provider actually spoke: "elevenlabs", "gtts", "pyttsx3", or empty
+    # when the server produced nothing and the browser's own providers are the
+    # rest of the ladder. The UI does not change behaviour on the name — it
+    # only uses "did the server manage it" — but an operator watching a demo
+    # should be able to see which voice they are hearing.
+    audio_provider: str | None = None
     # Set when no voice exists for the chosen language and a neighbouring one
     # was read instead — the reader is told, never quietly given the wrong one.
     voice_note: str | None = None

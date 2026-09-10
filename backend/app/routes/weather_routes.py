@@ -260,11 +260,18 @@ def spoken_advice(
     if not text:
         raise HTTPException(status_code=404, detail="There is no advice to read aloud for this place yet.")
 
-    audio = mime = note = None
+    audio = mime = note = provider = None
     tts_error = None
     try:
-        audio, mime, note = speech.synthesize(text, lang)
+        # The reading's own level shapes the delivery: steadier and flatter as
+        # it worsens, which is the only prosody control the provider gives us.
+        rendered = speech.synthesize_detailed(text, lang, risk.risk_level)
+        audio, mime, note, provider = (
+            rendered.audio_base64, rendered.mime, rendered.note, rendered.provider,
+        )
     except speech.SynthesisError as exc:
+        # Every server-side voice failed. The script still goes out: the browser
+        # has Puter and its own synthesiser left to try.
         tts_error = str(exc)
 
     return SpokenAdviceResponse(
@@ -275,6 +282,7 @@ def spoken_advice(
         text=text,
         audio_base64=audio,
         audio_mime=mime,
+        audio_provider=provider,
         voice_note=note,
         tts_error=tts_error,
     )

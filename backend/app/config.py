@@ -161,6 +161,23 @@ class Settings:
     elevenlabs_api_base: str = field(
         default_factory=lambda: os.getenv("ELEVENLABS_API_BASE", "https://api.elevenlabs.io").strip().rstrip("/")
     )
+    # --- ElevenLabs speech *out* -------------------------------------------
+    # The same key drives synthesis. `eleven_multilingual_v2` is the model that
+    # actually speaks the Indic languages this app offers; the English-only
+    # models would give a Tamil sentence an English mouth.
+    elevenlabs_tts_model: str = field(
+        default_factory=lambda: os.getenv("ELEVENLABS_TTS_MODEL", "eleven_multilingual_v2").strip()
+    )
+    # A default public voice. Override with any voice id from your own library.
+    elevenlabs_voice_id: str = field(
+        default_factory=lambda: os.getenv("ELEVENLABS_VOICE_ID", "EXAVITQu4vr4xnSDxMaL").strip()
+    )
+    # Synthesis is on the critical path of a button press, so it gets a shorter
+    # leash than transcription: past this the reader is better served by the
+    # next provider than by a spinner.
+    elevenlabs_tts_timeout_seconds: float = field(
+        default_factory=lambda: _env_float("ELEVENLABS_TTS_TIMEOUT_SECONDS", 12.0)
+    )
     whisper_model: str = field(default_factory=lambda: os.getenv("WHISPER_MODEL", "base").strip())
     whisper_device: str = field(default_factory=lambda: os.getenv("WHISPER_DEVICE", "cpu").strip())
     max_audio_bytes: int = field(default_factory=lambda: _env_int("MAX_AUDIO_BYTES", 20 * 1024 * 1024))

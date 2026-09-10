@@ -348,16 +348,147 @@ def voice_friendly(text: str) -> str:
     return cleaned.strip()
 
 
+# How the voice carries itself, by how bad the reading is.
+#
+# ElevenLabs exposes stability and style rather than "calm" and "urgent", so
+# this is the mapping between the two. Higher stability is a flatter, steadier
+# read — which is what a severe instruction wants; a calm day can afford a
+# little more variation and sound less like an announcement. Nothing here is
+# dramatic: the top of the range is *steadier*, not louder, because the moment
+# advice matters most is the moment it must be easiest to follow.
+ELEVENLABS_DELIVERY: dict[str, dict[str, float]] = {
+    "Low": {"stability": 0.40, "similarity_boost": 0.75, "style": 0.30},
+    "Moderate": {"stability": 0.45, "similarity_boost": 0.75, "style": 0.25},
+    "High": {"stability": 0.60, "similarity_boost": 0.80, "style": 0.15},
+    "Severe": {"stability": 0.75, "similarity_boost": 0.85, "style": 0.05},
+}
+
+# Providers in the order they are tried, for /health and for the tests that
+# assert the order has not quietly changed.
+TTS_PROVIDER_ORDER: tuple[str, ...] = ("elevenlabs", "gtts", "pyttsx3")
+
+
+def synthesis_chain() -> list[str]:
+    """The providers that would actually be tried, in order.
+
+    Gated on `tts_enabled` as a whole: a server with speech switched off has no
+    chain, and reporting one because the gTTS package happens to be installed
+    would have the UI offer a button that could never make a sound.
+    """
+    if not get_settings().tts_enabled:
+        return []
+    usable = {
+        "elevenlabs": elevenlabs_tts_available,
+        "gtts": lambda: _has("gtts"),
+        "pyttsx3": lambda: _has("pyttsx3"),
+    }
+    return [name for name in TTS_PROVIDER_ORDER if usable[name]()]
+
+
+def spoken_languages() -> set[str]:
+    """Language codes the active synthesis provider can actually voice.
+
+    ElevenLabs' multilingual model covers every language the corpus translates
+    into; gTTS covers six of them and substitutes a neighbour for a seventh.
+    Reporting the union would promise a voice the server cannot produce, so
+    this reports the provider that would actually answer.
+    """
+    from . import i18n
+
+    if elevenlabs_tts_available():
+        return set(i18n.LANGUAGES)
+    if _has("gtts"):
+        return set(TTS_LANG_MAP)
+    # pyttsx3 reads whatever the host has installed, which we cannot enumerate;
+    # English is the only one it is safe to promise.
+    return {"en"} if _has("pyttsx3") else set()
+
+
+def elevenlabs_tts_available() -> bool:
+    settings = get_settings()
+    return bool(settings.tts_enabled and settings.elevenlabs_api_key)
+
+
+def _elevenlabs_synthesize(text: str, language: str, severity: str | None) -> tuple[bytes, str]:
+    """ElevenLabs text-to-speech.
+
+    Request shape from the official API: POST /v1/text-to-speech/{voice_id},
+    ``xi-api-key`` header, JSON body carrying ``text``, ``model_id`` and
+    ``voice_settings``; the reply is the audio itself, not JSON.
+
+    ``language`` is not sent: the multilingual model reads the script it is
+    given, and passing a language code to a voice that does not have one is how
+    you get an English mouth on a Tamil sentence.
+    """
+    import httpx
+
+    settings = get_settings()
+    delivery = ELEVENLABS_DELIVERY.get(severity or "Low", ELEVENLABS_DELIVERY["Low"])
+
+    response = httpx.post(
+        f"{settings.elevenlabs_api_base}/v1/text-to-speech/{settings.elevenlabs_voice_id}",
+        headers={
+            "xi-api-key": settings.elevenlabs_api_key,
+            "accept": "audio/mpeg",
+            "content-type": "application/json",
+        },
+        json={
+            "text": text,
+            "model_id": settings.elevenlabs_tts_model,
+            "voice_settings": {**delivery, "use_speaker_boost": True},
+        },
+        timeout=settings.elevenlabs_tts_timeout_seconds,
+    )
+    response.raise_for_status()
+    audio = response.content
+    if not audio:
+        raise SynthesisError("ElevenLabs returned no audio.")
+    return audio, "audio/mpeg"
+
+
 def synthesis_available() -> bool:
     if _tts_working is False:
         return False
-    return get_settings().tts_enabled and (_has("gtts") or _has("pyttsx3"))
+    settings = get_settings()
+    if not settings.tts_enabled:
+        return False
+    return bool(settings.elevenlabs_api_key) or _has("gtts") or _has("pyttsx3")
 
 
-def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
-    """Return ``(base64_audio, mime_type, substitution_note)``.
+@dataclass
+class Speech:
+    """One rendered clip, and an honest account of where it came from."""
 
-    Raises ``SynthesisError``; callers return the text response regardless.
+    audio_base64: str
+    mime: str
+    provider: str
+    note: str | None = None
+
+
+def synthesize(
+    text: str, language: str = "en", severity: str | None = None
+) -> tuple[str, str, str | None]:
+    """Back-compatible shim: ``(base64, mime, note)``.
+
+    Kept because the chat route has always called it this way. New callers that
+    care which provider spoke should use :func:`synthesize_detailed`.
+    """
+    speech = synthesize_detailed(text, language, severity)
+    return speech.audio_base64, speech.mime, speech.note
+
+
+def synthesize_detailed(text: str, language: str = "en", severity: str | None = None) -> Speech:
+    """Render ``text`` to audio, trying each provider in turn.
+
+    The order is deliberate and is the whole point of the chain: ElevenLabs is
+    the voice the product is meant to have, gTTS is the one that keeps working
+    when it is not, and pyttsx3 is the one that works with no network at all.
+    A provider that fails is logged and stepped over — never surfaced to the
+    reader, who is owed "could not play that", not an HTTP status.
+
+    Raises ``SynthesisError`` only when every provider has been tried. Callers
+    return the text response regardless: losing the audio must never mean
+    losing the advice.
     """
     settings = get_settings()
     if not settings.tts_enabled:
@@ -368,8 +499,21 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
         raise SynthesisError("There was nothing to read aloud.")
 
     lang = (language or "en").lower()
-    tts_lang = TTS_LANG_MAP.get(lang, "en")
     note = None
+
+    # --- 1. ElevenLabs, the intended voice --------------------------------
+    if elevenlabs_tts_available():
+        try:
+            audio, mime = _elevenlabs_synthesize(speech_text, lang, severity)
+            note_synthesis_result(True)
+            return Speech(base64.b64encode(audio).decode("ascii"), mime, "elevenlabs")
+        except Exception as exc:  # noqa: BLE001 - every failure steps to the next
+            log.warning("ElevenLabs synthesis failed, falling back: %s", exc)
+
+    # --- 2. gTTS ----------------------------------------------------------
+    # Only gTTS needs the language told to it, and only gTTS has gaps in the
+    # set this app offers, so the substitution note belongs to this branch.
+    tts_lang = TTS_LANG_MAP.get(lang, "en")
     if lang in TTS_SUBSTITUTED:
         note = (
             f"No text-to-speech voice exists for '{lang}'; "
@@ -385,10 +529,11 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
             audio = buffer.getvalue()
             if audio:
                 note_synthesis_result(True)
-                return base64.b64encode(audio).decode("ascii"), "audio/mpeg", note
-        except Exception as exc:  # noqa: BLE001 - gTTS needs network
+                return Speech(base64.b64encode(audio).decode("ascii"), "audio/mpeg", "gtts", note)
+        except Exception:  # noqa: BLE001 - gTTS needs network
             log.exception("gTTS failed (full traceback follows)")
 
+    # --- 3. pyttsx3, offline ----------------------------------------------
     if _has("pyttsx3"):
         tmp_path: str | None = None
         try:
@@ -402,15 +547,16 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
             audio = Path(tmp_path).read_bytes()
             if audio:
                 note_synthesis_result(True)
-                return base64.b64encode(audio).decode("ascii"), "audio/wav", note
+                return Speech(base64.b64encode(audio).decode("ascii"), "audio/wav", "pyttsx3", note)
         except Exception as exc:  # noqa: BLE001
             log.warning("pyttsx3 failed: %s", exc)
         finally:
             if tmp_path:
                 Path(tmp_path).unlink(missing_ok=True)
 
-    # Every engine failed: stop advertising speech until the process restarts,
-    # so the UI does not keep offering a play button that yields silence.
+    # Every server-side engine failed. The browser still has two of its own —
+    # Puter and its native synthesiser — so this is not the end of the ladder,
+    # which is why the client is handed the script rather than an apology.
     note_synthesis_result(False)
     raise SynthesisError(
         "Could not produce audio right now. The text answer is still available."
@@ -419,10 +565,22 @@ def synthesize(text: str, language: str = "en") -> tuple[str, str, str | None]:
 
 def capabilities() -> dict[str, object]:
     """Reported by /health so the UI can hide controls that cannot work."""
+    settings = get_settings()
     return {
         "transcription": transcription_available(),
         "transcription_engine": transcription_engine(),
         "synthesis": synthesis_available(),
-        "tts_languages": sorted(TTS_LANG_MAP),
-        "tts_substitutions": TTS_SUBSTITUTED,
+        # Which voice would speak next, and the whole ladder behind it, so the
+        # UI can say "no voice configured" without guessing and an operator can
+        # see at a glance which provider a demo is actually running on.
+        "synthesis_provider": next(iter(synthesis_chain()), ""),
+        "synthesis_chain": synthesis_chain(),
+        "elevenlabs_configured": bool(settings.elevenlabs_api_key),
+        # What can actually be spoken *by the provider that would answer*, not
+        # by gTTS regardless. ElevenLabs' multilingual model reads every script
+        # the app translates into, so reporting gTTS's six while it is
+        # configured would hide four languages the product really can speak —
+        # and the substitution note only applies to the gTTS path.
+        "tts_languages": sorted(spoken_languages()),
+        "tts_substitutions": {} if elevenlabs_tts_available() else TTS_SUBSTITUTED,
     }

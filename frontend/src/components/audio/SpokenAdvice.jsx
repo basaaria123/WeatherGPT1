@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../api/client'
-import { browserSpeechSupported, utteranceFor } from '../../audio/speech'
+import { browserSpeechSupported, puterSpeak, utteranceFor } from '../../audio/speech'
 import { t } from '../../i18n/ui'
 import { useStore } from '../../store/useStore'
 
@@ -23,6 +23,19 @@ import { useStore } from '../../store/useStore'
  * Volume is deliberately absent: an `<audio>` element and the speech synthesiser
  * both play at the device's own volume, and a second volume control inside a
  * page is a control that disagrees with the hardware one.
+ *
+ * PROVIDERS. Four of them, in one order, and the UI knows about none of it
+ * beyond "did that work":
+ *
+ *   ElevenLabs   the voice the product is meant to have — rendered server-side
+ *   Puter        the browser's own hosted voice, no key, tried next
+ *   gTTS         the server's fallback, already in hand from the same response
+ *   the browser  its native synthesiser, which works with no network at all
+ *
+ * The server renders what it can and says which provider managed it. When that
+ * is not ElevenLabs, Puter is tried before the clip the server sent, because
+ * Puter sounds better than gTTS — and because asking the server twice to get
+ * that order would cost a round trip on every fallback.
  */
 
 const PROGRESS_STATES = new Set(['playing', 'paused'])
@@ -74,8 +87,8 @@ export default function SpokenAdvice({ location, userType }) {
     [language],
   )
 
-  const playServerAudio = useCallback((base64, mime) => {
-    const audio = new Audio(`data:${mime ?? 'audio/mpeg'};base64,${base64}`)
+  /** Wires an element into the pause/resume/progress machinery and starts it. */
+  const playElement = useCallback((audio) => {
     audioRef.current = audio
     audio.ontimeupdate = () => {
       if (audio.duration) setProgress(audio.currentTime / audio.duration)
@@ -88,6 +101,11 @@ export default function SpokenAdvice({ location, userType }) {
       .catch(() => false)
   }, [])
 
+  const playServerAudio = useCallback(
+    (base64, mime) => playElement(new Audio(`data:${mime ?? 'audio/mpeg'};base64,${base64}`)),
+    [playElement],
+  )
+
   const start = useCallback(async () => {
     // "Try again" after a half-started attempt must not leave two voices going.
     stop()
@@ -99,16 +117,27 @@ export default function SpokenAdvice({ location, userType }) {
       scriptRef.current = data.text
       setNote(data.voice_note ?? null)
 
+      // 1 — ElevenLabs, when the server managed it.
+      if (data.audio_base64 && data.audio_provider === 'elevenlabs') {
+        if (await playServerAudio(data.audio_base64, data.audio_mime)) return
+      }
+
+      // 2 — Puter, ahead of the server's own fallback clip.
+      const viaPuter = await puterSpeak(data.text, language)
+      if (viaPuter && (await playElement(viaPuter))) return
+
+      // 3 — whatever the server did manage, which by now is gTTS or pyttsx3.
       if (data.audio_base64) {
         if (await playServerAudio(data.audio_base64, data.audio_mime)) return
       }
-      // No server voice, or the browser refused to play the clip. The script
-      // still exists, so try to say it rather than reporting nothing.
+
+      // 4 — the browser's own voice. The script still exists either way, so
+      // there is something to say right up until there is no way to say it.
       if (!speakLocally(data.text)) setState('error')
     } catch {
       setState('error')
     }
-  }, [location, userType, language, playServerAudio, speakLocally, stop])
+  }, [location, userType, language, playServerAudio, playElement, speakLocally, stop])
 
   const pause = useCallback(() => {
     if (audioRef.current) audioRef.current.pause()
