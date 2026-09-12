@@ -49,6 +49,15 @@ PROFILE_IMPACT_CATEGORIES: dict[str, tuple[str, ...]] = {
     # Exposure of the people being cared for first, then the home they are in.
     "caregiver": ("outdoor", "household", "travel"),
     "commuter": ("travel", "outdoor", "household"),
+    # Reading the weather rather than acting on it: no sector is theirs, so
+    # nothing is left out.
+    "researcher": ("farming", "fishing", "travel", "household", "outdoor"),
+    # Responsible for everyone in the area, so the same: what is left out of a
+    # responder's view is what they are not warned about.
+    "disaster_manager": ("travel", "outdoor", "household", "farming", "fishing"),
+    "aviation": ("travel", "outdoor"),
+    "government": ("travel", "household", "outdoor", "farming", "fishing"),
+    "event_planner": ("outdoor", "travel", "household"),
     # No stated role means no basis for leaving anything out.
     "general": ("farming", "fishing", "travel", "household", "outdoor"),
 }
@@ -70,6 +79,15 @@ PROFILE_FACTOR_ORDER: dict[str, tuple[str, ...]] = {
     # Caring for people who overheat and get soaked faster than you do.
     "caregiver": ("heat", "rain", "wind", "visibility"),
     "commuter": ("rain", "visibility", "wind", "heat"),
+    # Reading the measurements, so the general order: no factor is theirs.
+    "researcher": ("rain", "wind", "heat", "visibility"),
+    # Rain and the flooding behind it is what escalates fastest into a callout.
+    "disaster_manager": ("rain", "wind", "heat", "visibility"),
+    # What can be seen, then what the wind is doing to what is in it.
+    "aviation": ("visibility", "wind", "rain", "heat"),
+    "government": ("rain", "heat", "wind", "visibility"),
+    # Whether it rains on the day decides it; wind decides the structures.
+    "event_planner": ("rain", "wind", "heat", "visibility"),
     "general": ("rain", "wind", "heat", "visibility"),
 }
 
@@ -85,6 +103,14 @@ PROFILE_HORIZON_HOURS: dict[str, int] = {
     "student": 8,
     "caregiver": 12,
     "commuter": 6,
+    # Looking at the whole day's record, not the next errand.
+    "researcher": 24,
+    # Planning the night ahead, not the next hour.
+    "disaster_manager": 24,
+    "aviation": 12,
+    "government": 24,
+    # An event is a day being planned, so the day is the horizon.
+    "event_planner": 24,
     "general": 12,
 }
 

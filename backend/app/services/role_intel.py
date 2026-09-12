@@ -912,6 +912,94 @@ def _caregiver(m: _Reading, lang: str) -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
+# Readings assembled from other readings
+#
+# These five roles ask questions the existing cards already answer, so they are
+# composed rather than rewritten — the same idiom the student reading has always
+# used. Composing rather than duplicating is what stops two roles giving
+# different verdicts from the same measurement: there is one rain card, one wind
+# card, one hazard card, and every role that needs one gets *that* one.
+#
+# What makes these readings different from each other is which cards they get
+# and in which order, plus the metric ordering, hazard emphasis and suggested
+# questions the role registry carries. None of them introduces a new claim.
+# ---------------------------------------------------------------------------
+
+def _pick(cards: list[dict[str, Any]], *ids: str) -> list[dict[str, Any]]:
+    """Cards from another reading, in the order this role needs them.
+
+    A card the other reading did not produce today is simply absent — the same
+    rule every builder here follows, so a composed reading can no more show an
+    unsupported verdict than an original one can.
+    """
+    by_id = {card["id"]: card for card in cards}
+    return [by_id[card_id] for card_id in ids if card_id in by_id]
+
+
+def _researcher(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """Values first, then what the engine made of them.
+
+    A reader studying the weather wants the measurement before the advice, so
+    the verdict cards come last and the hazard card — which names the drivers
+    the risk engine actually scored — closes the reading.
+    """
+    return (
+        _pick(_general(m, lang), "comfort")
+        + _pick(_farmer(m, lang), "rain_impact")
+        + _pick(_fisherman(m, lang), "wind")
+        + _pick(_commuter(m, lang), "hazards")
+    )
+
+
+def _disaster_manager(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """What is active, whether it is escalating, and what to ready."""
+    return (
+        _pick(_commuter(m, lang), "hazards")
+        + _pick(_fisherman(m, lang), "storm_risk")
+        + [_preparedness_card(m, lang)]
+        + _pick(_caregiver(m, lang), "exposure")
+    )
+
+
+def _aviation(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """Surface visibility, wind and convection — and nothing it cannot see.
+
+    Deliberately no crosswind card: the driver's one is about wind on an open
+    road, and relabelling it for a runway would imply a component this app has
+    never computed. The role's note says what is missing rather than a card
+    implying it is present.
+    """
+    return (
+        _pick(_fisherman(m, lang), "visibility", "wind", "storm_risk")
+        + _pick(_farmer(m, lang), "rain_impact")
+    )
+
+
+def _government(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """The area's hazards, its rainfall, its heat, and what residents should ready.
+
+    Heat stress rather than exposure, which is what separates this reading from
+    the responder's: an official is looking at what the day does to a population
+    over hours, a responder at what is escalating right now.
+    """
+    return (
+        _pick(_commuter(m, lang), "hazards")
+        + _pick(_farmer(m, lang), "rain_impact")
+        + _pick(_outdoor_worker(m, lang), "heat_stress")
+        + [_preparedness_card(m, lang)]
+    )
+
+
+def _event_planner(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """Can it be held outdoors, will it rain on it, and when is calmest."""
+    return (
+        _pick(_general(m, lang), "outdoor", "umbrella")
+        + _pick(_fisherman(m, lang), "wind")
+        + _pick(_outdoor_worker(m, lang), "work_window")
+    )
+
+
+# ---------------------------------------------------------------------------
 
 _BUILDERS = {
     "general": _general,
@@ -924,6 +1012,11 @@ _BUILDERS = {
     "student": _student,
     "caregiver": _caregiver,
     "commuter": _commuter,
+    "researcher": _researcher,
+    "disaster_manager": _disaster_manager,
+    "aviation": _aviation,
+    "government": _government,
+    "event_planner": _event_planner,
 }
 
 # Icon, heading, note and the rest of what makes a role a role now live in

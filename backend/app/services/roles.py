@@ -154,6 +154,64 @@ ROLES: dict[str, Role] = {
             ("prepare", "What should we prepare for today?"),
         ),
     ),
+    "researcher": Role(
+        key="researcher", icon="🔬", heading_key="ri_heading_researcher",
+        # The full instrument panel, in the order an observation is read out.
+        metrics=_TEMP + ("humidity_pct", "pressure_hpa") + _WIND[:2] + _RAIN + ("visibility_km",),
+        # No reordering: to someone studying the weather, every hazard is data.
+        ask=(
+            ("comfort", "What do the current measurements show right now?"),
+            ("rain_impact", "How much rain is expected, and over what period?"),
+            ("hazards", "Which risk drivers are active, and what values produced them?"),
+        ),
+    ),
+    "disaster_manager": Role(
+        key="disaster_manager", icon="🚨", heading_key="ri_heading_disaster_manager",
+        metrics=_RAIN + _WIND[:2] + ("visibility_km",) + _TEMP,
+        alert_hazards=("Flood Risk", "Heavy Rainfall", "Lightning/Storm", "Strong Wind", "Extreme Heat"),
+        ask=(
+            ("hazards", "Which hazards are active, and how severe are they?"),
+            ("storm_risk", "Is storm activity expected to escalate?"),
+            ("prepare", "What should be prepared for tonight?"),
+        ),
+        timing=True,
+    ),
+    "aviation": Role(
+        key="aviation", icon="✈️", heading_key="ri_heading_aviation",
+        metrics=("visibility_km",) + _WIND + ("pressure_hpa",) + _RAIN,
+        alert_hazards=("Strong Wind", "Lightning/Storm", "Heavy Rainfall"),
+        ask=(
+            ("visibility", "How is visibility, and when does it change?"),
+            ("wind", "What are the wind speed and gusts doing over the next 24 hours?"),
+            ("storm_risk", "Is thunderstorm activity expected?"),
+        ),
+        # The second role whose real question this app cannot fully answer: it
+        # carries no aviation product — no METAR, TAF, cloud base, icing or
+        # turbulence — only the surface forecast everything else here uses.
+        note_key="ri_note_aviation",
+        timing=True,
+    ),
+    "government": Role(
+        key="government", icon="🏛️", heading_key="ri_heading_government",
+        metrics=_RAIN + ("wind_speed_kmh",) + _TEMP + ("visibility_km",),
+        alert_hazards=("Flood Risk", "Heavy Rainfall", "Extreme Heat", "Lightning/Storm", "Strong Wind"),
+        ask=(
+            ("hazards", "Which hazards are active in this area right now?"),
+            ("rain_impact", "How much rain is expected, and is waterlogging likely?"),
+            ("prepare", "What should residents be advised to have ready?"),
+        ),
+    ),
+    "event_planner": Role(
+        key="event_planner", icon="🎪", heading_key="ri_heading_event_planner",
+        metrics=("precipitation_probability_pct", "precipitation_mm") + _WIND[:2] + _TEMP,
+        alert_hazards=("Heavy Rainfall", "Lightning/Storm", "Strong Wind", "Extreme Heat"),
+        ask=(
+            ("outdoor", "Is this a good day to hold something outdoors?"),
+            ("work_window", "Which hours carry the lowest weather risk today?"),
+            ("umbrella", "Will people need cover from rain?"),
+        ),
+        timing=True,
+    ),
 }
 
 DEFAULT_ROLE = "general"

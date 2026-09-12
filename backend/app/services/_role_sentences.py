@@ -1152,3 +1152,73 @@ ROLE_SENTENCES_EXTRA: dict[str, dict[str, str]] = {
 
 for _lang, _extra in ROLE_SENTENCES_EXTRA.items():
     ROLE_SENTENCES.setdefault(_lang, {}).update(_extra)
+
+
+# The twelve-role brief added five more readers: a researcher, a disaster
+# manager, an aviation professional, a government official and an event planner.
+# Same reasoning as the table above — kept in its own block so a missing
+# translation is a visible hole rather than a silent English fallback.
+#
+# Only headings and one disclosure are new. Every *card* these five readers see
+# is an existing card, in an existing translation: what differs is which cards
+# they get, in what order, and which measurements lead. A role that invented its
+# own vocabulary would be a role whose wording nobody had checked.
+ROLE_SENTENCES_ROLES_12: dict[str, dict[str, str]] = {
+    # -----------------------------------------------------------------------
+    "en": {
+        "ri_heading_researcher": 'Measurement and trend intelligence',
+        "ri_heading_disaster_manager": 'Response and preparedness intelligence',
+        "ri_heading_aviation": 'Aviation surface intelligence',
+        "ri_heading_government": 'Civic weather intelligence',
+        "ri_heading_event_planner": 'Event-day intelligence',
+        "ri_note_aviation": 'Aviation products are not available in this app — no METAR, TAF, cloud base, icing or turbulence data. This reading uses surface wind, visibility, pressure and storm risk from the general forecast.',
+    },
+    # -----------------------------------------------------------------------
+    "hi": {
+        "ri_heading_researcher": 'माप और रुझान की मौसम जानकारी',
+        "ri_heading_disaster_manager": 'आपदा प्रतिक्रिया और तैयारी की जानकारी',
+        "ri_heading_aviation": 'विमानन सतही मौसम जानकारी',
+        "ri_heading_government": 'नागरिक सेवाओं की मौसम जानकारी',
+        "ri_heading_event_planner": 'आयोजन के दिन की मौसम जानकारी',
+        "ri_note_aviation": 'इस ऐप में विमानन उत्पाद उपलब्ध नहीं हैं — METAR, TAF, बादल की ऊँचाई, हिमीकरण या अशांति का डेटा नहीं है। यह पाठ सामान्य पूर्वानुमान से सतही हवा, दृश्यता, दाब और तूफ़ान जोखिम का उपयोग करता है।',
+    },
+    # -----------------------------------------------------------------------
+    "te": {
+        "ri_heading_researcher": 'కొలతలు, ధోరణుల వాతావరణ సమాచారం',
+        "ri_heading_disaster_manager": 'విపత్తు స్పందన, సన్నద్ధత సమాచారం',
+        "ri_heading_aviation": 'విమానయాన ఉపరితల వాతావరణ సమాచారం',
+        "ri_heading_government": 'పౌర సేవల వాతావరణ సమాచారం',
+        "ri_heading_event_planner": 'కార్యక్రమ దినపు వాతావరణ సమాచారం',
+        "ri_note_aviation": 'ఈ యాప్\u200cలో విమానయాన ఉత్పత్తులు అందుబాటులో లేవు — METAR, TAF, మేఘాల ఎత్తు, మంచు పేరుకోవడం లేదా అల్లకల్లోల సమాచారం లేదు. ఇది సాధారణ సూచన నుండి ఉపరితల గాలి, దృశ్యత, పీడనం, తుఫాను ప్రమాదాన్ని ఉపయోగిస్తుంది.',
+    },
+    # -----------------------------------------------------------------------
+    "bn": {
+        "ri_heading_researcher": 'পরিমাপ ও প্রবণতার আবহাওয়া তথ্য',
+        "ri_heading_disaster_manager": 'দুর্যোগ সাড়া ও প্রস্তুতির তথ্য',
+        "ri_heading_aviation": 'বিমান চলাচলের ভূপৃষ্ঠ আবহাওয়া তথ্য',
+        "ri_heading_government": 'নাগরিক পরিষেবার আবহাওয়া তথ্য',
+        "ri_heading_event_planner": 'অনুষ্ঠানের দিনের আবহাওয়া তথ্য',
+        "ri_note_aviation": 'এই অ্যাপে বিমান চলাচলের পণ্য নেই — METAR, TAF, মেঘের উচ্চতা, বরফ জমা বা ঝাঁকুনির তথ্য নেই। এই পাঠটি সাধারণ পূর্বাভাস থেকে ভূপৃষ্ঠের বাতাস, দৃশ্যমানতা, চাপ ও ঝড়ের ঝুঁকি ব্যবহার করে।',
+    },
+    # -----------------------------------------------------------------------
+    "mr": {
+        "ri_heading_researcher": 'मापन आणि कल यांची हवामान माहिती',
+        "ri_heading_disaster_manager": 'आपत्ती प्रतिसाद व सज्जतेची माहिती',
+        "ri_heading_aviation": 'विमान वाहतुकीची भूपृष्ठ हवामान माहिती',
+        "ri_heading_government": 'नागरी सेवांची हवामान माहिती',
+        "ri_heading_event_planner": 'कार्यक्रमाच्या दिवसाची हवामान माहिती',
+        "ri_note_aviation": 'या अॅपमध्ये विमान वाहतुकीची उत्पादने उपलब्ध नाहीत — METAR, TAF, ढगांची उंची, बर्फ साचणे किंवा हादऱ्यांची माहिती नाही. हे वाचन सर्वसाधारण अंदाजातील भूपृष्ठावरील वारा, दृश्यमानता, दाब आणि वादळाचा धोका वापरते.',
+    },
+    # -----------------------------------------------------------------------
+    "as": {
+        "ri_heading_researcher": 'জোখ-মাপ আৰু ধাৰাৰ বতৰ তথ্য',
+        "ri_heading_disaster_manager": 'দুৰ্যোগ সঁহাৰি আৰু প্ৰস্তুতিৰ তথ্য',
+        "ri_heading_aviation": 'বিমান চলাচলৰ ভূপৃষ্ঠ বতৰ তথ্য',
+        "ri_heading_government": 'নাগৰিক সেৱাৰ বতৰ তথ্য',
+        "ri_heading_event_planner": 'অনুষ্ঠানৰ দিনৰ বতৰ তথ্য',
+        "ri_note_aviation": 'এই এপত বিমান চলাচলৰ সামগ্ৰী নাই — METAR, TAF, ডাৱৰৰ উচ্চতা, বৰফ জমা হোৱা বা জোকাৰণিৰ তথ্য নাই। এই পঠনে সাধাৰণ পূৰ্বাভাসৰ পৰা ভূপৃষ্ঠৰ বতাহ, দৃশ্যমানতা, চাপ আৰু ধুমুহাৰ ঝুঁকি ব্যৱহাৰ কৰে।',
+    },
+}
+
+for _lang, _extra in ROLE_SENTENCES_ROLES_12.items():
+    ROLE_SENTENCES.setdefault(_lang, {}).update(_extra)

@@ -232,3 +232,113 @@ def test_the_registry_is_the_only_list_of_roles():
     source = inspect.getsource(role_intel)
     for name in ("_ICONS", "_HEADINGS", "_NOTES"):
         assert name not in source, f"{name} is a duplicate role table"
+
+
+# --- The twelve-role brief (§11) and the differentiation test (§12) ---------
+
+# The roles the brief names, and the key each is served by here. "at least"
+# these twelve: the app also carries household, caregiver and commuter, which
+# predate the brief and are still offered.
+BRIEF_ROLES = {
+    "General Public": "general",
+    "Farmer": "farmer",
+    "Marine / Fisherman": "fisherman",
+    "Traveller": "traveler",
+    "Driver": "driver",
+    "Commuter": "commuter",
+    "Student": "student",
+    "Researcher / Climate Analyst": "researcher",
+    "Disaster Manager": "disaster_manager",
+    "Aviation Professional": "aviation",
+    "Government / Smart City": "government",
+    "Outdoor Worker": "outdoor_worker",
+    "Event / Outdoor Planner": "event_planner",
+}
+
+
+@pytest.mark.parametrize("name,key", sorted(BRIEF_ROLES.items()))
+def test_every_named_role_exists_and_reads(name, key):
+    assert roles.known(key), f"{name} has no role"
+    out = personalization.personalize(bundle=_bundle(), risk=_risk(), role=key)
+    assert out["role"] == key, f"{name} fell back to another reading"
+    assert out["role_cards"], name
+    assert out["heading"], name
+
+
+def _severe():
+    """Heavy rain, strong winds, severe warning — the brief's own scenario."""
+    bundle = _bundle(
+        temperature_c=36.0, apparent_temperature_c=41.0, humidity_pct=78.0,
+        precipitation_mm=14.0, precipitation_probability_pct=90.0,
+        wind_speed_kmh=52.0, wind_gust_kmh=71.0, visibility_km=1.4,
+        pressure_hpa=996.0, _hourly_mm=6.0, _hourly_prob=90.0,
+    )
+    risk = _risk(
+        "Severe", "Heavy Rainfall",
+        **{"Heavy Rainfall": 80, "Flood Risk": 60, "Strong Wind": 70,
+           "Extreme Heat": 45, "Lightning/Storm": 55},
+    )
+    return bundle, risk
+
+
+def test_one_severe_forecast_reads_differently_for_every_named_role():
+    """§12. Same rain, same wind, same warning — thirteen different readings."""
+    bundle, risk = _severe()
+    seen: dict[tuple, str] = {}
+    for name, key in BRIEF_ROLES.items():
+        out = personalization.personalize(bundle=bundle, risk=risk, role=key)
+        # What this reader is shown, and in what order. Two roles handed the
+        # same cards in the same order are one role with two names.
+        signature = (
+            tuple(card["id"] for card in out["role_cards"]),
+            tuple(m["metric"] for m in out["priority_metrics"][:3]),
+        )
+        assert signature not in seen, f"{name} reads identically to {seen[signature]}"
+        seen[signature] = name
+
+
+def test_severe_weather_is_equally_severe_for_everyone():
+    """Emphasis may differ. The measured danger may not."""
+    bundle, risk = _severe()
+    outs = [
+        personalization.personalize(bundle=bundle, risk=risk, role=key)
+        for key in BRIEF_ROLES.values()
+    ]
+    assert {o["emergency"]["active"] for o in outs} == {outs[0]["emergency"]["active"]}
+    assert {o["risk_interpretation"] for o in outs} == {outs[0]["risk_interpretation"]}
+
+
+def test_the_aviation_reading_discloses_what_it_does_not_carry():
+    """No METAR, TAF, cloud base, icing or turbulence. Say so, as marine does."""
+    out = personalization.personalize(bundle=_bundle(), risk=_risk(), role="aviation")
+    note = out["note"]
+    assert note
+    for missing in ("METAR", "TAF"):
+        assert missing in note
+
+
+def test_no_new_role_invented_its_own_vocabulary():
+    """Composed readings must reuse cards, so their wording is already checked."""
+    bundle, risk = _severe()
+    known_ids = set()
+    for key in ("general", "farmer", "fisherman", "traveler", "driver",
+                "commuter", "outdoor_worker", "household", "student", "caregiver"):
+        out = personalization.personalize(bundle=bundle, risk=risk, role=key)
+        known_ids.update(card["id"] for card in out["role_cards"])
+    for key in ("researcher", "disaster_manager", "aviation", "government", "event_planner"):
+        out = personalization.personalize(bundle=bundle, risk=risk, role=key)
+        for card in out["role_cards"]:
+            assert card["id"] in known_ids, f"{key} invented card {card['id']}"
+
+
+@pytest.mark.parametrize("key", ["researcher", "disaster_manager", "aviation",
+                                 "government", "event_planner"])
+def test_new_roles_are_translated_not_left_in_english(key):
+    en = personalization.personalize(bundle=_bundle(), risk=_risk(), role=key)
+    for lang in ("hi", "ta", "pa", "ml", "gu", "kn", "te", "bn", "mr", "as"):
+        other = personalization.personalize(
+            bundle=_bundle(), risk=_risk(), role=key, language=lang
+        )
+        assert other["heading"] != en["heading"], f"{key}/{lang} heading is English"
+        if en["note"]:
+            assert other["note"] != en["note"], f"{key}/{lang} note is English"

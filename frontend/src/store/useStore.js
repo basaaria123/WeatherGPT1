@@ -28,11 +28,15 @@ function savePrefs(prefs) {
   }
 }
 
-// Profiles the selector used to offer. The backend still accepts all three, so
+// Profiles the selector used to offer. The backend still accepts them, so
 // nothing breaks server-side — but a stored value the picker no longer lists
 // would leave the role dropdown showing a blank label, so it is moved to the
 // nearest profile that is still offered.
-const RETIRED_PROFILES = { commuter: 'driver', urban: 'driver', aviation: 'traveler' }
+//
+// `aviation` was here until it became a reading of its own; migrating it away
+// now would take an aviation professional to the traveller's screen and give
+// them a packing list.
+const RETIRED_PROFILES = { commuter: 'driver', urban: 'driver' }
 
 function migrateUserType(stored) {
   if (!stored) return stored

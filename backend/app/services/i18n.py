@@ -395,8 +395,12 @@ HAZARD_FAMILY: dict[str, str] = {
 }
 
 # Profiles the templates cover; aviation/urban alias onto the closest match.
+# A profile with no hazard-action line of its own is read as the nearest one
+# that has one. `aviation` used to be aliased onto `traveler`; it is a reading
+# in its own right now, and a traveller's "pack an umbrella" was never aviation
+# advice, so it falls through to the general line instead — see
+# `canonical_profile`.
 PROFILE_ALIASES: dict[str, str] = {
-    "aviation": "traveler",
     "urban": "commuter",
 }
 

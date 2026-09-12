@@ -20,10 +20,14 @@ UserType = Literal[
     "student",
     "caregiver",
     "general",
+    "researcher",
+    "disaster_manager",
+    "aviation",
+    "government",
+    "event_planner",
     # Still accepted so stored preferences and older clients keep working;
     # each aliases onto one of the profiles above.
     "commuter",
-    "aviation",
     "urban",
 ]
 ResponseMode = Literal["normal", "simple", "emergency"]
