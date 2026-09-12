@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { CircleMarker, MapContainer, Popup, TileLayer, useMap } from 'react-leaflet'
+import { CircleMarker, MapContainer, Popup, useMap } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { EmptyState, Panel, Skeleton } from './ui/Primitives'
+import TileStatus from './map/TileStatus'
 import { LAYERS, LAYER_ORDER, stepsAvailable, valueAt } from './map/mapLayers'
 
 /**
@@ -34,7 +35,7 @@ const DEFAULT_ZOOM = 6
 const INDIA_CENTER = [22.6, 79.5]
 const INDIA_ZOOM = 4
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
 const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
@@ -195,7 +196,7 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
             style={{ height: mapHeight, width: '100%', background: 'var(--wx-bg-deep)' }}
             aria-label={t(language, 'weatherMap')}
           >
-            <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+            <TileStatus url={TILE_URL} attribution={TILE_ATTRIBUTION} />
             <Recenter center={center} zoom={zoom} token={recenterToken} />
             {entries.map((entry) => (
               <LayerMarker

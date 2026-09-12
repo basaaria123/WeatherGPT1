@@ -98,7 +98,7 @@ function HourCard({ hour, index, isNow, language }) {
         <span className="text-[11px] text-accent">{Math.round(hour.precipitation_probability_pct)}%</span>
       )}
       {/* Icon + colour together, so risk is not conveyed by colour alone. */}
-      <span className="text-[10px] font-semibold" style={{ color: tone.color }}>
+      <span className="text-[10px] font-semibold" style={{ color: tone.ink }}>
         <span aria-hidden="true">{tone.icon}</span> {hour.risk_score}
       </span>
     </motion.div>

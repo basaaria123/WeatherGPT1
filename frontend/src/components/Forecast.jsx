@@ -61,7 +61,7 @@ export default function Forecast({ data, loading, error }) {
               {day.precipitation_sum_mm > 0 && (
                 <span className="text-[11px] text-accent">{day.precipitation_sum_mm.toFixed(0)}mm</span>
               )}
-              <span className="text-[10px]" style={{ color: tone.color }} aria-label={levelLabel(language, day.risk_level)}>
+              <span className="text-[10px]" style={{ color: tone.ink }} aria-label={levelLabel(language, day.risk_level)}>
                 <span aria-hidden="true">{tone.icon}</span>
               </span>
             </motion.div>

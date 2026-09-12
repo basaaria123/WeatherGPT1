@@ -31,15 +31,19 @@ export default function AlertsPanel({ onViewArea }) {
 
   return (
     <Panel
-      title={t(language, 'officialAlerts')}
+      title={t(language, 'aiHazard')}
       action={
         here.length > 0 ? (
           <span className="text-[11px] font-semibold text-muted">{here.length}</span>
         ) : null
       }
     >
+      {/* Said once, at the top, because every row below is this app's own
+          reading rather than a warning an agency issued. */}
+      <p className="mb-2.5 text-[11px] leading-relaxed text-faint">{t(language, 'aiHazardNote')}</p>
+
       {here.length === 0 ? (
-        <EmptyState icon="✓" message={t(language, 'noOfficialAlerts')} />
+        <EmptyState icon="✓" message={t(language, 'alertHistoryEmpty')} />
       ) : (
         <ul className="scroll-y -mx-1 max-h-[22rem] space-y-2 px-1">
           <AnimatePresence initial={false}>
@@ -109,7 +113,7 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
             <span
               aria-hidden="true"
               className={urgent ? 'pulse-alert' : ''}
-              style={{ color: tone.color }}
+              style={{ color: tone.ink }}
             >
               {tone.icon}
             </span>
@@ -133,7 +137,7 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
         <ul className="relative mt-2 space-y-1 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2">
           {actions.slice(0, 2).map((action, index) => (
             <li key={index} className="flex gap-1.5 text-[11px] leading-relaxed text-ink-soft">
-              <span aria-hidden="true" style={{ color: tone.color }}>▸</span>
+              <span aria-hidden="true" style={{ color: tone.ink }}>▸</span>
               <span className="min-w-0">{action}</span>
             </li>
           ))}
@@ -141,7 +145,7 @@ function AlertCard({ alert, language, isNew, onViewArea }) {
       )}
 
       {alert.historical_comparison && (
-        <p className="relative mt-2 rounded-lg border border-[rgb(var(--wx-tint)/0.09)] bg-black/20 px-2 py-1.5 text-[11px] leading-relaxed text-muted">
+        <p className="relative mt-2 rounded-lg border border-[rgb(var(--wx-tint)/0.09)] bg-[rgb(var(--wx-tint)/0.04)] px-2 py-1.5 text-[11px] leading-relaxed text-muted">
           <span className="font-semibold text-ink-soft">Historical context · </span>
           {alert.historical_comparison.sentence}
         </p>

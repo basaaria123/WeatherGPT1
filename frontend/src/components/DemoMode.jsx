@@ -124,7 +124,7 @@ export default function DemoMode({ answer }) {
                 initial={{ opacity: 0, x: -14 }}
                 animate={{ opacity: 1, x: 0 }}
                 transition={{ duration: 0.45, delay: 0.1 }}
-                className="rounded-xl border border-[rgb(var(--wx-tint)/0.09)] bg-black/35 p-4"
+                className="rounded-xl border border-[rgb(var(--wx-tint)/0.09)] bg-[rgb(var(--wx-tint)/0.05)] p-4"
               >
                 <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.14em] text-faint">
                   {t(language, 'demoBulletin')}

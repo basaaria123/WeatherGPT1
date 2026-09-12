@@ -73,8 +73,8 @@ export default function BottomNav({ screen, onNavigate }) {
   return (
     <nav
       aria-label={t(language, 'navPrimary')}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[rgb(var(--wx-tint)/0.14)]
-                 bg-[rgb(var(--wx-surface)/0.92)] backdrop-blur-md
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--wx-border)]
+                 bg-[var(--wx-surface)]
                  pb-[max(env(safe-area-inset-bottom),0.35rem)]"
     >
       <ul className="mx-auto flex w-full max-w-lg items-stretch">

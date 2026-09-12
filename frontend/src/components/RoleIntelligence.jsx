@@ -32,7 +32,7 @@ const TONES = {
 
 const toneOf = (tone) => TONES[tone] ?? TONES.info
 
-export default function RoleIntelligence({ intel, loading, hours, timing }) {
+export default function RoleIntelligence({ intel, loading, hours, timing, bestTime }) {
   const language = useStore((s) => s.language)
   const reduced = useReducedMotion()
 
@@ -87,6 +87,26 @@ export default function RoleIntelligence({ intel, loading, hours, timing }) {
             ))}
           </div>
 
+          {/* "Best time to…" — the role's own timing card, promoted out of the
+              grid because it is the answer to a different question from the
+              rest: not what it is like, but when to go. Absent, rather than
+              empty, when the hourly series gives no answer. */}
+          {bestTime?.headline && (
+            <div className="mt-3 flex min-w-0 items-start gap-2.5 rounded-[var(--radius-card)]
+                            border border-[var(--wx-border)] bg-[var(--wx-bg)] px-3 py-2.5">
+              <span aria-hidden="true" className="mt-[2px] shrink-0 text-[13px] text-primary">🕗</span>
+              <div className="min-w-0">
+                <p className="text-[10px] uppercase tracking-[0.12em] text-faint">
+                  {t(language, 'bestTimeTo')}
+                </p>
+                <p className="mt-0.5 text-[13.5px] font-semibold text-ink">{bestTime.headline}</p>
+                {bestTime.detail && (
+                  <p className="mt-0.5 text-[11.5px] leading-relaxed text-muted">{bestTime.detail}</p>
+                )}
+              </div>
+            </div>
+          )}
+
           {showTimeline && <HourStrip hours={hours} language={language} userType={intel.user_type} />}
 
           {/* The disclosure, where the app cannot answer a role's real
@@ -124,10 +144,10 @@ function RoleCard({ card }) {
       <div className="mt-1.5 flex items-start gap-1.5">
         {/* Never colour alone: the glyph carries the same meaning in greyscale
             and for a colour-blind reader, as everywhere else in this app. */}
-        <span aria-hidden="true" className="mt-[3px] text-[10px]" style={{ color: tone.color }}>
+        <span aria-hidden="true" className="mt-[3px] text-[10px]" style={{ color: tone.ink }}>
           {tone.icon}
         </span>
-        <p className="min-w-0 text-[13px] font-semibold leading-snug" style={{ color: tone.color }}>
+        <p className="min-w-0 text-[13px] font-semibold leading-snug" style={{ color: tone.ink }}>
           {card.headline}
         </p>
       </div>
@@ -173,7 +193,7 @@ function HourStrip({ hours, language, userType }) {
               className="flex shrink-0 flex-col items-center gap-1 rounded-lg border px-2 py-1.5"
               style={{ borderColor: tone.ring, background: tone.tint }}
             >
-              <span aria-hidden="true" className="text-[9px]" style={{ color: tone.color }}>{tone.icon}</span>
+              <span aria-hidden="true" className="text-[9px]" style={{ color: tone.ink }}>{tone.icon}</span>
               <span className="text-[10px] tabular-nums text-muted">{time}</span>
             </div>
           )

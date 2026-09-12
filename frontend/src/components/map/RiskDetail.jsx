@@ -118,7 +118,7 @@ export default function RiskDetail({ entry, isActive, activeName, onCommit, onAs
           <span className="text-[12px] text-faint">/100</span>
           <span
             className="ml-auto flex items-center gap-1 rounded-[var(--radius-pill)] px-2 py-0.5 text-[11px] font-semibold"
-            style={{ color: tone.color, background: tone.tint }}
+            style={{ color: tone.ink, background: tone.tint }}
           >
             <span aria-hidden="true">{tone.icon}</span>
             {levelLabel(language, entry.risk_level)}

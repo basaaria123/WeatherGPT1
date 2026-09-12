@@ -267,8 +267,11 @@ async def run_alert_scan() -> list[dict[str, Any]]:
     return created
 
 
-def active_alerts(location: str | None = None, limit: int = 50) -> list[AlertOut]:
-    rows = fetch_alerts(location=location, limit=limit)
+def active_alerts(
+    location: str | None = None, limit: int = 50, include_expired: bool = False
+) -> list[AlertOut]:
+    """Warnings for a place. Live ones by default; the whole record on request."""
+    rows = fetch_alerts(location=location, limit=limit, include_expired=include_expired)
     return [AlertOut(**row) for row in rows]
 
 

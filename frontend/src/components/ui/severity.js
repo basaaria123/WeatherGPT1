@@ -6,45 +6,61 @@
  * for colour-blind users and in greyscale.
  */
 
+/**
+ * The wash and the hairline are mixed from the band's own colour rather than
+ * written out, so a palette change moves all twelve values at once and no
+ * severity can keep a colour the theme no longer uses.
+ *
+ * `color` is what the band looks like; `ink` is what it looks like *as text*.
+ * They differ only for the caution band, whose fill colour is unreadable at
+ * text sizes on white — see the note in weatherTheme.js.
+ */
+const wash = (token) => `color-mix(in srgb, var(${token}) 11%, transparent)`
+const edge = (token) => `color-mix(in srgb, var(${token}) 38%, transparent)`
+
 export const SEVERITY = {
   Low: {
     key: 'Low',
     icon: '●',        // filled circle
     glyph: '✓',       // check
     color: 'var(--color-safe)',
-    tint: 'rgb(52 211 153 / 0.13)',
-    ring: 'rgb(52 211 153 / 0.42)',
+    ink: 'var(--color-safe)',
+    tint: wash('--color-safe'),
+    ring: edge('--color-safe'),
   },
   Moderate: {
     key: 'Moderate',
     icon: '▲',        // triangle
     glyph: '!',
     color: 'var(--color-caution)',
-    tint: 'rgb(251 191 36 / 0.13)',
-    ring: 'rgb(251 191 36 / 0.42)',
+    ink: 'var(--color-caution-ink)',
+    tint: wash('--color-caution'),
+    ring: edge('--color-caution'),
   },
   High: {
     key: 'High',
     icon: '▲',
     glyph: '!!',
     color: 'var(--color-warning)',
-    tint: 'rgb(251 146 60 / 0.15)',
-    ring: 'rgb(251 146 60 / 0.48)',
+    ink: 'var(--color-warning)',
+    tint: wash('--color-warning'),
+    ring: edge('--color-warning'),
   },
   Severe: {
     key: 'Severe',
     icon: '◆',        // diamond
     glyph: '!!!',
     color: 'var(--color-danger)',
-    tint: 'rgb(244 63 94 / 0.16)',
-    ring: 'rgb(244 63 94 / 0.55)',
+    ink: 'var(--color-danger)',
+    tint: wash('--color-danger'),
+    ring: edge('--color-danger'),
   },
 }
 
 export const STATUS = {
-  Safe: { color: 'var(--color-safe)', tint: 'rgb(52 211 153 / 0.13)', icon: '✓' },
-  Caution: { color: 'var(--color-caution)', tint: 'rgb(251 191 36 / 0.13)', icon: '▲' },
-  Avoid: { color: 'var(--color-danger)', tint: 'rgb(244 63 94 / 0.16)', icon: '✕' },
+  Safe: { color: 'var(--color-safe)', ink: 'var(--color-safe)', tint: wash('--color-safe'), icon: '✓' },
+  Caution: { color: 'var(--color-caution)', ink: 'var(--color-caution-ink)', tint: wash('--color-caution'), icon: '▲' },
+  Avoid: { color: 'var(--color-danger)', ink: 'var(--color-danger)', tint: wash('--color-danger'), icon: '✕' },
 }
 
 export const severityOf = (level) => SEVERITY[level] ?? SEVERITY.Low

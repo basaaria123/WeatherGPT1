@@ -43,7 +43,7 @@ export function SeverityPill({ level, label, score, compact = false }) {
       className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-semibold ${
         compact ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-[11px]'
       }`}
-      style={{ background: tone.tint, borderColor: tone.ring, color: tone.color }}
+      style={{ background: tone.tint, borderColor: tone.ring, color: tone.ink }}
     >
       <span aria-hidden="true">{tone.icon}</span>
       <span>{label ?? levelLabel(language, level)}</span>
@@ -59,7 +59,7 @@ export function StatusPill({ status, label }) {
   return (
     <span
       className="inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] px-2 py-0.5 text-[11px] font-semibold"
-      style={{ background: tone.tint, color: tone.color }}
+      style={{ background: tone.tint, color: tone.ink }}
     >
       <span aria-hidden="true">{tone.icon}</span>
       {label ?? status}

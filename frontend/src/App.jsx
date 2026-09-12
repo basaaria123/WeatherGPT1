@@ -10,7 +10,8 @@ import { isNightFor } from './theme/daynight'
 import { THEMES, applyTheme, approachingScene, resolveTheme, sceneForCondition } from './theme/weatherTheme'
 
 import AdvisoryCard from './components/AdvisoryCard'
-import AlertsPanel from './components/AlertsPanel'
+import AlertIndicator from './components/AlertIndicator'
+import AlertsCenter from './components/AlertsCenter'
 import BottomNav from './components/BottomNav'
 import EmergencyBanner from './components/EmergencyBanner'
 import HistoricalContext from './components/HistoricalContext'
@@ -491,32 +492,25 @@ export default function App() {
                 second fetch and no flash of an empty screen. */}
             <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-28 pt-3 sm:px-6 sm:pt-5">
 
-              {/* ---------------- HOME — what should I do now? ------------- */}
+              {/* ---------------- HOME — what should I do now? -------------
+                  Home answers one question, and the order below *is* the
+                  answer: what is happening, what to do about it, what it means
+                  for you specifically, and where to ask more.
+
+                  The map, the forecast and the alert list used to live here
+                  too. They are not gone — each now has the destination it
+                  deserves, reachable from the bar at the foot of the screen.
+                  A page carrying every feature answers nothing first. ------ */}
               {screen === 'home' && (
                 <>
-                  {/* Level 0 when it fires: what is happening now, above all else. */}
+                  {/* Level 0 when it fires: above even the conditions. */}
                   <EmergencyBanner
                     emergency={emergency}
                     audioBase64={answerHere?.audio_base64}
                     audioMime={answerHere?.audio_mime}
                   />
 
-                  {/* An active warning belongs on the page the reader opens,
-                      not one tab away. Same component and same store as the
-                      Alerts destination, so the two can never disagree about
-                      what is live. */}
-                  <AlertsPanel onViewArea={viewArea} />
-
-                  {/* The answer before the reading. A dashboard that opens on
-                      numbers makes the reader do the interpreting; this is the
-                      one section that tells them what to do about them, so it
-                      leads — in an emergency and on a quiet Tuesday alike. */}
-                  <AdvisoryCard
-                    advisory={advisory}
-                    impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
-                    onCompare={() => setCompareOpen(true)}
-                  />
-
+                  {/* 1 — What is happening now. */}
                   <CommandCenter
                     data={currentData}
                     loading={loading.current}
@@ -525,39 +519,41 @@ export default function App() {
                     night={night}
                   />
 
-                  <AskLauncher onOpen={() => setScreen('ai')} />
+                  {/* 2 — What to do about it. The single section this product
+                      exists for, and the reason the reading above it is not
+                      the top of the page. */}
+                  <AdvisoryCard
+                    advisory={advisory}
+                    impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
+                    onCompare={() => setCompareOpen(true)}
+                  />
 
-                  {/* What that same weather means for whoever is reading it.
-                      The server derives it from this response's own bundle and
-                      risk, so it can never disagree with the card above. */}
+                  {/* 3 — What it means for whoever is reading. Derived from
+                      this response's own bundle and risk, so it can never
+                      disagree with the two cards above it. */}
                   <RoleIntelligence
                     intel={currentData?.role_intelligence}
                     loading={loading.current}
                     hours={timelineData?.hours}
+                    bestTime={currentData?.personalization?.best_time}
                     // Whether an hour strip earns its space is a property of
                     // the role, and the role registry lives on the server.
                     timing={currentData?.personalization?.timing}
                   />
 
-                  <MapLauncher ready={Boolean(mapData?.locations?.length)} onOpen={() => setScreen('map')} />
-
-                  <PipelinePanel answer={answerHere} />
-                  <HistoricalContext similarity={similarity} />
-                  <HistoricalNote comparison={similarity?.matched ? null : answerHere?.historical_comparison} />
-
-                  <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
-
-                  {/* Where risk is developing across the country. Its two-step
-                      selection is what keeps it from taking the page over — a
-                      marker previews, only the call to action commits. */}
-                  <RiskMap
-                    data={mapData}
-                    loading={loading.map}
-                    error={errors.map}
-                    onRetry={refresh}
-                    onCommit={openLocalDetails}
-                    onAsk={askAboutArea}
+                  {/* 4 — Where to ask anything else. */}
+                  <AskLauncher
+                    onOpen={() => setScreen('ai')}
+                    suggestions={currentData?.personalization?.suggested_questions}
+                    onAsk={(query) => { setScreen('ai'); send(query) }}
                   />
+
+                  {/* 5 — One line, and only when something is actually live.
+                      An absence does not need a card. */}
+                  <AlertIndicator onOpen={() => setScreen('alerts')} />
+
+                  {/* A door to the map, not the map. */}
+                  <MapLauncher ready={Boolean(mapData?.locations?.length)} onOpen={() => setScreen('map')} />
                 </>
               )}
 
@@ -580,28 +576,54 @@ export default function App() {
                   suggestions={currentData?.personalization?.suggested_questions}
                 />
               )}
+              {/* How the last answer was built. It belongs beside the answer,
+                  not on a page about the weather. */}
+              {screen === 'ai' && <PipelinePanel answer={answerHere} />}
 
               {/* ---------------- MAP — where is the risk? ---------------- */}
               {screen === 'map' && (
-                <WeatherMap
-                  tall
-                  data={mapData}
-                  hours={timelineData?.hours}
-                  insights={timelineData?.insights}
-                  loading={loading.map}
-                  error={errors.map}
-                  onAsk={askAboutArea}
-                />
+                <>
+                  <WeatherMap
+                    tall
+                    data={mapData}
+                    hours={timelineData?.hours}
+                    insights={timelineData?.insights}
+                    loading={loading.map}
+                    error={errors.map}
+                    onAsk={askAboutArea}
+                  />
+                  {/* The risk view of the same country, with the two-step
+                      selection that turns a marker into a reading and then into
+                      a question. It left Home; it did not leave the product. */}
+                  <RiskMap
+                    data={mapData}
+                    loading={loading.map}
+                    error={errors.map}
+                    onRetry={refresh}
+                    onCommit={openLocalDetails}
+                    onAsk={askAboutArea}
+                  />
+                </>
               )}
 
               {/* ---------------- ALERTS — what needs attention? ---------- */}
-              {screen === 'alerts' && <AlertsPanel onViewArea={viewArea} />}
+              {screen === 'alerts' && (
+                <AlertsCenter
+                  onViewArea={viewArea}
+                  onSignIn={() => { setOnboardAt('identity'); setStage('onboarding') }}
+                />
+              )}
 
               {/* ---------------- FORECAST — what is coming? -------------- */}
               {screen === 'forecast' && (
                 <>
                   <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
                   <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
+                  {/* Trends: this place against its own record. Moved here from
+                      Home, where it was the fourth thing competing to be read
+                      and the first thing scrolled past. */}
+                  <HistoricalContext similarity={similarity} />
+                  <HistoricalNote comparison={similarity?.matched ? null : answerHere?.historical_comparison} />
                 </>
               )}
 
@@ -642,41 +664,61 @@ export default function App() {
  * the name of a feature. Deliberately the same shape as `MapLauncher`: two
  * doors on the same page that behaved differently would read as two products.
  */
-function AskLauncher({ onOpen }) {
+function AskLauncher({ onOpen, suggestions, onAsk }) {
   const language = useStore((s) => s.language)
 
   return (
-    <motion.button
-      type="button"
-      onClick={onOpen}
-      whileHover={{ y: -2 }}
-      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
-      className="group flex w-full min-w-0 items-center gap-4 rounded-[var(--radius-card)] border
-                 border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.035)] px-4 py-3.5 text-left
-                 transition hover:border-primary/40 hover:bg-primary/[0.06]"
-    >
-      <span
-        aria-hidden="true"
-        className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-card)]
-                   border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)] text-lg"
+    <section className="glass min-w-0 p-4">
+      <h2 className="text-[10px] uppercase tracking-[0.14em] text-faint">
+        {t(language, 'askAnything')}
+      </h2>
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-2 flex w-full min-w-0 items-center gap-3 rounded-[var(--radius-card)]
+                   border border-[var(--wx-border)] bg-[var(--wx-bg)] px-3.5 py-3 text-left
+                   transition hover:border-primary/50"
       >
-        ✦
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-[14px] font-semibold text-ink">
-          {t(language, 'askAnything')}
-        </span>
-        <span className="mt-0.5 block text-[12px] leading-snug text-muted">
+        <span aria-hidden="true" className="shrink-0 text-[15px] text-primary">✦</span>
+        <span className="min-w-0 flex-1 truncate text-[13px] text-muted">
           {t(language, 'placeholder')}
         </span>
-      </span>
-      <span
-        aria-hidden="true"
-        className="shrink-0 text-[15px] text-muted transition group-hover:translate-x-0.5 group-hover:text-primary"
+        <span aria-hidden="true" className="shrink-0 text-[15px] text-muted">🎙</span>
+      </button>
+
+      {/* The server's own suggestions, and only for cards the reader is
+          actually looking at. Tapping one opens the assistant with the question
+          already asked, rather than opening an empty conversation. */}
+      {suggestions?.length > 0 && (
+        <ul className="mt-2.5 flex min-w-0 flex-wrap gap-1.5">
+          {suggestions.slice(0, 4).map((item) => (
+            <li key={item.id} className="min-w-0">
+              <button
+                type="button"
+                onClick={() => onAsk?.(item.query)}
+                className="max-w-full truncate rounded-[var(--radius-pill)] border border-[var(--wx-border)]
+                           bg-[var(--wx-bg)] px-3 py-1.5 text-[11.5px] font-medium text-ink-soft
+                           transition hover:border-primary/50 hover:text-ink"
+              >
+                {item.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+
+      <button
+        type="button"
+        onClick={onOpen}
+        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-card)]
+                   bg-primary px-4 py-2.5 text-[13px] font-semibold text-white
+                   transition hover:brightness-110"
       >
-        →
-      </span>
-    </motion.button>
+        {t(language, 'openAssistant')}
+        <span aria-hidden="true">→</span>
+      </button>
+    </section>
   )
 }
 

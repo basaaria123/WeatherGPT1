@@ -108,7 +108,7 @@ export default function PersonaCompare({ open, onClose, location }) {
                   <p className="text-[13px] leading-relaxed text-ink-soft">{data.shared_condition}</p>
                   {data.risk && (
                     <p className="mt-1.5 flex items-center gap-1.5 text-[12px]">
-                      <span aria-hidden="true" style={{ color: severityOf(data.risk.risk_level).color }}>
+                      <span aria-hidden="true" style={{ color: severityOf(data.risk.risk_level).ink }}>
                         {severityOf(data.risk.risk_level).icon}
                       </span>
                       <span className="font-semibold text-ink">

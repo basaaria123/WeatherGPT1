@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { CircleMarker, MapContainer, TileLayer, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
+import { CircleMarker, MapContainer, ZoomControl, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
 import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
+import TileStatus from './map/TileStatus'
 import RiskDetail from './map/RiskDetail'
 import { severityOf } from './ui/severity'
 import { EmptyState, Panel, SeverityPill, Skeleton } from './ui/Primitives'
@@ -36,8 +37,10 @@ import { EmptyState, Panel, SeverityPill, Skeleton } from './ui/Primitives'
 const INDIA_CENTER = [22.6, 79.5]
 const DEFAULT_ZOOM = 4
 
-// Carto's dark basemap suits the palette and needs no API key.
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png'
+// Carto Voyager: light cartography with state and district boundaries, place
+// names and roads — the geography a weather map is read against. Keyless, so
+// nothing here can fail for want of a credential.
+const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
 const TILE_ATTRIBUTION =
   '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
 
@@ -175,7 +178,7 @@ export default function RiskMap({ data, loading, error, onRetry, onCommit, onAsk
                 zoomControl={false}
               >
                 <ZoomControl position="topright" />
-                <TileLayer url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+                <TileStatus url={TILE_URL} attribution={TILE_ATTRIBUTION} />
                 <FocusController focus={mapFocus} />
                 <DismissOnMapClick onDismiss={dismiss} />
                 <KeepSelectionVisible entry={preview} />
@@ -231,7 +234,7 @@ export default function RiskMap({ data, loading, error, onRetry, onCommit, onAsk
               const tone = severityOf(level)
               return (
                 <span key={level} className="flex items-center gap-1 text-[11px] text-muted">
-                  <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>
+                  <span aria-hidden="true" style={{ color: tone.ink }}>{tone.icon}</span>
                   {levelLabel(language, level)}
                 </span>
               )

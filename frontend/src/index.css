@@ -5,38 +5,52 @@
    these; components never hardcode a hex value.
    --------------------------------------------------------------------------- */
 @theme {
+  /* These defaults are the LIGHT palette, because light is the default
+     appearance and these are what paints the first frame — the splash and the
+     landing page, before weatherTheme.js has resolved a condition. When they
+     were the dark palette the app opened dark and then flipped, which is the
+     one moment a reader forms an impression of what it is.
+
+     weatherTheme.js overwrites all of them per condition and per appearance. */
+
   /* Surfaces */
-  --color-bg: #050d1a;
-  --color-bg-deep: #030814;
-  --color-bg-raised: #0a172b;
-  --color-surface: #0e1c33;
-  --color-border: #1e3050;
-  --color-border-soft: #16263f;
+  --color-bg: #f5faff;
+  --color-bg-deep: #eaf4ff;
+  --color-bg-raised: #ffffff;
+  --color-surface: #ffffff;
+  --color-border: #d7e5f2;
+  --color-border-soft: #e6f0fa;
 
   /* Brand */
-  --color-primary: #22d3ee;
-  --color-primary-dim: #0e7490;
-  --color-secondary: #2dd4bf;
-  --color-accent: #60a5fa;
+  --color-primary: #1565c0;
+  --color-primary-dim: #1976d2;
+  --color-secondary: #1976d2;
+  --color-accent: #00897b;
 
   /* Text */
-  --color-ink: #f1f5f9;
-  --color-ink-soft: #cbd5e1;
-  --color-muted: #94a3b8;
-  --color-faint: #64748b;
+  --color-ink: #17324d;
+  --color-ink-soft: #2c4a66;
+  --color-muted: #607d94;
+  --color-faint: #8ca3b8;
 
-  /* Severity — never used alone; always paired with an icon and a label */
-  --color-safe: #34d399;
-  --color-caution: #fbbf24;
-  --color-warning: #fb923c;
-  --color-danger: #f43f5e;
+  /* Severity — never used alone; always paired with an icon and a label.
+     `caution` is the fill value and `caution-ink` the text one; see the note in
+     weatherTheme.js for why the amber needs two. */
+  --color-safe: #2e9d68;
+  --color-caution: #f9a825;
+  --color-caution-ink: #8a5a00;
+  --color-warning: #e8710a;
+  --color-danger: #e53935;
 
-  /* Shape */
-  --radius-card: 1.25rem;
+  /* Shape. Cards are rectangles with a small radius rather than the 20px
+     pills they were: this reads as an instrument, not a consumer app. */
+  --radius-card: 0.75rem;
   --radius-pill: 999px;
 
-  --shadow-glass: 0 6px 20px rgb(2 8 20 / 0.38);
-  --shadow-lift: 0 10px 30px rgb(2 8 20 / 0.46);
+  /* Elevation is a hairline and a whisper of shadow. On a white ground a heavy
+     shadow reads as a smudge, and stacking several reads as clutter. */
+  --shadow-glass: 0 1px 2px rgb(23 50 77 / 0.06);
+  --shadow-lift: 0 4px 14px rgb(23 50 77 / 0.10);
 
   /* Indic families sit in the stack after the Latin ones: the browser picks
      them per-glyph, so an English sentence stays Inter while a Telugu one
@@ -52,23 +66,24 @@
   /* Weather-theme variables. weatherTheme.js overwrites these on the root when
      conditions resolve; these defaults keep the first paint correct. */
   :root {
-    --wx-bg: #050d1a;
-    --wx-bg-deep: #030814;
-    --wx-raised: #0a172b;
-    --wx-surface: #0e1c33;
-    --wx-primary: #22d3ee;
-    --wx-accent: #60a5fa;
-    --wx-border: #1e3050;
-    --wx-atmos-a: rgb(34 211 238 / 0.07);
-    --wx-atmos-b: rgb(45 212 191 / 0.05);
+    color-scheme: light;
+    --wx-bg: #f5faff;
+    --wx-bg-deep: #eaf4ff;
+    --wx-raised: #ffffff;
+    --wx-surface: #ffffff;
+    --wx-primary: #1565c0;
+    --wx-accent: #00897b;
+    --wx-border: #d7e5f2;
+    --wx-atmos-a: rgb(25 118 210 / 0.07);
+    --wx-atmos-b: rgb(0 137 123 / 0.05);
     --wx-pattern: none;
-    /* Surfaces are tinted with this: white over a dark theme, deep navy over a
-       light one. Every panel, chip and hairline resolves through it, so one
+    /* Surfaces are tinted with this: deep blue over a light theme, white over a
+       dark one. Every panel, chip and hairline resolves through it, so one
        value flips the whole interface between light and dark. */
-    --wx-tint: 255 255 255;
-    --wx-scrim: 3 8 20;
-    --wx-overlay: rgb(2 6 14 / 0.72);
-    --wx-vignette: radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(3 8 20 / 0.55) 78%, rgb(3 8 20 / 0.85) 100%);
+    --wx-tint: 23 50 77;
+    --wx-scrim: 234 244 255;
+    --wx-overlay: rgb(23 50 77 / 0.40);
+    --wx-vignette: radial-gradient(118% 80% at 50% 0%, transparent 42%, rgb(215 229 242 / 0.34) 82%, rgb(202 221 240 / 0.46) 100%);
   }
 
   * {
@@ -131,38 +146,33 @@
 }
 
 @layer components {
-  /* Frosted panel. Blur, glow and translucency are all pulled back from where
-     they started: the panel should separate the data from the background, not
-     compete with it for attention. */
+  /* A card. The name is historical — it was a frosted glass panel, and the
+     blur, the gradient and the translucency have all gone. What separates a
+     card from the page now is a hairline and a flat surface, which is what
+     reads as an instrument rather than as a consumer app.
+     ONE class, so re-styling it re-styles every panel in the product. */
   .glass {
-    background: linear-gradient(
-      160deg,
-      rgb(var(--wx-tint) / 0.055) 0%,
-      rgb(var(--wx-tint) / 0.028) 60%,
-      rgb(var(--wx-tint) / 0.014) 100%
-    );
-    backdrop-filter: blur(11px) saturate(118%);
-    -webkit-backdrop-filter: blur(11px) saturate(118%);
-    border: 1px solid rgb(var(--wx-tint) / 0.085);
+    background: var(--wx-surface);
+    border: 1px solid var(--wx-border);
     border-radius: var(--radius-card);
     box-shadow: var(--shadow-glass);
-    transition: border-color 650ms ease, box-shadow 650ms ease;
+    transition: border-color 400ms ease, box-shadow 400ms ease;
   }
 
+  /* One step up, and the step is a firmer edge — not a heavier shadow. */
   .glass-raised {
-    background: linear-gradient(160deg, rgb(var(--wx-tint) / 0.075) 0%, rgb(var(--wx-tint) / 0.032) 100%);
-    border-color: rgb(var(--wx-tint) / 0.115);
+    background: var(--wx-raised);
+    border-color: color-mix(in srgb, var(--wx-primary) 22%, var(--wx-border));
     box-shadow: var(--shadow-lift);
   }
 
-  /* Level 1 of the hierarchy: the one card that should read first. Its edge
-     picks up the weather accent, which is most of what makes the theme land. */
+  /* Level 1 of the hierarchy: the one card that should read first. It is marked
+     by a solid rule in the weather accent along its top edge, so the emphasis
+     survives greyscale and does not depend on a glow. */
   .glass-hero {
-    border-color: color-mix(in srgb, var(--wx-primary) 34%, transparent);
-    box-shadow:
-      var(--shadow-lift),
-      inset 0 1px 0 rgb(var(--wx-tint) / 0.06),
-      0 0 0 1px color-mix(in srgb, var(--wx-primary) 9%, transparent);
+    border-color: color-mix(in srgb, var(--wx-primary) 30%, var(--wx-border));
+    border-top: 3px solid var(--wx-primary);
+    box-shadow: var(--shadow-lift);
   }
 
   /* Horizontal scrollers (timeline, forecast) keep their overflow to themselves. */
@@ -270,8 +280,10 @@
 }
 
 .leaflet-control-attribution {
-  background: rgb(5 13 26 / 0.75) !important;
-  color: var(--color-faint) !important;
+  /* Was a hardcoded near-black wash, left over from the dark basemap. Taken
+     from the surface token so it reads on the light cartography. */
+  background: rgb(255 255 255 / 0.82) !important;
+  color: var(--color-muted) !important;
   font-size: 10px !important;
 }
 

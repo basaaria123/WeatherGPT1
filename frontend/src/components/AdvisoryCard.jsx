@@ -55,7 +55,7 @@ function WeatherImpact({ impacts, language, location, userType }) {
         <span className="text-[12.5px] font-semibold text-ink">{mine.category}</span>
         <span
           className="flex items-center gap-1 rounded-[var(--radius-pill)] px-1.5 py-px text-[10px] font-semibold"
-          style={{ color: tone.color, background: tone.tint }}
+          style={{ color: tone.ink, background: tone.tint }}
         >
           <span aria-hidden="true">{tone.icon}</span>
           {mine.headline}
@@ -122,7 +122,7 @@ export default function AdvisoryCard({ advisory, impacts, onCompare }) {
       }
     >
       <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>
+        <span aria-hidden="true" style={{ color: tone.ink }}>{tone.icon}</span>
         <span className="text-[12px] font-semibold text-ink">
           {hazardLabel(language, advisory.hazard)}
         </span>

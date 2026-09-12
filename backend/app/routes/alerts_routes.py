@@ -22,11 +22,21 @@ def get_alerts(
     location: str | None = Query(default=None, description="Filter by location name"),
     language: str = "en",
     limit: int = Query(50, ge=1, le=200),
+    include_expired: bool = Query(
+        False,
+        description="Also return warnings that have lapsed — what the history view reads",
+    ),
 ) -> dict:
-    active = alert_service.active_alerts(location=location, limit=limit)
+    # The store has kept expired alerts all along; nothing could ask for them.
+    # History is a real record rather than a second list to maintain: the same
+    # rows, with the time filter lifted.
+    active = alert_service.active_alerts(
+        location=location, limit=limit, include_expired=include_expired
+    )
     return {
         "count": len(active),
         "location": location,
+        "include_expired": include_expired,
         "alerts": [alert_service.localised_alert(alert, language) for alert in active],
     }
 

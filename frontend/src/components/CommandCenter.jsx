@@ -260,7 +260,7 @@ function RiskExplainer({ risk, language }) {
           </button>
 
           {open && (
-            <div className="mt-2 rounded-xl border border-[rgb(var(--wx-tint)/0.09)] bg-black/15 p-2.5 text-left">
+            <div className="mt-2 rounded-xl border border-[rgb(var(--wx-tint)/0.09)] bg-[rgb(var(--wx-tint)/0.035)] p-2.5 text-left">
               {risk.drivers?.length > 0 && (
                 <ul className="mb-2 space-y-1">
                   {risk.drivers.map((driver, index) => (
@@ -364,10 +364,16 @@ function HazardVsAlerts({ risk, officialCount, language }) {
         </p>
       </div>
 
+      {/* What this counts is warnings *this app* has raised and stored for this
+          place. It was headed "Official alert status" and credited "IMD / NDMA"
+          — a source that is not wired into this build and never was. The count
+          comes from the same store the alerts destination reads, which the risk
+          engine fills; crediting an agency for it would be the one claim this
+          product must never make. */}
       <div>
         <div className="flex items-center gap-1.5 text-[11px] uppercase tracking-[0.12em] text-faint">
-          <span aria-hidden="true" className="normal-case tracking-normal">🏛️</span>
-          <span>{t(language, 'officialStatus')}</span>
+          <span aria-hidden="true" className="normal-case tracking-normal">🔔</span>
+          <span>{t(language, 'warningsRaised')}</span>
         </div>
         <div className="mt-0.5 flex items-center gap-1.5">
           <span aria-hidden="true" className={officialCount > 0 ? '' : 'text-safe'}>
@@ -375,15 +381,14 @@ function HazardVsAlerts({ risk, officialCount, language }) {
           </span>
           <span className="text-[13px] font-semibold text-ink">
             {officialCount === 0
-              ? t(language, 'noOfficialAlerts')
+              ? t(language, 'alertHistoryEmpty')
               : officialCount === 1
                 ? t(language, 'warningOne')
                 : t(language, 'warningMany').replace('{n}', String(officialCount))}
           </span>
         </div>
-        {/* Where it came from, so the reader can weigh it. */}
         <p className="mt-0.5 text-[11px] leading-relaxed text-faint">
-          {t(language, 'source')}: IMD / NDMA
+          {t(language, 'source')}: WeatherGPT
         </p>
       </div>
     </div>
