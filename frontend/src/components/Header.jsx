@@ -18,6 +18,8 @@ export default function Header({ onHome, onBack, onOpenLocation, onRefresh, refr
   const location = useStore((s) => s.location)
   const socketState = useStore((s) => s.socketState)
   const dataSource = useStore((s) => s.dataSource)
+  const appearance = useStore((s) => s.appearance)
+  const setAppearance = useStore((s) => s.setAppearance)
 
   return (
     <header className="sticky top-0 z-30 border-b border-[rgb(var(--wx-tint)/0.07)] bg-[rgb(var(--wx-scrim)/0.72)] backdrop-blur-xl">
@@ -107,6 +109,23 @@ export default function Header({ onHome, onBack, onOpenLocation, onRefresh, refr
             />
 
             <ProfileMenu onSignIn={onSignIn} />
+
+            {/* Light is the default; this is the reader's override, remembered
+                across visits. A single toggle rather than a three-way with
+                "auto": the weather already moves the theme, and a third mode
+                that also moves it on its own would make the interface feel like
+                it was changing for no reason. */}
+            <button
+              type="button"
+              onClick={() => setAppearance(appearance === 'dark' ? 'light' : 'dark')}
+              aria-label={t(language, 'appearance')}
+              title={t(language, 'appearance')}
+              aria-pressed={appearance === 'dark'}
+              className="grid h-8 w-8 place-items-center rounded-full border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)]
+                         text-sm text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.25)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
+            >
+              <span aria-hidden="true">{appearance === 'dark' ? '☾' : '☀'}</span>
+            </button>
 
             <button
               type="button"

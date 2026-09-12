@@ -53,6 +53,7 @@ export default function App() {
   const [screen, setScreen] = useState('home')
 
   const language = useStore((s) => s.language)
+  const appearance = useStore((s) => s.appearance)
   const userType = useStore((s) => s.userType)
   const location = useStore((s) => s.location)
   const setLocation = useStore((s) => s.setLocation)
@@ -331,8 +332,9 @@ export default function App() {
         isDay: !night,
         riskLevel: shownRisk?.risk_level,
         hazard: shownRisk?.detected_hazard,
+        appearance,
       }),
-    [shown?.weather_code, night, shownRisk?.risk_level, shownRisk?.detected_hazard],
+    [shown?.weather_code, night, shownRisk?.risk_level, shownRisk?.detected_hazard, appearance],
   )
 
   useEffect(() => {

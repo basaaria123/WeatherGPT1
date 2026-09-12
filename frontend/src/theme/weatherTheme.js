@@ -209,6 +209,74 @@ export const THEMES = {
     atmosA: 'rgb(96 165 250 / 0.11)', atmosB: 'rgb(251 191 119 / 0.05)',
     pattern: 'radial-gradient(100% 70% at 70% -8%, rgb(96 165 250 / 0.11), transparent 62%)',
   },
+
+  // --- Light twins of the dark themes ------------------------------------
+  // Light is the app's default appearance, so every condition needs a bright
+  // rendering — not just the bright ones. These keep each condition's own
+  // character in the accent, the atmosphere and the pattern, and move only the
+  // ground beneath them. Severity colours are the darkened set: amber at full
+  // saturation is unreadable as text on white, which is the one place this
+  // palette deliberately departs from the brief.
+  baseLight: {
+    scheme: 'light',
+    scrim: '236 241 245', overlay: 'rgb(38 50 56 / 0.42)',
+    bg: '#f5f8fa', bgDeep: '#ebf1f5', raised: '#ffffff', surface: '#ffffff',
+    primary: '#1565c0', accent: '#00897b', border: '#dce3e8',
+    tint: '38 50 56',
+    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
+    safe: '#2e7d32', caution: '#a16207', warning: '#d84315', danger: '#b3261e',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 36%, rgb(219 230 238 / 0.40) 80%, rgb(206 220 231 / 0.58) 100%)',
+    shadowGlass: '0 4px 16px rgb(38 50 56 / 0.09)',
+    shadowLift: '0 10px 28px rgb(38 50 56 / 0.13)',
+    atmosA: 'rgb(21 101 192 / 0.08)', atmosB: 'rgb(0 137 123 / 0.06)',
+    pattern: 'none',
+  },
+  rainLight: {
+    scheme: 'light',
+    scrim: '230 239 246', overlay: 'rgb(23 45 64 / 0.42)',
+    bg: '#eef4f9', bgDeep: '#e1ecf4', raised: '#ffffff', surface: '#ffffff',
+    primary: '#0277bd', accent: '#00897b', border: '#cddfec',
+    tint: '23 45 64',
+    ink: '#17293f', inkSoft: '#2d4358', muted: '#546e7a', faint: '#869aa8',
+    safe: '#2e7d32', caution: '#a16207', warning: '#d84315', danger: '#b3261e',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 34%, rgb(205 223 236 / 0.46) 80%, rgb(190 212 229 / 0.64) 100%)',
+    shadowGlass: '0 4px 16px rgb(23 45 64 / 0.10)',
+    shadowLift: '0 10px 28px rgb(23 45 64 / 0.14)',
+    atmosA: 'rgb(2 119 189 / 0.12)', atmosB: 'rgb(0 137 123 / 0.07)',
+    pattern:
+      'repeating-linear-gradient(72deg, rgb(2 119 189 / 0.055) 0 1px, transparent 1px 9px),' +
+      'radial-gradient(100% 70% at 50% 0%, rgb(2 119 189 / 0.09), transparent 65%)',
+  },
+  stormLight: {
+    scheme: 'light',
+    scrim: '228 235 243', overlay: 'rgb(20 36 56 / 0.44)',
+    bg: '#edf1f7', bgDeep: '#e0e7f0', raised: '#ffffff', surface: '#ffffff',
+    primary: '#1565c0', accent: '#c77700', border: '#ccd8e6',
+    tint: '20 36 56',
+    ink: '#142438', inkSoft: '#2b3d54', muted: '#526478', faint: '#84939f',
+    safe: '#2e7d32', caution: '#a16207', warning: '#d84315', danger: '#b3261e',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(203 214 229 / 0.50) 78%, rgb(188 202 220 / 0.68) 100%)',
+    shadowGlass: '0 4px 16px rgb(20 36 56 / 0.11)',
+    shadowLift: '0 10px 28px rgb(20 36 56 / 0.15)',
+    atmosA: 'rgb(21 101 192 / 0.15)', atmosB: 'rgb(199 119 0 / 0.07)',
+    pattern:
+      'radial-gradient(110% 70% at 50% -12%, rgb(21 101 192 / 0.15), transparent 62%),' +
+      'radial-gradient(60% 40% at 80% 12%, rgb(199 119 0 / 0.08), transparent 60%)',
+  },
+  nightLight: {
+    scheme: 'light',
+    scrim: '234 238 245', overlay: 'rgb(32 42 60 / 0.42)',
+    bg: '#eef1f7', bgDeep: '#e3e8f1', raised: '#ffffff', surface: '#ffffff',
+    primary: '#3949ab', accent: '#00897b', border: '#d3dae6',
+    tint: '32 42 60',
+    ink: '#202a3c', inkSoft: '#36425a', muted: '#5b6880', faint: '#8d97a9',
+    safe: '#2e7d32', caution: '#a16207', warning: '#d84315', danger: '#b3261e',
+    vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 34%, rgb(210 218 232 / 0.46) 80%, rgb(196 206 224 / 0.64) 100%)',
+    shadowGlass: '0 4px 16px rgb(32 42 60 / 0.10)',
+    shadowLift: '0 10px 28px rgb(32 42 60 / 0.14)',
+    atmosA: 'rgb(57 73 171 / 0.10)', atmosB: 'rgb(0 137 123 / 0.05)',
+    pattern: 'radial-gradient(100% 70% at 70% -8%, rgb(57 73 171 / 0.10), transparent 62%)',
+  },
 }
 
 /**
@@ -223,22 +291,42 @@ export const THEMES = {
 // thunderstorm would contradict the condition shown next to them.
 const STORMY_HAZARDS = new Set(['Lightning/Storm', 'Flood Risk', 'Heavy Rainfall'])
 
-export function resolveTheme({ weatherCode, isDay = true, riskLevel, hazard } = {}) {
+/**
+ * Light is the default appearance; dark is a choice the reader makes.
+ *
+ * The condition is resolved first and the appearance is applied second, so the
+ * weather still decides the character — the accent, the atmosphere, the pattern
+ * — and the appearance decides only whether that character is painted on a
+ * bright ground or a dark one. Resolving them the other way round would make
+ * "rain" mean something different in each mode.
+ */
+const LIGHT_TWIN = { base: 'baseLight', rain: 'rainLight', storm: 'stormLight', night: 'nightLight' }
+// In dark appearance the three bright conditions have no dark character of
+// their own — an overcast sky at night is simply night — so they fall to the
+// dark base and let rain, storm and night carry the weather.
+const DARK_TWIN = { clear: 'base', cloudy: 'base', fog: 'base' }
+
+export function forAppearance(themeKey, appearance = 'light') {
+  if (appearance === 'dark') return DARK_TWIN[themeKey] ?? themeKey
+  return LIGHT_TWIN[themeKey] ?? themeKey
+}
+
+export function resolveTheme({ weatherCode, isDay = true, riskLevel, hazard, appearance = 'light' } = {}) {
   const condition = normalizeCondition(weatherCode)
 
-  if (hazard === 'Lightning/Storm' || condition === CONDITION.THUNDERSTORM) return 'storm'
+  if (hazard === 'Lightning/Storm' || condition === CONDITION.THUNDERSTORM) return forAppearance('storm', appearance)
   // Severity alone does not repaint the sky — only a severe hazard that would
   // actually darken it. Severity is carried by the risk pill and the alerts.
-  if (riskLevel === 'Severe' && STORMY_HAZARDS.has(hazard)) return 'storm'
+  if (riskLevel === 'Severe' && STORMY_HAZARDS.has(hazard)) return forAppearance('storm', appearance)
 
   const byCondition = CONDITION_TO_THEME[condition] ?? 'base'
   // Night reclaims every theme that is painted light. Rain and storm are dark
   // already and keep their own character; clear, cloudy and fog are bright by
   // day, and a bright interface at two in the morning is the same mismatch as a
   // sun over "clear night" — fog was the one that slipped through.
-  if (isDay === false && THEMES[byCondition]?.scheme === 'light') return 'night'
-  if (isDay === false && byCondition === 'base') return 'night'
-  return byCondition
+  if (isDay === false && THEMES[byCondition]?.scheme === 'light') return forAppearance('night', appearance)
+  if (isDay === false && byCondition === 'base') return forAppearance('night', appearance)
+  return forAppearance(byCondition, appearance)
 }
 
 const VAR_MAP = {
@@ -367,6 +455,9 @@ export function approachingScene(hours, current, lookahead = 4) {
 export function sceneForCondition({ weatherCode, riskLevel, hazard } = {}) {
   if (hazard === 'Extreme Heat') return 'heat'
   if (hazard === 'Lightning/Storm') return 'storm'
+  // A *scene* key for the animated background, not a theme key — appearance
+  // does not apply here, because the scene is painted over whichever ground
+  // the theme chose.
   if (riskLevel === 'Severe' && STORMY_HAZARDS.has(hazard)) return 'storm'
   return CONDITION_TO_SCENE[normalizeCondition(weatherCode)] ?? 'clear'
 }

@@ -46,6 +46,17 @@ export const useStore = create((set, get) => ({
   sessionId: null,
   setSessionId: (sessionId) => set({ sessionId }),
 
+  // --- Appearance ----------------------------------------------------------
+  // Light by default. The weather still chooses the character of the theme —
+  // the accent, the atmosphere, the pattern — and this chooses only whether
+  // that character is painted on a bright ground or a dark one.
+  appearance: prefs.appearance === 'dark' ? 'dark' : 'light',
+  setAppearance: (appearance) => {
+    const next = appearance === 'dark' ? 'dark' : 'light'
+    savePrefs({ ...loadPrefs(), appearance: next })
+    set({ appearance: next })
+  },
+
   // --- Who is reading, and whether they have been set up -------------------
   // `onboarded` is remembered so a returning reader lands on the dashboard
   // rather than being asked the same three questions again.

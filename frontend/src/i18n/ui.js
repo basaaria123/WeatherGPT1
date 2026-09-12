@@ -8,6 +8,7 @@
 
 const STRINGS = {
   en: {
+    appearance: 'Appearance',
     navPrimary: 'Main navigation',
     navHome: 'Home',
     navAI: 'AI',
@@ -307,6 +308,7 @@ const STRINGS = {
   },
 
   hi: {
+    appearance: 'दिखावट',
     navPrimary: 'मुख्य नेविगेशन',
     navHome: 'होम',
     navAI: 'AI',
@@ -606,6 +608,7 @@ const STRINGS = {
   },
 
   te: {
+    appearance: 'రూపం',
     navPrimary: 'ప్రధాన నావిగేషన్',
     navHome: 'హోమ్',
     navAI: 'AI',
@@ -905,6 +908,7 @@ const STRINGS = {
   },
 
   bn: {
+    appearance: 'চেহারা',
     navPrimary: 'প্রধান নেভিগেশন',
     navHome: 'হোম',
     navAI: 'AI',
@@ -1204,6 +1208,7 @@ const STRINGS = {
   },
 
   mr: {
+    appearance: 'स्वरूप',
     navPrimary: 'मुख्य नेव्हिगेशन',
     navHome: 'होम',
     navAI: 'AI',
@@ -1503,6 +1508,7 @@ const STRINGS = {
   },
 
   as: {
+    appearance: 'ৰূপ',
     navPrimary: 'মুখ্য নেভিগেশ্বন',
     navHome: 'হোম',
     navAI: 'AI',
@@ -1801,6 +1807,7 @@ const STRINGS = {
     },
   },
   ta: {
+    appearance: 'தோற்றம்',
     navPrimary: 'முதன்மை வழிசெலுத்தல்',
     navHome: 'முகப்பு',
     navAI: 'AI',
@@ -2099,6 +2106,7 @@ const STRINGS = {
     },
   },
   kn: {
+    appearance: 'ಗೋಚರತೆ',
     navPrimary: 'ಮುಖ್ಯ ನ್ಯಾವಿಗೇಷನ್',
     navHome: 'ಮುಖಪುಟ',
     navAI: 'AI',
@@ -2397,6 +2405,7 @@ const STRINGS = {
     },
   },
   ml: {
+    appearance: 'രൂപം',
     navPrimary: 'പ്രധാന നാവിഗേഷൻ',
     navHome: 'ഹോം',
     navAI: 'AI',
@@ -2695,6 +2704,7 @@ const STRINGS = {
     },
   },
   gu: {
+    appearance: 'દેખાવ',
     navPrimary: 'મુખ્ય નેવિગેશન',
     navHome: 'હોમ',
     navAI: 'AI',
@@ -2993,6 +3003,7 @@ const STRINGS = {
     },
   },
   pa: {
+    appearance: 'ਦਿੱਖ',
     navPrimary: 'ਮੁੱਖ ਨੈਵੀਗੇਸ਼ਨ',
     navHome: 'ਹੋਮ',
     navAI: 'AI',
