@@ -49,7 +49,7 @@ function Recenter({ center, zoom, token }) {
   return null
 }
 
-export default function WeatherMap({ data, hours, insights, loading, error, tall = false }) {
+export default function WeatherMap({ data, hours, insights, loading, error, tall = false, onAsk }) {
   const language = useStore((s) => s.language)
   const location = useStore((s) => s.location)
   const reduced = useReducedMotion()
@@ -205,6 +205,7 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
                 step={step}
                 language={language}
                 isHere={entry.location === location?.name}
+                onAsk={onAsk}
               />
             ))}
           </MapContainer>
@@ -315,7 +316,7 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
  * visibly a gap rather than a low value, which is the difference between
  * missing data and calm weather.
  */
-function LayerMarker({ entry, layer, step, language, isHere }) {
+function LayerMarker({ entry, layer, step, language, isHere, onAsk }) {
   const value = valueAt(entry, layer, step)
   const known = value !== null
   const radius = isHere ? 11 : 6 + (known ? layer.scale(value) * 9 : 0)
@@ -375,6 +376,21 @@ function LayerMarker({ entry, layer, step, language, isHere }) {
           <div className="mt-1 text-[11px] opacity-70">
             {t(language, 'riskScore')}: {entry.risk_score}/100 · {levelLabel(language, entry.risk_level)}
           </div>
+          {/* The selection becomes the subject: this hands the place above to
+              the assistant and leaves the conversation about it, not about
+              wherever the reader was before they opened the map. */}
+          {onAsk && (
+            <button
+              type="button"
+              data-testid="ask-about-area"
+              onClick={() => onAsk(entry)}
+              className="mt-2 w-full rounded-lg border border-[rgb(var(--wx-tint)/0.3)] px-2 py-1.5
+                         text-[11.5px] font-semibold text-ink transition
+                         hover:bg-[rgb(var(--wx-tint)/0.12)]"
+            >
+              {t(language, 'askAboutArea')}
+            </button>
+          )}
         </div>
       </Popup>
     </CircleMarker>

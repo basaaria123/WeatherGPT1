@@ -373,6 +373,36 @@ export default function App() {
    * forecasts, the alert feed, the chat's context and the sky behind all of it
    * are keyed on it, so committing the location is the whole update.
    */
+  /**
+   * The map's selection, handed to the assistant as its subject.
+   *
+   * Committing the location is most of the work — every request the chat makes
+   * carries `location`, so the answer is about the selected place from the next
+   * turn onward. What that alone would not do is stop the *conversation* being
+   * about somewhere else: the session memory on the server still holds the
+   * previous place, and an assistant asked "and tomorrow?" would answer for it.
+   *
+   * So the session is dropped and the transcript cleared. Moving the subject is
+   * a new conversation, not a turn in the old one, and the reader is told so by
+   * the screen resetting rather than by an explanation.
+   */
+  const askAboutArea = useCallback(
+    (entry) => {
+      setLocation({
+        name: entry.location,
+        admin1: entry.admin1,
+        latitude: entry.latitude,
+        longitude: entry.longitude,
+      })
+      setSessionId(null)
+      setMessages([])
+      setChatError(null)
+      setScreen('ai')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+    [setLocation, setSessionId],
+  )
+
   const openLocalDetails = useCallback(
     (entry) => {
       setLocation({
@@ -526,6 +556,7 @@ export default function App() {
                     error={errors.map}
                     onRetry={refresh}
                     onCommit={openLocalDetails}
+                    onAsk={askAboutArea}
                   />
                 </>
               )}
@@ -559,6 +590,7 @@ export default function App() {
                   insights={timelineData?.insights}
                   loading={loading.map}
                   error={errors.map}
+                  onAsk={askAboutArea}
                 />
               )}
 

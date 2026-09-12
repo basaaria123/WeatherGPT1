@@ -111,7 +111,7 @@ function DismissOnMapClick({ onDismiss }) {
   return null
 }
 
-export default function RiskMap({ data, loading, error, onRetry, onCommit }) {
+export default function RiskMap({ data, loading, error, onRetry, onCommit, onAsk }) {
   const language = useStore((s) => s.language)
   const mapFocus = useStore((s) => s.mapFocus)
   const activeName = useStore((s) => s.location?.name)
@@ -218,6 +218,7 @@ export default function RiskMap({ data, loading, error, onRetry, onCommit }) {
                   isActive={preview.location === activeName}
                   activeName={activeName}
                   onCommit={commit}
+                  onAsk={onAsk ? () => { setPreviewName(null); onAsk(preview) } : undefined}
                   onClose={dismiss}
                 />
               )}

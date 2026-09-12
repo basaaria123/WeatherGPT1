@@ -8,6 +8,7 @@
 
 const STRINGS = {
   en: {
+    askAboutArea: 'Ask WeatherGPT about this area',
     errNotFound: 'We could not find that place. Check the spelling and try again.',
     errTimeout: 'That took too long. Please try again.',
     errOffline: 'Could not reach WeatherGPT. Check your connection and try again.',
@@ -313,6 +314,7 @@ const STRINGS = {
   },
 
   hi: {
+    askAboutArea: 'इस क्षेत्र के बारे में WeatherGPT से पूछें',
     errNotFound: 'वह जगह नहीं मिली। वर्तनी जाँचकर फिर कोशिश करें।',
     errTimeout: 'इसमें बहुत समय लगा। कृपया फिर कोशिश करें।',
     errOffline: 'WeatherGPT तक नहीं पहुँच सके। अपना कनेक्शन जाँचें।',
@@ -618,6 +620,7 @@ const STRINGS = {
   },
 
   te: {
+    askAboutArea: 'ఈ ప్రాంతం గురించి WeatherGPT ను అడగండి',
     errNotFound: 'ఆ ప్రదేశం దొరకలేదు. అక్షరక్రమం చూసి మళ్లీ ప్రయత్నించండి.',
     errTimeout: 'ఇది చాలా సమయం తీసుకుంది. మళ్లీ ప్రయత్నించండి.',
     errOffline: 'WeatherGPT చేరలేకపోయాం. మీ కనెక్షన్ చూడండి.',
@@ -923,6 +926,7 @@ const STRINGS = {
   },
 
   bn: {
+    askAboutArea: 'এই এলাকা সম্পর্কে WeatherGPT-কে জিজ্ঞাসা করুন',
     errNotFound: 'সেই জায়গা পাওয়া গেল না। বানান দেখে আবার চেষ্টা করুন।',
     errTimeout: 'এতে অনেক সময় লাগল। আবার চেষ্টা করুন।',
     errOffline: 'WeatherGPT-এ পৌঁছনো গেল না। সংযোগ দেখে নিন।',
@@ -1228,6 +1232,7 @@ const STRINGS = {
   },
 
   mr: {
+    askAboutArea: 'या भागाबद्दल WeatherGPT ला विचारा',
     errNotFound: 'ते ठिकाण सापडले नाही. स्पेलिंग तपासून पुन्हा प्रयत्न करा.',
     errTimeout: 'याला खूप वेळ लागला. पुन्हा प्रयत्न करा.',
     errOffline: 'WeatherGPT पर्यंत पोहोचता आले नाही. तुमचे कनेक्शन तपासा.',
@@ -1533,6 +1538,7 @@ const STRINGS = {
   },
 
   as: {
+    askAboutArea: 'এই অঞ্চলৰ বিষয়ে WeatherGPT ক সোধক',
     errNotFound: 'সেই ঠাই পোৱা নগ’ল। বানান চাই পুনৰ চেষ্টা কৰক।',
     errTimeout: 'ইয়াত বহুত সময় লাগিল। পুনৰ চেষ্টা কৰক।',
     errOffline: 'WeatherGPT-লৈ পাব পৰা নগ’ল। আপোনাৰ সংযোগ চাওক।',
@@ -1837,6 +1843,7 @@ const STRINGS = {
     },
   },
   ta: {
+    askAboutArea: 'இந்தப் பகுதி பற்றி WeatherGPT-யிடம் கேளுங்கள்',
     errNotFound: 'அந்த இடம் கிடைக்கவில்லை. எழுத்துப்பிழை பார்த்து மீண்டும் முயற்சிக்கவும்.',
     errTimeout: 'இது மிக நேரம் எடுத்தது. மீண்டும் முயற்சிக்கவும்.',
     errOffline: 'WeatherGPT-ஐ அடைய முடியவில்லை. உங்கள் இணைப்பைப் பாருங்கள்.',
@@ -2141,6 +2148,7 @@ const STRINGS = {
     },
   },
   kn: {
+    askAboutArea: 'ಈ ಪ್ರದೇಶದ ಬಗ್ಗೆ WeatherGPT ಅನ್ನು ಕೇಳಿ',
     errNotFound: 'ಆ ಸ್ಥಳ ಸಿಗಲಿಲ್ಲ. ಕಾಗುಣಿತ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
     errTimeout: 'ಇದಕ್ಕೆ ತುಂಬಾ ಸಮಯ ಹಿಡಿಯಿತು. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
     errOffline: 'WeatherGPT ತಲುಪಲು ಆಗಲಿಲ್ಲ. ನಿಮ್ಮ ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ.',
@@ -2445,6 +2453,7 @@ const STRINGS = {
     },
   },
   ml: {
+    askAboutArea: 'ഈ പ്രദേശത്തെക്കുറിച്ച് WeatherGPT യോട് ചോദിക്കൂ',
     errNotFound: 'ആ സ്ഥലം കണ്ടെത്താനായില്ല. അക്ഷരം പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.',
     errTimeout: 'ഇതിന് വളരെ സമയമെടുത്തു. വീണ്ടും ശ്രമിക്കുക.',
     errOffline: 'WeatherGPT-ൽ എത്താനായില്ല. നിങ്ങളുടെ കണക്ഷൻ പരിശോധിക്കുക.',
@@ -2749,6 +2758,7 @@ const STRINGS = {
     },
   },
   gu: {
+    askAboutArea: 'આ વિસ્તાર વિશે WeatherGPT ને પૂછો',
     errNotFound: 'તે સ્થળ મળ્યું નહીં. જોડણી તપાસીને ફરી પ્રયાસ કરો.',
     errTimeout: 'આમાં ઘણો સમય લાગ્યો. ફરી પ્રયાસ કરો.',
     errOffline: 'WeatherGPT સુધી પહોંચી શકાયું નહીં. તમારું કનેક્શન તપાસો.',
@@ -3053,6 +3063,7 @@ const STRINGS = {
     },
   },
   pa: {
+    askAboutArea: 'ਇਸ ਇਲਾਕੇ ਬਾਰੇ WeatherGPT ਨੂੰ ਪੁੱਛੋ',
     errNotFound: 'ਉਹ ਥਾਂ ਨਹੀਂ ਮਿਲੀ। ਸਪੈਲਿੰਗ ਵੇਖ ਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
     errTimeout: 'ਇਸ ਵਿੱਚ ਬਹੁਤ ਸਮਾਂ ਲੱਗਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
     errOffline: 'WeatherGPT ਤੱਕ ਨਹੀਂ ਪਹੁੰਚ ਸਕੇ। ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਵੇਖੋ।',

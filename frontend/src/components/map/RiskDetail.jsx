@@ -63,7 +63,7 @@ function secondaryConditions(entry, language) {
   return rows
 }
 
-export default function RiskDetail({ entry, isActive, activeName, onCommit, onClose }) {
+export default function RiskDetail({ entry, isActive, activeName, onCommit, onAsk, onClose }) {
   const language = useStore((s) => s.language)
   const tone = severityOf(entry.risk_level)
   const band = Math.max(0, BANDS.indexOf(entry.risk_level)) + 1
@@ -180,8 +180,22 @@ export default function RiskDetail({ entry, isActive, activeName, onCommit, onCl
 
       </div>
 
-      {/* 8 — the only control that changes where the reader is */}
+      {/* 8 — the two controls that act on the selection. Both move the reader;
+          one takes them to the dashboard for this place, the other takes them
+          to a conversation about it. */}
       <div className="shrink-0 border-t border-[rgb(var(--wx-tint)/0.08)] px-3 pb-3 pt-2.5">
+        {onAsk && (
+          <button
+            type="button"
+            data-testid="ask-about-area"
+            onClick={onAsk}
+            className="mb-2 w-full rounded-lg border border-[rgb(var(--wx-tint)/0.28)] px-3 py-2
+                       text-[12.5px] font-semibold text-ink transition
+                       hover:bg-[rgb(var(--wx-tint)/0.12)]"
+          >
+            {t(language, 'askAboutArea')}
+          </button>
+        )}
         {isActive ? (
           <p className="rounded-lg bg-primary/[0.08] px-2 py-1.5 text-center text-[11.5px] font-semibold text-primary">
             {t(language, 'shownAbove')}
