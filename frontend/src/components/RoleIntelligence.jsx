@@ -147,7 +147,7 @@ function RoleCard({ card }) {
  */
 function HourStrip({ hours, language, userType }) {
   const window = hours.slice(0, 12)
-  const label = userType === 'fisherman' ? t(language, 'fishingWindow') : t(language, 'commuteWindow')
+  const label = userType === 'marine' ? t(language, 'fishingWindow') : t(language, 'commuteWindow')
 
   return (
     <div className="mt-3 min-w-0 border-t border-[rgb(var(--wx-tint)/0.07)] pt-3">

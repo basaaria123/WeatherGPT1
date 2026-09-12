@@ -11,7 +11,7 @@
  */
 export const ROLES = [
   { id: 'farmer', icon: '🌾' },
-  { id: 'fisherman', icon: '🎣' },
+  { id: 'marine', icon: '🎣' },
   { id: 'traveler', icon: '🚗' },
   { id: 'driver', icon: '🚚' },
   { id: 'outdoor_worker', icon: '🏗️' },

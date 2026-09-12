@@ -401,6 +401,11 @@ HAZARD_FAMILY: dict[str, str] = {
 # advice, so it falls through to the general line instead — see
 # `canonical_profile`.
 PROFILE_ALIASES: dict[str, str] = {
+    # `marine` is the role's key; `fisherman` is what the action and reason
+    # tables below have always been keyed on, and re-keying 88 translated
+    # sentences to rename a dictionary entry would be a change with no reader
+    # on the other end of it.
+    "marine": "fisherman",
     "urban": "commuter",
 }
 

@@ -28,6 +28,9 @@ CHANGE_PCT = 15  # a swing smaller than this is noise, not a trend
 _ROLE_CLAUSE = {
     "general": ("mi_role_general", "mi_role_general_calm"),
     "farmer": ("mi_role_farmer", "mi_role_farmer_calm"),
+    # Both names, one entry: `marine` is the role's key and `fisherman` is what
+    # stored preferences still carry.
+    "marine": ("mi_role_fisherman", "mi_role_fisherman_calm"),
     "fisherman": ("mi_role_fisherman", "mi_role_fisherman_calm"),
     "traveler": ("mi_role_traveler", "mi_role_traveler_calm"),
     "driver": ("mi_role_driver", "mi_role_driver_calm"),

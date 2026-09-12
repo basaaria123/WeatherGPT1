@@ -138,6 +138,23 @@ def _r(value: float | None, places: int = 0) -> Any:
     return round(value, places) if places else int(round(value))
 
 
+def _view_profile(user_type: str | None) -> str:
+    """Whose *view* this is — which cards, in which order, over what horizon.
+
+    Deliberately not `i18n.canonical_profile`, which answers a narrower
+    question: whose hazard-action *line* to use. Only ten profiles have a line
+    of their own, so that function reads every other one as general — correct
+    for an action sentence, wrong for an ordering. A researcher has no action
+    line and gets the general one; they still get their own factor order.
+
+    Aliases resolve first, so a profile that is genuinely another one under a
+    different name (marine and fisherman, urban and commuter) shares its view.
+    """
+    profile = (user_type or "general").strip().lower()
+    profile = i18n.PROFILE_ALIASES.get(profile, profile)
+    return profile if profile in PROFILE_FACTOR_ORDER else "general"
+
+
 def smart_explanation(
     bundle: Any,
     risk: RiskOutput,
@@ -349,7 +366,7 @@ def impact_cards(
 
     # The reader's own sectors, in their own order. The content of a card never
     # changes with the profile — only whether this reader is shown it.
-    profile = i18n.canonical_profile(user_type)
+    profile = _view_profile(user_type)
     wanted = PROFILE_IMPACT_CATEGORIES.get(profile)
     if wanted:
         scores = dict(spec)
@@ -475,8 +492,12 @@ def persona_guidance(
     fisherman's without either of them being told something the data does not
     support — the profile reorders and closes, it never invents.
     """
+    # `user_type` goes to `headline_insight` unchanged: it resolves the *view*
+    # itself, and collapsing it here would hand it a profile already flattened
+    # to general and lose this reader's ordering. `profile` below is the
+    # narrower question — whose hazard-action line to use — so it stays.
     profile = i18n.canonical_profile(user_type)
-    insight = headline_insight(bundle, risk, profile, lang)
+    insight = headline_insight(bundle, risk, user_type, lang)
     joined = " ".join(
         part.strip()
         for part in (insight.get("headline"), insight.get("supporting"))
@@ -577,7 +598,7 @@ def headline_insight(
     candidates surface first — it never adds one.
     """
     lang = i18n.normalise_lang(lang)
-    profile = i18n.canonical_profile(user_type)
+    profile = _view_profile(user_type)
     horizon = horizon_hours or PROFILE_HORIZON_HOURS.get(profile, 12)
     cur = bundle.current or {}
     window = list(bundle.hourly[:horizon])
@@ -865,7 +886,7 @@ def advisory_for_every_persona(risk: RiskOutput, lang: str = "en") -> list[dict[
 # what fits side by side and still reads. "commuter" left this set when the
 # selector stopped offering it — a column labelled with a profile nobody can
 # choose would be showing advice the reader cannot get.
-PERSONAS: tuple[str, ...] = ("farmer", "fisherman", "traveler", "driver", "general")
+PERSONAS: tuple[str, ...] = ("farmer", "marine", "traveler", "driver", "general")
 
 
 # ---------------------------------------------------------------------------

@@ -118,7 +118,9 @@ def test_sanitise_keeps_valid_values():
         fallback_language="en",
     )
     assert clean["intent"] == "climate_trend"
-    assert clean["user_type"] == "fisherman"
+    # Sanitising resolves the role as well as validating it, so a model that
+    # answered with an older name cannot smuggle one downstream.
+    assert clean["user_type"] == "marine"
     assert clean["response_mode"] == "simple"
     assert clean["language"] == "te"
 

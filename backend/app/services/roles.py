@@ -74,8 +74,12 @@ ROLES: dict[str, Role] = {
             ("crop_risk", "What is the disease risk for my crop in these conditions?"),
         ),
     ),
-    "fisherman": Role(
-        key="fisherman", icon="🎣", heading_key="ri_heading_fisherman",
+    "marine": Role(
+        # The brief's key. "Fisherman" is who mostly uses it, but a harbour
+        # pilot and a ferry operator ask the same questions, and the corpus has
+        # always called this reading "Marine intelligence" — the sentence keys
+        # below predate the rename and already say so.
+        key="marine", icon="🎣", heading_key="ri_heading_fisherman",
         metrics=_WIND + ("visibility_km", "pressure_hpa") + _RAIN,
         alert_hazards=("Strong Wind", "Lightning/Storm", "Heavy Rainfall"),
         ask=(
@@ -216,6 +220,15 @@ ROLES: dict[str, Role] = {
 
 DEFAULT_ROLE = "general"
 
+# Keys that are a role under another name. Stored preferences, older clients and
+# the eight releases that shipped `fisherman` all keep working: the alias is
+# resolved here rather than migrated away, so nobody's saved choice is quietly
+# changed into a different reading.
+ALIASES: dict[str, str] = {
+    "fisherman": "marine",
+    "urban": "commuter",
+}
+
 
 def get(role: str | None) -> Role:
     """The named role, or the general reading. Never raises on an unknown key.
@@ -225,11 +238,13 @@ def get(role: str | None) -> Role:
     the honest thing to fall back to.
     """
     key = (role or DEFAULT_ROLE).strip().lower()
+    key = ALIASES.get(key, key)
     return ROLES.get(key, ROLES[DEFAULT_ROLE])
 
 
 def known(role: str | None) -> bool:
-    return (role or "").strip().lower() in ROLES
+    key = (role or "").strip().lower()
+    return ALIASES.get(key, key) in ROLES
 
 
 def keys() -> tuple[str, ...]:

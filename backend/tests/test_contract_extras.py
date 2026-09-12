@@ -104,11 +104,29 @@ def test_no_english_leaks_into_localised_answers(lang, scenario):
 
 
 # --- user_type breadth -----------------------------------------------------
-@pytest.mark.parametrize("profile", ["farmer", "fisherman", "traveler", "commuter", "aviation", "urban", "general"])
-def test_every_user_type_is_accepted(profile, scenario):
+@pytest.mark.parametrize(
+    "profile,expected",
+    [
+        ("farmer", "farmer"),
+        ("traveler", "traveler"),
+        ("commuter", "commuter"),
+        ("aviation", "aviation"),
+        ("general", "general"),
+        ("researcher", "researcher"),
+        ("disaster_manager", "disaster_manager"),
+        ("government", "government"),
+        ("event_planner", "event_planner"),
+        ("marine", "marine"),
+        # Sent under an older name, answered under the one this build reads it
+        # as — accepted either way, and the response says which reading it is.
+        ("fisherman", "marine"),
+        ("urban", "commuter"),
+    ],
+)
+def test_every_user_type_is_accepted(profile, expected, scenario):
     scenario("storm")
     response = chat_engine.handle_chat(query="Weather in Mumbai?", user_type=profile)
-    assert response.user_type == profile
+    assert response.user_type == expected
     assert response.answer.strip()
 
 

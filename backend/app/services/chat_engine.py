@@ -36,7 +36,10 @@ from ..schemas import (
     RiskOutput,
     VerificationInfo,
 )
-from . import advisory, history, i18n, language, llm, memory, nlp_fallback, risk_engine, verification, weather
+from . import (
+    advisory, history, i18n, language, llm, memory, nlp_fallback, risk_engine, roles,
+    verification, weather,
+)
 from .weather import Location, WeatherError
 
 log = logging.getLogger("weathergpt.chat")
@@ -58,9 +61,11 @@ def _sanitise_extraction(raw: dict[str, Any] | None, *, fallback_language: str) 
     mode = str(raw.get("response_mode", "normal")).strip()
     if mode not in VALID_MODES:
         mode = "normal"
-    user_type = str(raw.get("user_type", "general")).strip().lower()
-    if user_type not in USER_TYPES:
-        user_type = "general"
+    # Resolved through the registry, so a role sent under an older name comes
+    # back under the one this build actually reasons about — the response then
+    # names the reading it was built from, rather than the word the caller
+    # happened to use.
+    user_type = roles.get(str(raw.get("user_type", "general"))).key
     try:
         day_offset = max(0, min(6, int(raw.get("day_offset", 0))))
     except (TypeError, ValueError):
@@ -293,7 +298,9 @@ def handle_chat(
     )
 
     if user_type:
-        extraction["user_type"] = user_type if user_type in USER_TYPES else extraction["user_type"]
+        extraction["user_type"] = (
+            roles.get(user_type).key if roles.known(user_type) else extraction["user_type"]
+        )
     elif state.user_type and extraction["user_type"] == "general":
         extraction["user_type"] = state.user_type
     state.user_type = extraction["user_type"]

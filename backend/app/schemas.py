@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 UserType = Literal[
     "farmer",
-    "fisherman",
+    "marine",
     "traveler",
     "driver",
     "outdoor_worker",
@@ -27,6 +27,7 @@ UserType = Literal[
     "event_planner",
     # Still accepted so stored preferences and older clients keep working;
     # each aliases onto one of the profiles above.
+    "fisherman",
     "commuter",
     "urban",
 ]
@@ -50,20 +51,17 @@ SUPPORTED_LANGUAGES: dict[str, str] = {
 
 # The nine profiles the product offers, then the three legacy values kept
 # valid so a stored preference never becomes an invalid request.
-USER_TYPES: tuple[str, ...] = (
-    "farmer",
-    "fisherman",
-    "traveler",
-    "driver",
-    "outdoor_worker",
-    "household",
-    "student",
-    "caregiver",
-    "general",
-    "commuter",
-    "aviation",
-    "urban",
-)
+# What `/config` advertises and what the extractor is allowed to return.
+# Derived from the role registry rather than listed again: the two disagreeing
+# is how a role ends up selectable but unextractable, or offered by the API and
+# absent from the app. The aliases follow, so a client sending a stored
+# `fisherman` is still sending something this list contains.
+#
+# `app.services.roles` imports nothing from the package, so this cannot cycle.
+from .services.roles import ALIASES as _ROLE_ALIASES  # noqa: E402
+from .services.roles import keys as _role_keys  # noqa: E402
+
+USER_TYPES: tuple[str, ...] = _role_keys() + tuple(_ROLE_ALIASES)
 
 HAZARDS: tuple[str, ...] = (
     "Heavy Rainfall",

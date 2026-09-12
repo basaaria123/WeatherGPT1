@@ -213,7 +213,7 @@ const STRINGS = {
     windLabels: {
       general: 'Wind',
       farmer: 'Field wind',
-      fisherman: 'Marine wind',
+      marine: 'Marine wind',
       traveler: 'Wind conditions',
       driver: 'Crosswind',
       outdoor_worker: 'Site wind',
@@ -302,7 +302,7 @@ const STRINGS = {
     changeRole: 'Change role',
     profiles: {
       farmer: 'Farmer',
-      fisherman: 'Fisherman',
+      marine: 'Marine / fisherman',
       traveler: 'Traveller',
       driver: 'Driver',
       outdoor_worker: 'Outdoor worker',
@@ -524,7 +524,7 @@ const STRINGS = {
     windLabels: {
       general: 'हवा',
       farmer: 'खेत की हवा',
-      fisherman: 'समुद्री हवा',
+      marine: 'समुद्री हवा',
       traveler: 'हवा की स्थिति',
       driver: 'बग़ली हवा',
       outdoor_worker: 'साइट पर हवा',
@@ -613,7 +613,7 @@ const STRINGS = {
     changeRole: 'भूमिका बदलें',
     profiles: {
       farmer: 'किसान',
-      fisherman: 'मछुआरा',
+      marine: 'समुद्री / मछुआरा',
       traveler: 'यात्री',
       driver: 'ड्राइवर',
       outdoor_worker: 'बाहरी कामगार',
@@ -835,7 +835,7 @@ const STRINGS = {
     windLabels: {
       general: 'గాలి',
       farmer: 'పొలంలో గాలి',
-      fisherman: 'సముద్రపు గాలి',
+      marine: 'సముద్రపు గాలి',
       traveler: 'గాలి పరిస్థితి',
       driver: 'పక్క గాలి',
       outdoor_worker: 'సైట్ గాలి',
@@ -924,7 +924,7 @@ const STRINGS = {
     changeRole: 'పాత్రను మార్చండి',
     profiles: {
       farmer: 'రైతు',
-      fisherman: 'మత్స్యకారుడు',
+      marine: 'సముద్రం / మత్స్యకారుడు',
       traveler: 'ప్రయాణికుడు',
       driver: 'డ్రైవర్',
       outdoor_worker: 'బయటి పనివారు',
@@ -1146,7 +1146,7 @@ const STRINGS = {
     windLabels: {
       general: 'বাতাস',
       farmer: 'মাঠের বাতাস',
-      fisherman: 'সামুদ্রিক বাতাস',
+      marine: 'সামুদ্রিক বাতাস',
       traveler: 'বাতাসের অবস্থা',
       driver: 'পাশের বাতাস',
       outdoor_worker: 'সাইটের বাতাস',
@@ -1235,7 +1235,7 @@ const STRINGS = {
     changeRole: 'ভূমিকা বদলান',
     profiles: {
       farmer: 'কৃষক',
-      fisherman: 'জেলে',
+      marine: 'সামুদ্রিক / জেলে',
       traveler: 'ভ্রমণকারী',
       driver: 'চালক',
       outdoor_worker: 'বাইরের কর্মী',
@@ -1457,7 +1457,7 @@ const STRINGS = {
     windLabels: {
       general: 'वारा',
       farmer: 'शेतातील वारा',
-      fisherman: 'सागरी वारा',
+      marine: 'सागरी वारा',
       traveler: 'वाऱ्याची स्थिती',
       driver: 'बाजूचा वारा',
       outdoor_worker: 'साइटवरील वारा',
@@ -1546,7 +1546,7 @@ const STRINGS = {
     changeRole: 'भूमिका बदला',
     profiles: {
       farmer: 'शेतकरी',
-      fisherman: 'मच्छीमार',
+      marine: 'सागरी / मच्छीमार',
       traveler: 'प्रवासी',
       driver: 'चालक',
       outdoor_worker: 'बाहेरील कामगार',
@@ -1768,7 +1768,7 @@ const STRINGS = {
     windLabels: {
       general: 'বতাহ',
       farmer: 'পথাৰৰ বতাহ',
-      fisherman: 'সাগৰীয় বতাহ',
+      marine: 'সাগৰীয় বতাহ',
       traveler: 'বতাহৰ অৱস্থা',
       driver: 'কাষৰ বতাহ',
       outdoor_worker: 'ছাইটৰ বতাহ',
@@ -1857,7 +1857,7 @@ const STRINGS = {
     changeRole: 'ভূমিকা সলনি কৰক',
     profiles: {
       farmer: 'কৃষক',
-      fisherman: 'মাছমৰীয়া',
+      marine: 'সাগৰীয় / মাছমৰীয়া',
       traveler: 'যাত্ৰী',
       driver: 'চালক',
       outdoor_worker: 'বাহিৰৰ শ্ৰমিক',
@@ -2078,7 +2078,7 @@ const STRINGS = {
     windLabels: {
       general: 'காற்று',
       farmer: 'வயல் காற்று',
-      fisherman: 'கடல் காற்று',
+      marine: 'கடல் காற்று',
       traveler: 'காற்று நிலை',
       driver: 'பக்கவாட்டுக் காற்று',
       outdoor_worker: 'பணியிடக் காற்று',
@@ -2167,7 +2167,7 @@ const STRINGS = {
     changeRole: 'பயனர் வகையை மாற்று',
     profiles: {
       farmer: 'விவசாயி',
-      fisherman: 'மீனவர்',
+      marine: 'கடல் / மீனவர்',
       traveler: 'பயணி',
       driver: 'வாகன ஓட்டுநர்',
       outdoor_worker: 'வெளிப்புறத் தொழிலாளர்',
@@ -2388,7 +2388,7 @@ const STRINGS = {
     windLabels: {
       general: 'ಗಾಳಿ',
       farmer: 'ಹೊಲದ ಗಾಳಿ',
-      fisherman: 'ಸಮುದ್ರದ ಗಾಳಿ',
+      marine: 'ಸಮುದ್ರದ ಗಾಳಿ',
       traveler: 'ಗಾಳಿಯ ಸ್ಥಿತಿ',
       driver: 'ಪಕ್ಕದ ಗಾಳಿ',
       outdoor_worker: 'ಕೆಲಸದ ಸ್ಥಳದ ಗಾಳಿ',
@@ -2477,7 +2477,7 @@ const STRINGS = {
     changeRole: 'ಬಳಕೆದಾರ ವಿಧ ಬದಲಿಸಿ',
     profiles: {
       farmer: 'ರೈತ',
-      fisherman: 'ಮೀನುಗಾರ',
+      marine: 'ಸಮುದ್ರ / ಮೀನುಗಾರ',
       traveler: 'ಪ್ರಯಾಣಿಕ',
       driver: 'ವಾಹನ ಚಾಲಕ',
       outdoor_worker: 'ಹೊರಾಂಗಣ ಕಾರ್ಮಿಕ',
@@ -2698,7 +2698,7 @@ const STRINGS = {
     windLabels: {
       general: 'കാറ്റ്',
       farmer: 'വയലിലെ കാറ്റ്',
-      fisherman: 'കടൽക്കാറ്റ്',
+      marine: 'കടൽക്കാറ്റ്',
       traveler: 'കാറ്റിന്റെ സ്ഥിതി',
       driver: 'വശത്തുനിന്നുള്ള കാറ്റ്',
       outdoor_worker: 'ജോലിസ്ഥലത്തെ കാറ്റ്',
@@ -2787,7 +2787,7 @@ const STRINGS = {
     changeRole: 'ഉപയോക്തൃ വിഭാഗം മാറ്റുക',
     profiles: {
       farmer: 'കർഷകൻ',
-      fisherman: 'മത്സ്യത്തൊഴിലാളി',
+      marine: 'സമുദ്രം / മത്സ്യത്തൊഴിലാളി',
       traveler: 'യാത്രക്കാരൻ',
       driver: 'വാഹന ഡ്രൈവർ',
       outdoor_worker: 'പുറത്തെ തൊഴിലാളി',
@@ -3008,7 +3008,7 @@ const STRINGS = {
     windLabels: {
       general: 'પવન',
       farmer: 'ખેતરનો પવન',
-      fisherman: 'દરિયાઈ પવન',
+      marine: 'દરિયાઈ પવન',
       traveler: 'પવનની સ્થિતિ',
       driver: 'બાજુનો પવન',
       outdoor_worker: 'સાઇટનો પવન',
@@ -3097,7 +3097,7 @@ const STRINGS = {
     changeRole: 'વપરાશકર્તા પ્રકાર બદલો',
     profiles: {
       farmer: 'ખેડૂત',
-      fisherman: 'માછીમાર',
+      marine: 'દરિયાઈ / માછીમાર',
       traveler: 'મુસાફર',
       driver: 'વાહનચાલક',
       outdoor_worker: 'બહારનો કામદાર',
@@ -3318,7 +3318,7 @@ const STRINGS = {
     windLabels: {
       general: 'ਹਵਾ',
       farmer: 'ਖੇਤ ਦੀ ਹਵਾ',
-      fisherman: 'ਸਮੁੰਦਰੀ ਹਵਾ',
+      marine: 'ਸਮੁੰਦਰੀ ਹਵਾ',
       traveler: 'ਹਵਾ ਦੀ ਸਥਿਤੀ',
       driver: 'ਪਾਸੇ ਦੀ ਹਵਾ',
       outdoor_worker: 'ਕੰਮ ਵਾਲੀ ਥਾਂ ਦੀ ਹਵਾ',
@@ -3407,7 +3407,7 @@ const STRINGS = {
     changeRole: 'ਵਰਤੋਂਕਾਰ ਕਿਸਮ ਬਦਲੋ',
     profiles: {
       farmer: 'ਕਿਸਾਨ',
-      fisherman: 'ਮਛੇਰਾ',
+      marine: 'ਸਮੁੰਦਰੀ / ਮਛੇਰਾ',
       traveler: 'ਯਾਤਰੀ',
       driver: 'ਗੱਡੀ ਚਾਲਕ',
       outdoor_worker: 'ਬਾਹਰੀ ਕਾਮਾ',

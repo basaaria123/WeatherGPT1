@@ -1222,3 +1222,105 @@ ROLE_SENTENCES_ROLES_12: dict[str, dict[str, str]] = {
 
 for _lang, _extra in ROLE_SENTENCES_ROLES_12.items():
     ROLE_SENTENCES.setdefault(_lang, {}).update(_extra)
+
+
+# Marine mode's two forward-looking readings.
+#
+# A pressure *value* tells a mariner little; the direction it is moving is the
+# oldest warning there is, and it cannot be read from one observation — so the
+# hourly series now carries pressure and this says what it is doing. The wind
+# outlook answers the other question a boat actually has: not how hard it is
+# blowing now, but when that changes.
+#
+# Both are filled from measured hourly values. Neither says anything about the
+# sea itself: wave, swell, tide, current and sea temperature are still absent
+# from every source wired into this app, and `ri_note_marine` still says so.
+ROLE_SENTENCES_MARINE: dict[str, dict[str, str]] = {
+    # -----------------------------------------------------------------------
+    "en": {
+        "ri_pressure_title": 'Pressure trend',
+        "ri_pressure_falling_fast": 'Falling quickly',
+        "ri_pressure_falling": 'Falling',
+        "ri_pressure_steady": 'Steady',
+        "ri_pressure_rising": 'Rising',
+        "ri_pressure_detail": '{hpa} hPa now, {delta} hPa over the next {hours} hours.',
+        "ri_pressure_none": 'No pressure forecast available',
+        "ri_wind_rising": 'Strengthening from about {time}',
+        "ri_wind_easing": 'Easing from about {time}',
+        "ri_wind_steady": 'Little change expected',
+        "ri_wind_peak": 'Peaks near {kmh} km/h in the next {hours} hours.',
+    },
+    # -----------------------------------------------------------------------
+    "hi": {
+        "ri_pressure_title": 'दाब की दिशा',
+        "ri_pressure_falling_fast": 'तेज़ी से गिर रहा',
+        "ri_pressure_falling": 'गिर रहा',
+        "ri_pressure_steady": 'स्थिर',
+        "ri_pressure_rising": 'बढ़ रहा',
+        "ri_pressure_detail": 'अभी {hpa} hPa, अगले {hours} घंटों में {delta} hPa।',
+        "ri_pressure_none": 'दाब का पूर्वानुमान उपलब्ध नहीं',
+        "ri_wind_rising": 'लगभग {time} से तेज़ होगी',
+        "ri_wind_easing": 'लगभग {time} से कम होगी',
+        "ri_wind_steady": 'ज़्यादा बदलाव की संभावना नहीं',
+        "ri_wind_peak": 'अगले {hours} घंटों में अधिकतम लगभग {kmh} किमी/घंटा।',
+    },
+    # -----------------------------------------------------------------------
+    "te": {
+        "ri_pressure_title": 'పీడన ధోరణి',
+        "ri_pressure_falling_fast": 'వేగంగా తగ్గుతోంది',
+        "ri_pressure_falling": 'తగ్గుతోంది',
+        "ri_pressure_steady": 'స్థిరంగా ఉంది',
+        "ri_pressure_rising": 'పెరుగుతోంది',
+        "ri_pressure_detail": 'ఇప్పుడు {hpa} hPa, రాబోయే {hours} గంటల్లో {delta} hPa.',
+        "ri_pressure_none": 'పీడన సూచన అందుబాటులో లేదు',
+        "ri_wind_rising": 'సుమారు {time} నుండి బలపడుతుంది',
+        "ri_wind_easing": 'సుమారు {time} నుండి తగ్గుతుంది',
+        "ri_wind_steady": 'పెద్దగా మార్పు ఉండదు',
+        "ri_wind_peak": 'రాబోయే {hours} గంటల్లో గరిష్ఠంగా సుమారు {kmh} కిమీ/గం.',
+    },
+    # -----------------------------------------------------------------------
+    "bn": {
+        "ri_pressure_title": 'চাপের প্রবণতা',
+        "ri_pressure_falling_fast": 'দ্রুত নামছে',
+        "ri_pressure_falling": 'নামছে',
+        "ri_pressure_steady": 'স্থির',
+        "ri_pressure_rising": 'উঠছে',
+        "ri_pressure_detail": 'এখন {hpa} hPa, পরবর্তী {hours} ঘণ্টায় {delta} hPa।',
+        "ri_pressure_none": 'চাপের পূর্বাভাস নেই',
+        "ri_wind_rising": 'প্রায় {time} থেকে জোরালো হবে',
+        "ri_wind_easing": 'প্রায় {time} থেকে কমবে',
+        "ri_wind_steady": 'বিশেষ পরিবর্তনের সম্ভাবনা নেই',
+        "ri_wind_peak": 'পরবর্তী {hours} ঘণ্টায় সর্বোচ্চ প্রায় {kmh} কিমি/ঘণ্টা।',
+    },
+    # -----------------------------------------------------------------------
+    "mr": {
+        "ri_pressure_title": 'दाबाचा कल',
+        "ri_pressure_falling_fast": 'झपाट्याने घटतोय',
+        "ri_pressure_falling": 'घटतोय',
+        "ri_pressure_steady": 'स्थिर',
+        "ri_pressure_rising": 'वाढतोय',
+        "ri_pressure_detail": 'आत्ता {hpa} hPa, पुढील {hours} तासांत {delta} hPa.',
+        "ri_pressure_none": 'दाबाचा अंदाज उपलब्ध नाही',
+        "ri_wind_rising": 'सुमारे {time} पासून वाढेल',
+        "ri_wind_easing": 'सुमारे {time} पासून कमी होईल',
+        "ri_wind_steady": 'फारसा बदल अपेक्षित नाही',
+        "ri_wind_peak": 'पुढील {hours} तासांत जास्तीत जास्त सुमारे {kmh} किमी/तास.',
+    },
+    # -----------------------------------------------------------------------
+    "as": {
+        "ri_pressure_title": 'চাপৰ ধাৰা',
+        "ri_pressure_falling_fast": 'খৰতকীয়াকৈ কমিছে',
+        "ri_pressure_falling": 'কমিছে',
+        "ri_pressure_steady": 'স্থিৰ',
+        "ri_pressure_rising": 'বাঢ়িছে',
+        "ri_pressure_detail": 'এতিয়া {hpa} hPa, অহা {hours} ঘণ্টাত {delta} hPa।',
+        "ri_pressure_none": 'চাপৰ পূৰ্বাভাস নাই',
+        "ri_wind_rising": 'প্ৰায় {time} ৰ পৰা বাঢ়িব',
+        "ri_wind_easing": 'প্ৰায় {time} ৰ পৰা কমিব',
+        "ri_wind_steady": 'বিশেষ সলনি হোৱাৰ সম্ভাৱনা নাই',
+        "ri_wind_peak": 'অহা {hours} ঘণ্টাত সৰ্বোচ্চ প্ৰায় {kmh} কিমি/ঘণ্টা।',
+    },
+}
+
+for _lang, _extra in ROLE_SENTENCES_MARINE.items():
+    ROLE_SENTENCES.setdefault(_lang, {}).update(_extra)

@@ -36,7 +36,14 @@ function savePrefs(prefs) {
 // `aviation` was here until it became a reading of its own; migrating it away
 // now would take an aviation professional to the traveller's screen and give
 // them a packing list.
-const RETIRED_PROFILES = { commuter: 'driver', urban: 'driver' }
+const RETIRED_PROFILES = {
+  commuter: 'driver',
+  urban: 'driver',
+  // Not retired — renamed. The backend answers to both, and the reading is
+  // byte-for-byte the same one; this only keeps the picker from showing a
+  // blank label for a key it no longer lists.
+  fisherman: 'marine',
+}
 
 function migrateUserType(stored) {
   if (!stored) return stored

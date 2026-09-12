@@ -34,7 +34,7 @@ CASES: list[tuple[str, str, dict]] = [
     ("farmer-query", "I am a farmer in Warangal, should I irrigate tomorrow?",
      {"in_scope": True, "location": "Warangal", "user_type": "farmer", "day_offset": 1}),
     ("fisherman-query", "Can I take my boat out at Ratnagiri?",
-     {"in_scope": True, "location": "Ratnagiri", "user_type": "fisherman"}),
+     {"in_scope": True, "location": "Ratnagiri", "user_type": "marine"}),
     ("climate-trend", "Has this month been wetter than average in Kochi?",
      {"in_scope": True, "location": "Kochi", "intent": {"climate_trend"}}),
     ("day-after", "What is the forecast for Chennai the day after tomorrow?",
@@ -133,7 +133,8 @@ def test_profile_change_mid_session():
     second = chat_engine.handle_chat(
         query="Weather in Ratnagiri?", session_id=first.session_id, user_type="fisherman"
     )
-    assert second.user_type == "fisherman"
+    # Sent as the stored name; carried as the canonical one.
+    assert second.user_type == "marine"
 
 
 def test_profile_changes_advice_not_facts(scenario):

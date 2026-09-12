@@ -267,7 +267,10 @@ CURRENT_FIELDS = (
 )
 HOURLY_FIELDS = (
     "temperature_2m,relative_humidity_2m,precipitation_probability,precipitation,weather_code,"
-    "visibility,wind_speed_10m,wind_gusts_10m,cape"
+    # `pressure_msl` is here for the marine reading. A pressure *value* says
+    # little; the direction it is moving is the oldest warning a mariner has,
+    # and it cannot be read from a single current observation.
+    "visibility,wind_speed_10m,wind_gusts_10m,cape,pressure_msl"
 )
 DAILY_FIELDS = (
     "weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,"
@@ -374,6 +377,7 @@ def _normalise_openmeteo(location: Location, payload: dict[str, Any]) -> Weather
                 "wind_speed_kmh": _at(_series(hourly_block, "wind_speed_10m"), i),
                 "wind_gust_kmh": _at(_series(hourly_block, "wind_gusts_10m"), i),
                 "cape": _at(_series(hourly_block, "cape"), i),
+                "pressure_hpa": _at(_series(hourly_block, "pressure_msl"), i),
                 "visibility_km": round(visibility_m / 1000.0, 1) if isinstance(visibility_m, (int, float)) else None,
                 "weather_code": code,
                 "condition": wmo.describe(code),
@@ -530,6 +534,12 @@ _FIXTURE_SUNRISE = 5 * 60 + 52
 _FIXTURE_SUNSET = 18 * 60 + 24
 
 
+# Fixtures whose weather implies a disturbance, and so a pressure trend rather
+# than a flat line. Named here so the current reading and the hourly series
+# cannot disagree about which fixtures are disturbed.
+_LOW_PRESSURE_SCENARIOS = {"storm", "flood", "wind", "rain"}
+
+
 def _fixture_bundle(location: Location) -> WeatherBundle:
     """Deterministic synthetic weather. Never reachable in live mode."""
     scenario = _scenario_for(location)
@@ -555,6 +565,13 @@ def _fixture_bundle(location: Location) -> WeatherBundle:
                 "wind_speed_kmh": wind,
                 "wind_gust_kmh": round(wind * 1.55, 1),
                 "cape": 2400 if spec["code"] in wmo.THUNDER_CODES else 320,
+                # Low and recovering through a disturbed fixture, flat through
+                # a calm one — the shape a real barograph would draw, so the
+                # marine reading has a trend to read rather than a constant.
+                "pressure_hpa": round(
+                    996.0 + 12.0 * (1.0 - decay) if scenario in _LOW_PRESSURE_SCENARIOS else 1008.0,
+                    1,
+                ),
                 "visibility_km": 1.0 if spec["code"] in wmo.FOG_CODES else 12.0,
                 "weather_code": spec["code"],
                 "condition": wmo.describe(spec["code"]),
@@ -595,7 +612,7 @@ def _fixture_bundle(location: Location) -> WeatherBundle:
         "wind_speed_kmh": first["wind_speed_kmh"],
         "wind_gust_kmh": first["wind_gust_kmh"],
         "wind_direction_deg": 225.0,
-        "pressure_hpa": 996.0 if scenario in {"storm", "flood"} else 1008.0,
+        "pressure_hpa": first["pressure_hpa"],
         "cloud_cover_pct": 95.0 if spec["code"] >= 51 else 30.0,
         "visibility_km": first["visibility_km"],
         "weather_code": spec["code"],

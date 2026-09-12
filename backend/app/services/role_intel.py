@@ -56,6 +56,19 @@ VIS_LOW_KM = 5.0
 STORM_CAUTION = 25            # Lightning/Storm sub-score
 STORM_HIGH = 50
 
+# Marine mode looks forward over these windows. Twelve hours is a tide's worth
+# of planning and the span a small boat actually commits to.
+PRESSURE_WINDOW_H = 12
+WIND_WINDOW_H = 12
+# hPa over the window. 3 hPa in twelve hours is the conventional line between a
+# barograph that is drifting and one that is telling you something; 6 is the
+# line at which it is telling you loudly.
+PRESSURE_MOVE_HPA = 3.0
+PRESSURE_FAST_HPA = 6.0
+# km/h the peak must exceed the present by before the wind is said to be
+# strengthening, so ordinary hour-to-hour noise is not reported as a change.
+WIND_CHANGE_KMH = 8.0
+
 # The commute windows the departure advice searches, in local hours.
 # WORK_WINDOW is the daylight span the site reading searches instead.
 MORNING_WINDOW = (6, 11)
@@ -127,6 +140,16 @@ class _Reading:
         probs = [_num(h.get("precipitation_probability_pct")) for h in hourly[:12]]
         known_probs = [v for v in probs if v is not None]
         self.prob_max_12h = max(known_probs) if known_probs else None
+
+        # Marine mode reads forward, not just now. Both of these are None when
+        # the provider did not send the series — never zero, which would read
+        # as "no change" and "calm" rather than "we do not know".
+        self.pressure = _num(cur.get("pressure_hpa"))
+        self.pressure_window = [_num(h.get("pressure_hpa")) for h in hourly[:PRESSURE_WINDOW_H]]
+        self.wind_window = [
+            (h.get("time"), _num(h.get("wind_speed_kmh")), _num(h.get("wind_gust_kmh")))
+            for h in hourly[:WIND_WINDOW_H]
+        ]
 
         sub = risk.hazard_scores or {}
         self.storm_score = float(sub.get("Lightning/Storm", 0))
@@ -368,7 +391,77 @@ def _compass_point(degrees: float | None) -> str | None:
     return _POINTS[int(round((degrees % 360) / 45)) % 8]
 
 
-def _fisherman(m: _Reading, lang: str) -> list[dict[str, Any]]:
+def _pressure_card(m: _Reading, lang: str) -> dict[str, Any]:
+    """What the barometer is doing, from the hourly series.
+
+    A pressure reading on its own says almost nothing — 1004 hPa is ordinary in
+    one place and a warning in another. What a mariner reads is the *slope*, so
+    this reports the change across the window and names the present value only
+    as context for it.
+
+    Returns the "no forecast" card rather than a guess when the provider did not
+    send the series: a missing barograph is not a flat one.
+    """
+    known = [v for v in m.pressure_window if v is not None]
+    if m.pressure is None or len(known) < 2:
+        return _card(
+            "pressure", "🕭", i18n.sentence("ri_pressure_title", lang),
+            i18n.sentence("ri_pressure_none", lang), "info",
+        )
+
+    delta = known[-1] - known[0]
+    hours = len(known) - 1
+    if delta <= -PRESSURE_FAST_HPA:
+        headline, tone = i18n.sentence("ri_pressure_falling_fast", lang), "danger"
+    elif delta <= -PRESSURE_MOVE_HPA:
+        headline, tone = i18n.sentence("ri_pressure_falling", lang), "caution"
+    elif delta >= PRESSURE_MOVE_HPA:
+        headline, tone = i18n.sentence("ri_pressure_rising", lang), "safe"
+    else:
+        headline, tone = i18n.sentence("ri_pressure_steady", lang), "safe"
+
+    return _card(
+        "pressure", "🕭", i18n.sentence("ri_pressure_title", lang), headline, tone,
+        i18n.sentence(
+            "ri_pressure_detail", lang,
+            hpa=_r(m.pressure), delta=f"{delta:+.1f}", hours=hours,
+        ),
+    )
+
+
+def _wind_outlook(m: _Reading, lang: str) -> str:
+    """"When will the wind increase?" — as a sentence, or an empty one.
+
+    Answered from the hourly series and nothing else. The hour named is the
+    first hour whose wind crosses the present by a margin wide enough not to be
+    hour-to-hour noise; if no hour does, the honest answer is that little
+    changes, not a time picked to have something to say.
+    """
+    readings = [(t, max(w or 0, g or 0)) for t, w, g in m.wind_window if w is not None or g is not None]
+    if len(readings) < 3 or m.gust_or_wind is None:
+        return ""
+
+    now = m.gust_or_wind
+    peak_time, peak = max(readings, key=lambda pair: pair[1])
+    trough_time, trough = min(readings, key=lambda pair: pair[1])
+    tail = i18n.sentence("ri_wind_peak", lang, kmh=_r(peak), hours=len(readings) - 1)
+
+    if peak - now >= WIND_CHANGE_KMH:
+        lead = i18n.sentence("ri_wind_rising", lang, time=_clock(peak_time))
+    elif now - trough >= WIND_CHANGE_KMH:
+        lead = i18n.sentence("ri_wind_easing", lang, time=_clock(trough_time))
+    else:
+        lead = i18n.sentence("ri_wind_steady", lang)
+    return f"{lead}. {tail}" if lead else tail
+
+
+def _clock(stamp: Any) -> str:
+    """The hour from an ISO timestamp, or an empty string. Never a guess."""
+    text = str(stamp or "")
+    return text.split("T")[1][:5] if "T" in text else ""
+
+
+def _marine(m: _Reading, lang: str) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
 
     # --- Go / caution / avoid ---------------------------------------------
@@ -402,8 +495,18 @@ def _fisherman(m: _Reading, lang: str) -> list[dict[str, Any]]:
         point = _compass_point(m.direction)
         headline = f"{_r(m.wind)} km/h" + (f" · {point}" if point else "")
         tone = "danger" if m.wind >= WIND_STRONG_KMH else "caution" if m.wind >= WIND_BRISK_KMH else "safe"
-        detail = i18n.sentence("ri_wind_gust", lang, gust=_r(m.gust)) if m.gust is not None else ""
-        cards.append(_card("wind", "🌬️", i18n.sentence("ri_wind_title", lang), headline, tone, detail))
+        # Now, then what it does next: a boat commits to the next twelve hours,
+        # not to this minute.
+        parts = [i18n.sentence("ri_wind_gust", lang, gust=_r(m.gust))] if m.gust is not None else []
+        outlook = _wind_outlook(m, lang)
+        if outlook:
+            parts.append(outlook)
+        cards.append(_card(
+            "wind", "🌬️", i18n.sentence("ri_wind_title", lang), headline, tone, " ".join(parts),
+        ))
+
+    # --- Pressure -----------------------------------------------------------
+    cards.append(_pressure_card(m, lang))
 
     # --- Lightning and storm ------------------------------------------------
     if m.storm_score >= STORM_HIGH:
@@ -946,7 +1049,7 @@ def _researcher(m: _Reading, lang: str) -> list[dict[str, Any]]:
     return (
         _pick(_general(m, lang), "comfort")
         + _pick(_farmer(m, lang), "rain_impact")
-        + _pick(_fisherman(m, lang), "wind")
+        + _pick(_marine(m, lang), "wind", "storm_risk")
         + _pick(_commuter(m, lang), "hazards")
     )
 
@@ -955,7 +1058,7 @@ def _disaster_manager(m: _Reading, lang: str) -> list[dict[str, Any]]:
     """What is active, whether it is escalating, and what to ready."""
     return (
         _pick(_commuter(m, lang), "hazards")
-        + _pick(_fisherman(m, lang), "storm_risk")
+        + _pick(_marine(m, lang), "storm_risk")
         + [_preparedness_card(m, lang)]
         + _pick(_caregiver(m, lang), "exposure")
     )
@@ -970,7 +1073,7 @@ def _aviation(m: _Reading, lang: str) -> list[dict[str, Any]]:
     implying it is present.
     """
     return (
-        _pick(_fisherman(m, lang), "visibility", "wind", "storm_risk")
+        _pick(_marine(m, lang), "visibility", "wind", "storm_risk")
         + _pick(_farmer(m, lang), "rain_impact")
     )
 
@@ -994,7 +1097,7 @@ def _event_planner(m: _Reading, lang: str) -> list[dict[str, Any]]:
     """Can it be held outdoors, will it rain on it, and when is calmest."""
     return (
         _pick(_general(m, lang), "outdoor", "umbrella")
-        + _pick(_fisherman(m, lang), "wind")
+        + _pick(_marine(m, lang), "wind")
         + _pick(_outdoor_worker(m, lang), "work_window")
     )
 
@@ -1004,7 +1107,7 @@ def _event_planner(m: _Reading, lang: str) -> list[dict[str, Any]]:
 _BUILDERS = {
     "general": _general,
     "farmer": _farmer,
-    "fisherman": _fisherman,
+    "marine": _marine,
     "traveler": _traveller,
     "driver": _driver,
     "outdoor_worker": _outdoor_worker,

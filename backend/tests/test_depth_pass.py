@@ -351,7 +351,7 @@ def test_features_are_silent_when_inactive():
         ("Should I go to college tomorrow?", "student"),
         ("I look after my elderly mother, is it too hot?", "caregiver"),
         ("Will my paddy crop be damaged?", "farmer"),
-        ("Is it safe to take the boat out?", "fisherman"),
+        ("Is it safe to take the boat out?", "marine"),
         ("Planning a trip to Ooty next week", "traveler"),
         ("What is the weather", None),
     ],

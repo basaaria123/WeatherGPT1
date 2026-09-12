@@ -18,8 +18,9 @@ from app.services import i18n, role_intel
 from app.services._role_sentences import ROLE_SENTENCES
 
 ROLES = [
-    "general", "farmer", "fisherman", "traveler", "driver",
+    "general", "farmer", "marine", "traveler", "driver",
     "outdoor_worker", "household", "student", "caregiver", "commuter",
+    "researcher", "disaster_manager", "aviation", "government", "event_planner",
 ]
 
 

@@ -242,7 +242,7 @@ def test_the_registry_is_the_only_list_of_roles():
 BRIEF_ROLES = {
     "General Public": "general",
     "Farmer": "farmer",
-    "Marine / Fisherman": "fisherman",
+    "Marine / Fisherman": "marine",
     "Traveller": "traveler",
     "Driver": "driver",
     "Commuter": "commuter",
@@ -342,3 +342,96 @@ def test_new_roles_are_translated_not_left_in_english(key):
         assert other["heading"] != en["heading"], f"{key}/{lang} heading is English"
         if en["note"]:
             assert other["note"] != en["note"], f"{key}/{lang} note is English"
+
+
+# --- Marine mode (§13) ------------------------------------------------------
+
+def test_fisherman_still_reaches_the_marine_reading():
+    """Eight releases shipped `fisherman`. Nobody's stored choice may break."""
+    old = personalization.personalize(bundle=_bundle(), risk=_risk(), role="fisherman")
+    new = personalization.personalize(bundle=_bundle(), risk=_risk(), role="marine")
+    assert old["role"] == new["role"] == "marine"
+    assert old["role_cards"] == new["role_cards"]
+
+
+def test_the_marine_reading_never_speaks_about_the_sea_itself():
+    """§13's one hard rule. No source here returns wave, swell, tide or current.
+
+    Guards the wording as well as the data: a card that said "calm seas" would
+    be inventing a measurement even though no number appeared on screen.
+    """
+    bundle, risk = _severe()
+    for lang in ("en",):
+        out = personalization.personalize(bundle=bundle, risk=risk, role="marine", language=lang)
+        spoken = " ".join(
+            f"{c['title']} {c['headline']} {c['detail']}" for c in out["role_cards"]
+        ).lower()
+        for claim in ("wave", "swell", "tide", "current", "sea state", "sea temperature"):
+            assert claim not in spoken, f"marine card claimed {claim!r}: {spoken}"
+    # And it says so, rather than leaving the absence to be inferred.
+    note = out["note"].lower()
+    assert "wave" in note and "tide" in note
+
+
+def _with_pressure(series, current=1004.0):
+    bundle = _bundle(hours=len(series), pressure_hpa=current)
+    for hour, value in zip(bundle.hourly, series):
+        hour["pressure_hpa"] = value
+    return bundle
+
+
+def _card(out, card_id):
+    return next((c for c in out["role_cards"] if c["id"] == card_id), None)
+
+
+def test_a_falling_barometer_is_read_as_falling():
+    bundle = _with_pressure([1006 - i * 0.7 for i in range(12)], current=1006.0)
+    out = personalization.personalize(bundle=bundle, risk=_risk(), role="marine")
+    card = _card(out, "pressure")
+    assert card and card["tone"] in {"caution", "danger"}
+    assert "-" in card["detail"]
+
+
+def test_a_steady_barometer_is_not_reported_as_a_change():
+    bundle = _with_pressure([1010.0 + (i % 2) * 0.3 for i in range(12)], current=1010.0)
+    out = personalization.personalize(bundle=bundle, risk=_risk(), role="marine")
+    card = _card(out, "pressure")
+    assert card and card["tone"] == "safe"
+
+
+def test_a_missing_barometer_is_not_a_flat_one():
+    """The distinction the whole app is built on: no reading is not zero change."""
+    bundle = _bundle()
+    for hour in bundle.hourly:
+        hour["pressure_hpa"] = None
+    bundle.current["pressure_hpa"] = None
+    out = personalization.personalize(bundle=bundle, risk=_risk(), role="marine")
+    card = _card(out, "pressure")
+    assert card and card["tone"] == "info"
+    assert "unavailable" in card["headline"].lower() or "no " in card["headline"].lower()
+
+
+def test_the_wind_outlook_names_an_hour_only_when_the_series_has_one():
+    calm = personalization.personalize(bundle=_bundle(hours=0), risk=_risk(), role="marine")
+    card = _card(calm, "wind")
+    # No hours to search means no claim about when anything changes.
+    assert card is None or "from about" not in card["detail"]
+
+
+def test_the_wind_outlook_answers_when_the_wind_increases():
+    bundle = _bundle(wind_speed_kmh=12.0, wind_gust_kmh=15.0)
+    for i, hour in enumerate(bundle.hourly):
+        hour["wind_speed_kmh"] = 12.0 + (18.0 if i >= 6 else 0.0)
+        hour["wind_gust_kmh"] = hour["wind_speed_kmh"] * 1.4
+    out = personalization.personalize(bundle=bundle, risk=_risk(), role="marine")
+    card = _card(out, "wind")
+    assert card and card["detail"], "no outlook on a series that clearly changes"
+    assert ":" in card["detail"], "an outlook that names no hour answers nothing"
+
+
+def test_marine_leads_with_the_measurements_a_boat_actually_uses():
+    out = personalization.personalize(bundle=_bundle(), risk=_risk(), role="marine")
+    leading = [m["metric"] for m in out["priority_metrics"]][:5]
+    assert leading[0] == "wind_speed_kmh"
+    for wanted in ("wind_direction_deg", "visibility_km", "pressure_hpa"):
+        assert wanted in leading, wanted

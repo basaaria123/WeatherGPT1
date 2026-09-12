@@ -77,7 +77,7 @@ PROFILE_TERMS: dict[str, tuple[str, ...]] = {
     "farmer": ("farm", "farming", "farmer", "crop", "crops", "harvest", "sowing", "irrigation",
                "paddy", "field", "खेती", "किसान", "फ़सल", "फसल", "शेती", "शेतकरी", "पीक",
                "వ్యవసాయం", "రైతు", "పంట", "কৃষি", "চাষ", "ফসল", "কৃষক", "খেতি", "শস্য"),
-    "fisherman": ("fish", "fishing", "fisherman", "boat", "sea", "trawler", "nets", "coast",
+    "marine": ("fish", "fishing", "fisherman", "boat", "sea", "trawler", "nets", "coast",
                   "मछली", "मछुआरा", "नाव", "समुद्र", "मासेमारी", "होडी",
                   "చేపల", "పడవ", "సముద్రం", "মাছ", "নৌকা", "সমুদ্র", "মাছ ধৰা", "নাও"),
     "outdoor_worker": ("construction", "construction site", "site work", "labour", "labourer",
