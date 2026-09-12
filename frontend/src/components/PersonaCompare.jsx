@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useState } from 'react'
 import { api } from '../api/client'
+import { userMessage } from '../api/errors'
 import { ROLE_ICONS } from '../i18n/roles'
 import { hazardLabel, levelLabel, profileLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
@@ -35,7 +36,7 @@ export default function PersonaCompare({ open, onClose, location }) {
     api
       .advisoryPersonas({ location, language })
       .then((payload) => !cancelled && setData(payload))
-      .catch((err) => !cancelled && setError(err.message))
+      .catch((err) => !cancelled && setError(userMessage(err, language)))
     return () => { cancelled = true }
   }, [open, location, language])
 

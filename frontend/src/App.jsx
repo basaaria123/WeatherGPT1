@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from './api/client'
+import { userMessage } from './api/errors'
 import { useAlertsSocket } from './hooks/useAlertsSocket'
 import { t } from './i18n/ui'
 import { useStore } from './store/useStore'
@@ -129,7 +130,7 @@ export default function App() {
         })
         .catch((error) => {
           if (seq !== requestSeq.current) return
-          setErrors((prev) => ({ ...prev, [key]: error.message }))
+          setErrors((prev) => ({ ...prev, [key]: userMessage(error, language) }))
         })
         .finally(() => {
           if (seq !== requestSeq.current) return
@@ -236,7 +237,7 @@ export default function App() {
         })
         applyAnswer(data)
       } catch (error) {
-        setChatError(error.message)
+        setChatError(userMessage(error, language))
       } finally {
         setChatPending(false)
       }
@@ -265,7 +266,7 @@ export default function App() {
         const data = await api.voiceChat(form)
         applyAnswer(data, { transcript: data.transcript })
       } catch (error) {
-        setChatError(error.message)
+        setChatError(userMessage(error, language))
         setMessages((prev) => prev.filter((message) => !message.pendingTranscript))
       } finally {
         setVoicePending(false)

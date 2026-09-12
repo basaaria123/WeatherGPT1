@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import { useEffect, useRef, useState } from 'react'
 import { api } from '../api/client'
+import { userMessage } from '../api/errors'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 
@@ -49,7 +50,7 @@ export default function LocationDialog({ open, onClose }) {
       onClose()
     } catch (err) {
       setStatus('error')
-      setError(err.message)
+      setError(userMessage(err, language))
     }
   }
 
@@ -74,7 +75,7 @@ export default function LocationDialog({ open, onClose }) {
           onClose()
         } catch (err) {
           setStatus('error')
-          setError(err.message)
+          setError(userMessage(err, language))
         }
       },
       () => {

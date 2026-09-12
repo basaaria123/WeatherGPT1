@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../api/client'
+import { userMessage } from '../../api/errors'
 import {
   isValidPhone,
   maskPhone,
@@ -81,7 +82,7 @@ export function LocationStep({ onNext }) {
       onNext()
     } catch (err) {
       setStatus('error')
-      setError(err.message)
+      setError(userMessage(err, language))
     }
   }
 
@@ -105,7 +106,7 @@ export function LocationStep({ onNext }) {
           onNext()
         } catch (err) {
           setStatus('error')
-          setError(err.message)
+          setError(userMessage(err, language))
         }
       },
       () => {

@@ -2,20 +2,38 @@
  * Backend client.
  *
  * Every call funnels through `request`, which turns any failure — network,
- * HTTP, or malformed body — into an `ApiError` carrying a message that is safe
- * to show a user. Components render `error.message` directly and never see a
- * stack trace or a raw status code.
+ * HTTP, or malformed body — into an `ApiError` carrying a stable `code` and an
+ * English message that is safe to show. Components render it through
+ * `userMessage()` in api/errors.js, which turns that code into a sentence in
+ * the reader's language; a stack trace or a raw status never reaches the
+ * screen.
  */
 
 const BASE = import.meta.env.VITE_API_BASE ?? '/api'
 
 export class ApiError extends Error {
-  constructor(message, { status = 0, cause } = {}) {
+  /**
+   * `code` is the stable, language-independent name for what went wrong.
+   * `message` stays English and is for logs and for the rare case where the
+   * backend sent something more specific than a status can express; the
+   * interface renders the code through `userMessage()` so the reader is told
+   * in their own language. See api/errors.js.
+   */
+  constructor(message, { status = 0, cause, code } = {}) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.cause = cause
+    this.code = code ?? CODE_FOR_STATUS[status] ?? 'generic'
   }
+}
+
+const CODE_FOR_STATUS = {
+  404: 'notFound',
+  422: 'generic',
+  429: 'generic',
+  500: 'generic',
+  503: 'unavailable',
 }
 
 const FRIENDLY = {
@@ -61,11 +79,12 @@ async function request(path, { method = 'GET', body, signal, timeout = 30000, fo
   } catch (error) {
     if (error instanceof ApiError) throw error
     if (error?.name === 'AbortError') {
-      throw new ApiError('That took too long. Please try again.', { status: 0, cause: error })
+      throw new ApiError('That took too long. Please try again.', { status: 0, cause: error, code: 'timeout' })
     }
     throw new ApiError('Could not reach WeatherGPT. Check your connection and try again.', {
       status: 0,
       cause: error,
+      code: 'offline',
     })
   } finally {
     clearTimeout(timer)

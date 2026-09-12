@@ -8,6 +8,11 @@
 
 const STRINGS = {
   en: {
+    errNotFound: 'We could not find that place. Check the spelling and try again.',
+    errTimeout: 'That took too long. Please try again.',
+    errOffline: 'Could not reach WeatherGPT. Check your connection and try again.',
+    errUnavailable: 'Weather data is temporarily unavailable. Please try again shortly.',
+    errGeneric: 'Something went wrong. Please try again.',
     appearance: 'Appearance',
     navPrimary: 'Main navigation',
     navHome: 'Home',
@@ -308,6 +313,11 @@ const STRINGS = {
   },
 
   hi: {
+    errNotFound: 'वह जगह नहीं मिली। वर्तनी जाँचकर फिर कोशिश करें।',
+    errTimeout: 'इसमें बहुत समय लगा। कृपया फिर कोशिश करें।',
+    errOffline: 'WeatherGPT तक नहीं पहुँच सके। अपना कनेक्शन जाँचें।',
+    errUnavailable: 'मौसम डेटा अभी उपलब्ध नहीं है। थोड़ी देर बाद कोशिश करें।',
+    errGeneric: 'कुछ गड़बड़ हो गई। कृपया फिर कोशिश करें।',
     appearance: 'दिखावट',
     navPrimary: 'मुख्य नेविगेशन',
     navHome: 'होम',
@@ -608,6 +618,11 @@ const STRINGS = {
   },
 
   te: {
+    errNotFound: 'ఆ ప్రదేశం దొరకలేదు. అక్షరక్రమం చూసి మళ్లీ ప్రయత్నించండి.',
+    errTimeout: 'ఇది చాలా సమయం తీసుకుంది. మళ్లీ ప్రయత్నించండి.',
+    errOffline: 'WeatherGPT చేరలేకపోయాం. మీ కనెక్షన్ చూడండి.',
+    errUnavailable: 'వాతావరణ సమాచారం తాత్కాలికంగా అందుబాటులో లేదు. కొద్దిసేపటి తర్వాత ప్రయత్నించండి.',
+    errGeneric: 'ఏదో పొరపాటు జరిగింది. మళ్లీ ప్రయత్నించండి.',
     appearance: 'రూపం',
     navPrimary: 'ప్రధాన నావిగేషన్',
     navHome: 'హోమ్',
@@ -908,6 +923,11 @@ const STRINGS = {
   },
 
   bn: {
+    errNotFound: 'সেই জায়গা পাওয়া গেল না। বানান দেখে আবার চেষ্টা করুন।',
+    errTimeout: 'এতে অনেক সময় লাগল। আবার চেষ্টা করুন।',
+    errOffline: 'WeatherGPT-এ পৌঁছনো গেল না। সংযোগ দেখে নিন।',
+    errUnavailable: 'আবহাওয়ার তথ্য এখন পাওয়া যাচ্ছে না। কিছুক্ষণ পরে চেষ্টা করুন।',
+    errGeneric: 'কিছু একটা ভুল হয়েছে। আবার চেষ্টা করুন।',
     appearance: 'চেহারা',
     navPrimary: 'প্রধান নেভিগেশন',
     navHome: 'হোম',
@@ -1208,6 +1228,11 @@ const STRINGS = {
   },
 
   mr: {
+    errNotFound: 'ते ठिकाण सापडले नाही. स्पेलिंग तपासून पुन्हा प्रयत्न करा.',
+    errTimeout: 'याला खूप वेळ लागला. पुन्हा प्रयत्न करा.',
+    errOffline: 'WeatherGPT पर्यंत पोहोचता आले नाही. तुमचे कनेक्शन तपासा.',
+    errUnavailable: 'हवामान माहिती सध्या उपलब्ध नाही. थोड्या वेळाने प्रयत्न करा.',
+    errGeneric: 'काहीतरी चूक झाली. पुन्हा प्रयत्न करा.',
     appearance: 'स्वरूप',
     navPrimary: 'मुख्य नेव्हिगेशन',
     navHome: 'होम',
@@ -1508,6 +1533,11 @@ const STRINGS = {
   },
 
   as: {
+    errNotFound: 'সেই ঠাই পোৱা নগ’ল। বানান চাই পুনৰ চেষ্টা কৰক।',
+    errTimeout: 'ইয়াত বহুত সময় লাগিল। পুনৰ চেষ্টা কৰক।',
+    errOffline: 'WeatherGPT-লৈ পাব পৰা নগ’ল। আপোনাৰ সংযোগ চাওক।',
+    errUnavailable: 'বতৰৰ তথ্য এতিয়া পোৱা নাযায়। অলপ পিছত চেষ্টা কৰক।',
+    errGeneric: 'কিবা এটা ভুল হ’ল। পুনৰ চেষ্টা কৰক।',
     appearance: 'ৰূপ',
     navPrimary: 'মুখ্য নেভিগেশ্বন',
     navHome: 'হোম',
@@ -1807,6 +1837,11 @@ const STRINGS = {
     },
   },
   ta: {
+    errNotFound: 'அந்த இடம் கிடைக்கவில்லை. எழுத்துப்பிழை பார்த்து மீண்டும் முயற்சிக்கவும்.',
+    errTimeout: 'இது மிக நேரம் எடுத்தது. மீண்டும் முயற்சிக்கவும்.',
+    errOffline: 'WeatherGPT-ஐ அடைய முடியவில்லை. உங்கள் இணைப்பைப் பாருங்கள்.',
+    errUnavailable: 'வானிலைத் தரவு தற்காலிகமாகக் கிடைக்கவில்லை. சிறிது நேரம் கழித்து முயற்சிக்கவும்.',
+    errGeneric: 'ஏதோ தவறு நடந்தது. மீண்டும் முயற்சிக்கவும்.',
     appearance: 'தோற்றம்',
     navPrimary: 'முதன்மை வழிசெலுத்தல்',
     navHome: 'முகப்பு',
@@ -2106,6 +2141,11 @@ const STRINGS = {
     },
   },
   kn: {
+    errNotFound: 'ಆ ಸ್ಥಳ ಸಿಗಲಿಲ್ಲ. ಕಾಗುಣಿತ ಪರಿಶೀಲಿಸಿ ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+    errTimeout: 'ಇದಕ್ಕೆ ತುಂಬಾ ಸಮಯ ಹಿಡಿಯಿತು. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
+    errOffline: 'WeatherGPT ತಲುಪಲು ಆಗಲಿಲ್ಲ. ನಿಮ್ಮ ಸಂಪರ್ಕ ಪರಿಶೀಲಿಸಿ.',
+    errUnavailable: 'ಹವಾಮಾನ ಮಾಹಿತಿ ಸದ್ಯಕ್ಕೆ ಲಭ್ಯವಿಲ್ಲ. ಸ್ವಲ್ಪ ಸಮಯದ ನಂತರ ಪ್ರಯತ್ನಿಸಿ.',
+    errGeneric: 'ಏನೋ ತಪ್ಪಾಯಿತು. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.',
     appearance: 'ಗೋಚರತೆ',
     navPrimary: 'ಮುಖ್ಯ ನ್ಯಾವಿಗೇಷನ್',
     navHome: 'ಮುಖಪುಟ',
@@ -2405,6 +2445,11 @@ const STRINGS = {
     },
   },
   ml: {
+    errNotFound: 'ആ സ്ഥലം കണ്ടെത്താനായില്ല. അക്ഷരം പരിശോധിച്ച് വീണ്ടും ശ്രമിക്കുക.',
+    errTimeout: 'ഇതിന് വളരെ സമയമെടുത്തു. വീണ്ടും ശ്രമിക്കുക.',
+    errOffline: 'WeatherGPT-ൽ എത്താനായില്ല. നിങ്ങളുടെ കണക്ഷൻ പരിശോധിക്കുക.',
+    errUnavailable: 'കാലാവസ്ഥാ വിവരം തൽക്കാലം ലഭ്യമല്ല. കുറച്ച് കഴിഞ്ഞ് ശ്രമിക്കുക.',
+    errGeneric: 'എന്തോ പിഴവ് സംഭവിച്ചു. വീണ്ടും ശ്രമിക്കുക.',
     appearance: 'രൂപം',
     navPrimary: 'പ്രധാന നാവിഗേഷൻ',
     navHome: 'ഹോം',
@@ -2704,6 +2749,11 @@ const STRINGS = {
     },
   },
   gu: {
+    errNotFound: 'તે સ્થળ મળ્યું નહીં. જોડણી તપાસીને ફરી પ્રયાસ કરો.',
+    errTimeout: 'આમાં ઘણો સમય લાગ્યો. ફરી પ્રયાસ કરો.',
+    errOffline: 'WeatherGPT સુધી પહોંચી શકાયું નહીં. તમારું કનેક્શન તપાસો.',
+    errUnavailable: 'હવામાન માહિતી હાલ ઉપલબ્ધ નથી. થોડી વાર પછી પ્રયાસ કરો.',
+    errGeneric: 'કંઈક ખોટું થયું. ફરી પ્રયાસ કરો.',
     appearance: 'દેખાવ',
     navPrimary: 'મુખ્ય નેવિગેશન',
     navHome: 'હોમ',
@@ -3003,6 +3053,11 @@ const STRINGS = {
     },
   },
   pa: {
+    errNotFound: 'ਉਹ ਥਾਂ ਨਹੀਂ ਮਿਲੀ। ਸਪੈਲਿੰਗ ਵੇਖ ਕੇ ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+    errTimeout: 'ਇਸ ਵਿੱਚ ਬਹੁਤ ਸਮਾਂ ਲੱਗਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+    errOffline: 'WeatherGPT ਤੱਕ ਨਹੀਂ ਪਹੁੰਚ ਸਕੇ। ਆਪਣਾ ਕਨੈਕਸ਼ਨ ਵੇਖੋ।',
+    errUnavailable: 'ਮੌਸਮ ਡਾਟਾ ਫ਼ਿਲਹਾਲ ਉਪਲਬਧ ਨਹੀਂ। ਥੋੜ੍ਹੀ ਦੇਰ ਬਾਅਦ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
+    errGeneric: 'ਕੁਝ ਗ਼ਲਤ ਹੋ ਗਿਆ। ਦੁਬਾਰਾ ਕੋਸ਼ਿਸ਼ ਕਰੋ।',
     appearance: 'ਦਿੱਖ',
     navPrimary: 'ਮੁੱਖ ਨੈਵੀਗੇਸ਼ਨ',
     navHome: 'ਹੋਮ',
