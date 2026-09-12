@@ -32,16 +32,6 @@
     </noscript>
   </head>
   <body>
-    <!-- Puter.js gives the browser its own speech-to-text (puter.ai.speech2txt)
-         and its own voice (puter.ai.txt2speech), which is why it sits in the
-         middle of the fallback ladder: better than gTTS, and reachable when
-         the server's providers are not.
-         It runs client-side with no API key, so voice input keeps working on a
-         machine where the server has no transcription configured at all, and in
-         browsers that lack the Web Speech API. Loaded async and entirely
-         optional: useVoiceRecorder feature-detects it and falls back if the
-         script never arrives. -->
-    <script async src="https://js.puter.com/v2/"></script>
     <div id="root"></div>
     <script type="module" src="/src/main.jsx"></script>
   </body>

@@ -169,7 +169,7 @@ export default function ChatPanel({
         )}
         {/* Transcription runs after the recording stops and can take a few
             seconds. Without this the button just sits there looking broken. */}
-        {recorder.transcribing && !recorder.recording && (
+        {voicePending && !recorder.recording && (
           <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted">
             <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--wx-tint))] pulse-alert" />
             {t(language, 'transcribing')}
@@ -255,7 +255,7 @@ export default function ChatPanel({
           <button
             type="button"
             onClick={toggleRecording}
-            disabled={pending || voicePending || recorder.transcribing}
+            disabled={pending || voicePending}
             aria-label={recorder.recording ? t(language, 'stopRecording') : t(language, 'voice')}
             title={recorder.recording ? t(language, 'stopRecording') : t(language, 'voice')}
             className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-xl border transition

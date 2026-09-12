@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../../api/client'
 import { claimPlayback, releasePlayback } from '../../audio/session'
-import { browserSpeechSupported, puterSpeak, utteranceFor } from '../../audio/speech'
+import { browserSpeechSupported, utteranceFor } from '../../audio/speech'
 import { t } from '../../i18n/ui'
 import { useStore } from '../../store/useStore'
 
@@ -33,13 +33,11 @@ import { useStore } from '../../store/useStore'
  * beyond "did that work":
  *
  *   ElevenLabs   the voice the product is meant to have — rendered server-side
- *   Puter        the browser's own hosted voice, no key, tried next
  *   gTTS         the server's fallback, already in hand from the same response
  *   the browser  its native synthesiser, which works with no network at all
  *
  * The server renders what it can and says which provider managed it. When that
- * is not ElevenLabs, Puter is tried before the clip the server sent, because
- * Puter sounds better than gTTS — and because asking the server twice to get
+ * is not the premium voice, the server clip is used as sent, because
  * that order would cost a round trip on every fallback.
  */
 
@@ -153,16 +151,12 @@ export default function SpokenAdvice({ location, userType, topic = 'advice', com
         if (await playServerAudio(data.audio_base64, data.audio_mime)) return
       }
 
-      // 2 — Puter, ahead of the server's own fallback clip.
-      const viaPuter = await puterSpeak(data.text, language)
-      if (viaPuter && (await playElement(viaPuter))) return
-
-      // 3 — whatever the server did manage, which by now is gTTS or pyttsx3.
+      // 2 — whatever the server did manage, which by now is the fallback voice.
       if (data.audio_base64) {
         if (await playServerAudio(data.audio_base64, data.audio_mime)) return
       }
 
-      // 4 — the browser's own voice. The script still exists either way, so
+      // 3 — the browser's own voice. The script still exists either way, so
       // there is something to say right up until there is no way to say it.
       if (!speakLocally(data.text)) setState('error')
     } catch {
