@@ -386,6 +386,59 @@ class RoleIntelligenceOut(BaseModel):
     note: str = ""
 
 
+class PriorityMetric(BaseModel):
+    """One measurement this reader looks at first.
+
+    `metric` names a field of `CurrentWeatherOut`, so a client looks the number
+    up in the reading it already has. Only metrics the provider returned appear
+    at all — an absent one is omitted, never sent as zero.
+    """
+
+    metric: str
+    value: float | int | None = None
+
+
+class BestTime(BaseModel):
+    """The reader's own timing card, promoted so a screen can lead with it.
+
+    Absent, rather than empty, when the hourly series gives no answer.
+    """
+
+    id: str
+    title: str = ""
+    headline: str = ""
+    detail: str = ""
+
+
+class SuggestedQuestion(BaseModel):
+    """A question worth offering this reader next.
+
+    `label` is translated — it is the title of a card already on their screen.
+    `query` is the English question sent to the assistant, which answers in the
+    reader's language regardless.
+    """
+
+    id: str
+    label: str
+    query: str
+
+
+class PersonalizationOut(BaseModel):
+    """What the personalization engine decided about this reader.
+
+    Emphasis and ordering only. Every fact in the response around it is the same
+    for every role; this says which of those facts to lead with.
+    """
+
+    role: str = "general"
+    priority_metrics: list[PriorityMetric] = Field(default_factory=list)
+    best_time: BestTime | None = None
+    suggested_questions: list[SuggestedQuestion] = Field(default_factory=list)
+    # Whether this reader's decisions are about *when*, so an hour-by-hour strip
+    # earns its space on their screen.
+    timing: bool = False
+
+
 class CurrentWeatherResponse(BaseModel):
     location: LocationOut
     generated_at: str
@@ -401,6 +454,7 @@ class CurrentWeatherResponse(BaseModel):
     # warnings actually issued and stored for this location, which may be zero
     # while risk is high.
     official_alert_count: int = 0
+    personalization: PersonalizationOut | None = None
 
 
 class MapHour(BaseModel):

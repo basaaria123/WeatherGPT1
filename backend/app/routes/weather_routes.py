@@ -24,6 +24,7 @@ from ..schemas import (
     ForecastResponse,
     HourPoint,
     LocationOut,
+    PersonalizationOut,
     RoleIntelligenceOut,
     SpokenAdviceResponse,
     TimelineResponse,
@@ -33,6 +34,7 @@ from ..services import (
     climate,
     i18n,
     map_insight,
+    personalization,
     risk_engine,
     role_intel,
     speech,
@@ -127,6 +129,13 @@ def current_weather(
     except Exception:  # noqa: BLE001 - an alert-store hiccup must not blank the dashboard
         official = 0
 
+    # One call, one role, one reading. Everything below that varies by who is
+    # asking comes out of this dictionary, so the dashboard cannot show a
+    # farmer's cards beside a driver's advisory.
+    personal = personalization.personalize(
+        bundle=bundle, risk=risk, role=user_type, language=language
+    )
+
     return CurrentWeatherResponse(
         location=_location_out(bundle.location),
         generated_at=_now(),
@@ -146,19 +155,28 @@ def current_weather(
             "sunset": (bundle.daily or [{}])[0].get("sunset"),
         }),
         risk=risk,
-        impacts=advisory.impact_cards(bundle, risk, language, user_type),
-        insight=InsightOut(**advisory.headline_insight(bundle, risk, user_type, language)),
+        impacts=personal["impacts"],
+        insight=InsightOut(**personal["insight"]),
         # The dashboard reaches emergency mode without anyone having to ask a
         # question, and carries the same advisory the chat would give.
-        # The bundle matters: without it a calm day returns no actions at all,
-        # and the section the dashboard now leads with would be blank on exactly
-        # the days nothing is wrong. Passing it lets the calm-day fallback give
-        # this reader their own reading of the measurements.
-        advisory=AdvisoryOut(**advisory.build_advisory(risk, user_type, language, bundle=bundle)),
+        advisory=AdvisoryOut(**personal["advisory"]),
         # The same bundle and the same risk, read for whoever is asking.
-        role_intelligence=RoleIntelligenceOut(**role_intel.build(bundle, risk, user_type, language)),
-        emergency=EmergencyOut(**advisory.build_emergency(bundle, risk, user_type, language)),
+        role_intelligence=RoleIntelligenceOut(
+            user_type=personal["role"],
+            icon=personal["icon"],
+            heading=personal["heading"],
+            cards=personal["role_cards"],
+            note=personal["note"],
+        ),
+        emergency=EmergencyOut(**personal["emergency"]),
         official_alert_count=official,
+        personalization=PersonalizationOut(
+            role=personal["role"],
+            priority_metrics=personal["priority_metrics"],
+            best_time=personal["best_time"] or None,
+            suggested_questions=personal["suggested_questions"],
+            timing=personal["timing"],
+        ),
     )
 
 

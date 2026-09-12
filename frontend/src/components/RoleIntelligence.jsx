@@ -19,11 +19,6 @@ import { LoadingBlock, Panel } from './ui/Primitives'
  * and no second weather system.
  */
 
-// Readings that close on a "when" — a departure hour, a working window, a sea
-// state that turns. For everyone else the hour strip would be data with no
-// decision attached to it.
-const TIMING_ROLES = ['fisherman', 'commuter', 'driver', 'outdoor_worker', 'student']
-
 // Presentation only. `tone` is the server's word for how a card should look,
 // never a claim in itself, and it maps onto the palette the rest of the app
 // already uses for severity.
@@ -37,7 +32,7 @@ const TONES = {
 
 const toneOf = (tone) => TONES[tone] ?? TONES.info
 
-export default function RoleIntelligence({ intel, loading, hours }) {
+export default function RoleIntelligence({ intel, loading, hours, timing }) {
   const language = useStore((s) => s.language)
   const reduced = useReducedMotion()
 
@@ -58,7 +53,10 @@ export default function RoleIntelligence({ intel, loading, hours }) {
   const heading = intel.heading || t(language, 'roleIntelligence')
   // Only the roles whose question is about timing get the strip, and only when
   // the hourly series the rest of the app already fetched actually has hours.
-  const showTimeline = TIMING_ROLES.includes(intel.user_type) && (hours?.length ?? 0) >= 6
+  // Whether this reading closes on a "when" — a departure hour, a working
+  // window — is a property of the role, and the role registry is on the server.
+  // For everyone else the hour strip would be data with no decision attached.
+  const showTimeline = Boolean(timing) && (hours?.length ?? 0) >= 6
 
   return (
     <Panel

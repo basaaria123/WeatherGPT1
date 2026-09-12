@@ -30,7 +30,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..schemas import RiskOutput
-from . import i18n
+from . import i18n, roles
 
 # --- Thresholds -------------------------------------------------------------
 # Named rather than inlined so a reviewer can see every number that decides a
@@ -926,50 +926,25 @@ _BUILDERS = {
     "commuter": _commuter,
 }
 
-_HEADINGS = {
-    "general": "ri_heading_general",
-    "farmer": "ri_heading_farmer",
-    "fisherman": "ri_heading_fisherman",
-    "traveler": "ri_heading_traveler",
-    "driver": "ri_heading_driver",
-    "outdoor_worker": "ri_heading_outdoor_worker",
-    "household": "ri_heading_household",
-    "student": "ri_heading_student",
-    "caregiver": "ri_heading_caregiver",
-    "commuter": "ri_heading_commuter",
-}
-
-_ICONS = {
-    "general": "🌤️",
-    "farmer": "🌾",
-    "fisherman": "🎣",
-    "traveler": "🧳",
-    "driver": "🚚",
-    "outdoor_worker": "🏗️",
-    "household": "🏠",
-    "student": "🏫",
-    "caregiver": "🏥",
-    "commuter": "🚗",
-}
-
-# Only the marine reading has to disclose an absence, because it is the only
-# role whose questions this app cannot fully answer.
-_NOTES = {"fisherman": "ri_note_marine"}
+# Icon, heading, note and the rest of what makes a role a role now live in
+# `roles.py`, so adding one is a single edit there plus a builder here. What
+# stays in this module is the only thing that is genuinely card logic: which
+# cards a reader gets, and what each of them says.
 
 
 def build(bundle: Any, risk: RiskOutput, user_type: str | None, lang: str = "en") -> dict[str, Any]:
     """Role-specific reading of the weather already fetched and already scored."""
     lang = i18n.normalise_lang(lang)
-    role = (user_type or "general").strip().lower()
-    if role not in _BUILDERS:
-        role = "general"
+    spec = roles.get(user_type)
+    # A role described in the registry but not yet given a builder here reads as
+    # the general one rather than as an empty card list.
+    builder = _BUILDERS.get(spec.key, _general)
 
     measured = _Reading(bundle, risk)
-    note_key = _NOTES.get(role)
     return {
-        "user_type": role,
-        "icon": _ICONS[role],
-        "heading": i18n.sentence(_HEADINGS[role], lang),
-        "cards": _BUILDERS[role](measured, lang),
-        "note": i18n.sentence(note_key, lang) if note_key else "",
+        "user_type": spec.key,
+        "icon": spec.icon,
+        "heading": i18n.sentence(spec.heading_key, lang),
+        "cards": builder(measured, lang),
+        "note": i18n.sentence(spec.note_key, lang) if spec.note_key else "",
     }

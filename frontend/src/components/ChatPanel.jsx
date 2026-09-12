@@ -37,6 +37,7 @@ export default function ChatPanel({
   error,
   audioAvailable,
   serverTranscribes,
+  suggestions,
 }) {
   const language = useStore((s) => s.language)
   const voiceQuestions = useStore((s) => s.voiceQuestions)
@@ -188,6 +189,7 @@ export default function ChatPanel({
             <p className="max-w-[34ch] text-[11px] leading-relaxed text-faint">
               {t(language, 'askHint')}
             </p>
+            <SuggestedQuestions items={suggestions} onAsk={onSend} pending={pending} />
           </div>
         )}
 
@@ -436,6 +438,42 @@ function MicIcon() {
       <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
       <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
     </svg>
+  )
+}
+
+
+/**
+ * The reader's own cards, offered back to them as questions.
+ *
+ * The server decides these: each chip is one of the cards already on the home
+ * screen, so a farmer is only asked about irrigation on a day the irrigation
+ * card exists, and the label arrives already translated because it *is* that
+ * card's title. The question sent to the assistant is the server's English one
+ * — the answer comes back in the reader's language the same way every other
+ * answer does.
+ *
+ * Nothing renders when the server sent no suggestions. An empty row of chips
+ * would be an invitation to a conversation the data cannot support.
+ */
+function SuggestedQuestions({ items, onAsk, pending }) {
+  if (!items?.length) return null
+  return (
+    <ul className="mt-2 flex flex-wrap justify-center gap-1.5">
+      {items.map((item) => (
+        <li key={item.id}>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onAsk(item.query)}
+            className="rounded-full border border-[rgb(var(--wx-tint)/0.22)] bg-[rgb(var(--wx-tint)/0.06)]
+                       px-3 py-1.5 text-[11.5px] font-medium text-ink transition-colors
+                       hover:bg-[rgb(var(--wx-tint)/0.12)] disabled:opacity-50"
+          >
+            {item.label}
+          </button>
+        </li>
+      ))}
+    </ul>
   )
 }
 

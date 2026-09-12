@@ -504,6 +504,9 @@ export default function App() {
                     intel={currentData?.role_intelligence}
                     loading={loading.current}
                     hours={timelineData?.hours}
+                    // Whether an hour strip earns its space is a property of
+                    // the role, and the role registry lives on the server.
+                    timing={currentData?.personalization?.timing}
                   />
 
                   <MapLauncher ready={Boolean(mapData?.locations?.length)} onOpen={() => setScreen('map')} />
@@ -540,6 +543,10 @@ export default function App() {
                   error={chatError}
                   audioAvailable={capabilities?.voice_output_available}
                   serverTranscribes={capabilities?.voice_input_available}
+                  // Decided by the personalization engine from this same
+                  // response, so the questions offered can only be about cards
+                  // the reader is actually looking at.
+                  suggestions={currentData?.personalization?.suggested_questions}
                 />
               )}
 
