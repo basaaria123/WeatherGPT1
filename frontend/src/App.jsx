@@ -10,6 +10,7 @@ import { THEMES, applyTheme, approachingScene, resolveTheme, sceneForCondition }
 
 import AdvisoryCard from './components/AdvisoryCard'
 import AlertsPanel from './components/AlertsPanel'
+import BottomNav from './components/BottomNav'
 import EmergencyBanner from './components/EmergencyBanner'
 import HistoricalContext from './components/HistoricalContext'
 import PersonaCompare from './components/PersonaCompare'
@@ -46,6 +47,10 @@ export default function App() {
   // splash → landing → onboarding (first visit only) → app. A returning
   // reader has `onboarded` remembered and never sees the questions again.
   const [stage, setStage] = useState('splash')
+  // Which of the five destinations is showing. Nested inside `stage` rather
+  // than replacing it: splash, landing and onboarding are not destinations,
+  // they are the road to them.
+  const [screen, setScreen] = useState('home')
 
   const language = useStore((s) => s.language)
   const userType = useStore((s) => s.userType)
@@ -387,7 +392,7 @@ export default function App() {
         night={night}
         riskLevel={shownRisk?.risk_level}
         approaching={approaching}
-        intensity={stage === 'app' || stage === 'map' ? 0.75 : 1}
+        intensity={stage === 'app' ? 0.75 : 1}
       />
 
       {/* Greets the dashboard with the sky it just read. Reads the same payload
@@ -447,55 +452,80 @@ export default function App() {
               onSignIn={() => { setOnboardAt('identity'); setStage('onboarding') }}
             />
 
-            <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-16 pt-3 sm:px-6 sm:pt-5">
-              {/* Level 0 when it fires: what is happening now, above all else. */}
-              <EmergencyBanner
-                emergency={emergency}
-                audioBase64={answerHere?.audio_base64}
-                audioMime={answerHere?.audio_mime}
-              />
+            {/* One <main> for all five destinations. They share the header, the
+                store and the already-fetched response — switching tab changes
+                what is rendered, never what has been loaded, so there is no
+                second fetch and no flash of an empty screen. */}
+            <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-28 pt-3 sm:px-6 sm:pt-5">
 
-              {/* The answer before the reading. A dashboard that opens on
-                  numbers makes the reader do the interpreting; this is the one
-                  section that tells them what to do about them, so it leads —
-                  in an emergency and on a quiet Tuesday alike. */}
-              {/* One section, not two. The impact cards used to have a screen of
-                  their own near the foot of the page, which put "what this
-                  weather means for you" a long way from "what to do about it"
-                  — and gave a generic Travel verdict the same weight as the
-                  reader's own. They are now a line inside the advice they
-                  belong to. */}
-              <AdvisoryCard
-                advisory={advisory}
-                impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
-                onCompare={() => setCompareOpen(true)}
-              />
+              {/* ---------------- HOME — what should I do now? ------------- */}
+              {screen === 'home' && (
+                <>
+                  {/* Level 0 when it fires: what is happening now, above all else. */}
+                  <EmergencyBanner
+                    emergency={emergency}
+                    audioBase64={answerHere?.audio_base64}
+                    audioMime={answerHere?.audio_mime}
+                  />
 
-              <CommandCenter
-                data={currentData}
-                loading={loading.current}
-                error={errors.current}
-                onRetry={refresh}
-                night={night}
-              />
+                  {/* An active warning belongs on the page the reader opens,
+                      not one tab away. Same component and same store as the
+                      Alerts destination, so the two can never disagree about
+                      what is live. */}
+                  <AlertsPanel onViewArea={viewArea} />
 
-              {/* The map has a page of its own — see the `map` stage below.
-                  Inline, it cost the dashboard a whole screen between the
-                  reading and the advice that follows it. */}
-              <MapLauncher ready={Boolean(mapData?.locations?.length)} onOpen={() => setStage('map')} />
+                  {/* The answer before the reading. A dashboard that opens on
+                      numbers makes the reader do the interpreting; this is the
+                      one section that tells them what to do about them, so it
+                      leads — in an emergency and on a quiet Tuesday alike. */}
+                  <AdvisoryCard
+                    advisory={advisory}
+                    impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
+                    onCompare={() => setCompareOpen(true)}
+                  />
 
-              {/* What that same weather means for whoever is reading it. The
-                  server derives it from this response's own bundle and risk,
-                  so it can never disagree with the card above. */}
-              <RoleIntelligence
-                intel={currentData?.role_intelligence}
-                loading={loading.current}
-                hours={timelineData?.hours}
-              />
+                  <CommandCenter
+                    data={currentData}
+                    loading={loading.current}
+                    error={errors.current}
+                    onRetry={refresh}
+                    night={night}
+                  />
 
-              {/* Chat beside the alert feed: the conversation never takes over
-                  the dashboard, and a live alert stays visible while you type. */}
-              <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1.55fr)_minmax(0,1fr)]">
+                  <AskLauncher onOpen={() => setScreen('ai')} />
+
+                  {/* What that same weather means for whoever is reading it.
+                      The server derives it from this response's own bundle and
+                      risk, so it can never disagree with the card above. */}
+                  <RoleIntelligence
+                    intel={currentData?.role_intelligence}
+                    loading={loading.current}
+                    hours={timelineData?.hours}
+                  />
+
+                  <MapLauncher ready={Boolean(mapData?.locations?.length)} onOpen={() => setScreen('map')} />
+
+                  <PipelinePanel answer={answerHere} />
+                  <HistoricalContext similarity={similarity} />
+                  <HistoricalNote comparison={similarity?.matched ? null : answerHere?.historical_comparison} />
+
+                  <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
+
+                  {/* Where risk is developing across the country. Its two-step
+                      selection is what keeps it from taking the page over — a
+                      marker previews, only the call to action commits. */}
+                  <RiskMap
+                    data={mapData}
+                    loading={loading.map}
+                    error={errors.map}
+                    onRetry={refresh}
+                    onCommit={openLocalDetails}
+                  />
+                </>
+              )}
+
+              {/* ---------------- AI — ask me anything -------------------- */}
+              {screen === 'ai' && (
                 <ChatPanel
                   insight={currentData?.insight}
                   insightLoading={loading.current}
@@ -508,34 +538,30 @@ export default function App() {
                   audioAvailable={capabilities?.voice_output_available}
                   serverTranscribes={capabilities?.voice_input_available}
                 />
-                <AlertsPanel onViewArea={viewArea} />
-              </div>
+              )}
 
-              <PipelinePanel answer={answerHere} />
+              {/* ---------------- MAP — where is the risk? ---------------- */}
+              {screen === 'map' && (
+                <WeatherMap
+                  tall
+                  data={mapData}
+                  hours={timelineData?.hours}
+                  insights={timelineData?.insights}
+                  loading={loading.map}
+                  error={errors.map}
+                />
+              )}
 
-              <HistoricalContext similarity={similarity} />
+              {/* ---------------- ALERTS — what needs attention? ---------- */}
+              {screen === 'alerts' && <AlertsPanel onViewArea={viewArea} />}
 
-              <HistoricalNote comparison={similarity?.matched ? null : answerHere?.historical_comparison} />
-
-              <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
-
-              {/* Where risk is developing across the country, on the home page
-                  and not a screen away: it is the one panel that answers a
-                  question about somewhere the reader is not, and its whole job
-                  is to hand a place back to this dashboard. Its two-step
-                  selection is what keeps it from taking the page over — a
-                  marker previews, only the call to action commits. The
-                  interactive weather map is the one that has a page of its own,
-                  behind the launcher above. */}
-              <RiskMap
-                data={mapData}
-                loading={loading.map}
-                error={errors.map}
-                onRetry={refresh}
-                onCommit={openLocalDetails}
-              />
-
-              <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
+              {/* ---------------- FORECAST — what is coming? -------------- */}
+              {screen === 'forecast' && (
+                <>
+                  <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
+                  <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
+                </>
+              )}
 
               <footer className="flex flex-wrap items-center justify-between gap-3 pt-2">
                 <button
@@ -549,45 +575,8 @@ export default function App() {
                 <DataProvenance generatedAt={currentData?.generated_at} />
               </footer>
             </main>
-          </motion.div>
-        )}
 
-        {/* --- The map, on a page of its own ------------------------------ */}
-        {/* Same header, same store, same already-fetched response: this is a
-            different view of the dashboard's data, not a second app. Leaving
-            the header in place means the location, role and language controls
-            keep working here, which is the whole reason to look at a map. */}
-        {stage === 'map' && (
-          <motion.div
-            key="map"
-            initial={{ opacity: 0, y: 12 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
-            className="min-h-dvh"
-          >
-            <Header
-              onHome={() => setStage('landing')}
-              onBack={() => setStage('app')}
-              onOpenLocation={() => setLocationOpen(true)}
-              onRefresh={refresh}
-              refreshing={refreshing}
-              onSignIn={() => { setOnboardAt('identity'); setStage('onboarding') }}
-            />
-
-            <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-16 pt-3 sm:px-6 sm:pt-5">
-              <WeatherMap
-                tall
-                data={mapData}
-                hours={timelineData?.hours}
-                insights={timelineData?.insights}
-                loading={loading.map}
-                error={errors.map}
-              />
-
-              <footer className="flex justify-end pt-2">
-                <DataProvenance generatedAt={currentData?.generated_at} />
-              </footer>
-            </main>
+            <BottomNav screen={screen} onNavigate={setScreen} />
           </motion.div>
         )}
       </AnimatePresence>
@@ -600,6 +589,52 @@ export default function App() {
       <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />
       <DemoMode answer={answerHere} />
     </>
+  )
+}
+
+/**
+ * The Home doorway into the assistant.
+ *
+ * The conversation has a destination of its own now, so what belongs on Home
+ * is an invitation to it — stated as the question the reader can ask, not as
+ * the name of a feature. Deliberately the same shape as `MapLauncher`: two
+ * doors on the same page that behaved differently would read as two products.
+ */
+function AskLauncher({ onOpen }) {
+  const language = useStore((s) => s.language)
+
+  return (
+    <motion.button
+      type="button"
+      onClick={onOpen}
+      whileHover={{ y: -2 }}
+      transition={{ duration: 0.2, ease: [0.22, 1, 0.36, 1] }}
+      className="group flex w-full min-w-0 items-center gap-4 rounded-[var(--radius-card)] border
+                 border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.035)] px-4 py-3.5 text-left
+                 transition hover:border-primary/40 hover:bg-primary/[0.06]"
+    >
+      <span
+        aria-hidden="true"
+        className="grid h-11 w-11 shrink-0 place-items-center rounded-[var(--radius-card)]
+                   border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)] text-lg"
+      >
+        ✦
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block truncate text-[14px] font-semibold text-ink">
+          {t(language, 'askAnything')}
+        </span>
+        <span className="mt-0.5 block text-[12px] leading-snug text-muted">
+          {t(language, 'placeholder')}
+        </span>
+      </span>
+      <span
+        aria-hidden="true"
+        className="shrink-0 text-[15px] text-muted transition group-hover:translate-x-0.5 group-hover:text-primary"
+      >
+        →
+      </span>
+    </motion.button>
   )
 }
 

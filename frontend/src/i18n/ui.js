@@ -8,6 +8,12 @@
 
 const STRINGS = {
   en: {
+    navPrimary: 'Main navigation',
+    navHome: 'Home',
+    navAI: 'AI',
+    navMap: 'Map',
+    navAlerts: 'Alerts',
+    navForecast: 'Forecast',
     tagline: 'Weather Intelligence Assistant',
     heroTitle: 'Weather you can act on.',
     heroLead:
@@ -301,6 +307,12 @@ const STRINGS = {
   },
 
   hi: {
+    navPrimary: 'मुख्य नेविगेशन',
+    navHome: 'होम',
+    navAI: 'AI',
+    navMap: 'मानचित्र',
+    navAlerts: 'चेतावनी',
+    navForecast: 'पूर्वानुमान',
     tagline: 'मौसम इंटेलिजेंस सहायक',
     heroTitle: 'ऐसा मौसम, जिस पर आप कदम उठा सकें।',
     heroLead:
@@ -594,6 +606,12 @@ const STRINGS = {
   },
 
   te: {
+    navPrimary: 'ప్రధాన నావిగేషన్',
+    navHome: 'హోమ్',
+    navAI: 'AI',
+    navMap: 'మ్యాప్',
+    navAlerts: 'హెచ్చరికలు',
+    navForecast: 'సూచన',
     tagline: 'వాతావరణ ఇంటెలిజెన్స్ సహాయకుడు',
     heroTitle: 'చర్య తీసుకోగలిగే వాతావరణ సమాచారం.',
     heroLead:
@@ -887,6 +905,12 @@ const STRINGS = {
   },
 
   bn: {
+    navPrimary: 'প্রধান নেভিগেশন',
+    navHome: 'হোম',
+    navAI: 'AI',
+    navMap: 'মানচিত্র',
+    navAlerts: 'সতর্কতা',
+    navForecast: 'পূর্বাভাস',
     tagline: 'আবহাওয়া ইন্টেলিজেন্স সহায়ক',
     heroTitle: 'যে আবহাওয়ার তথ্যে কাজ করা যায়।',
     heroLead:
@@ -1180,6 +1204,12 @@ const STRINGS = {
   },
 
   mr: {
+    navPrimary: 'मुख्य नेव्हिगेशन',
+    navHome: 'होम',
+    navAI: 'AI',
+    navMap: 'नकाशा',
+    navAlerts: 'इशारे',
+    navForecast: 'अंदाज',
     tagline: 'हवामान इंटेलिजन्स सहाय्यक',
     heroTitle: 'कृती करता येईल असे हवामान.',
     heroLead:
@@ -1473,6 +1503,12 @@ const STRINGS = {
   },
 
   as: {
+    navPrimary: 'মুখ্য নেভিগেশ্বন',
+    navHome: 'হোম',
+    navAI: 'AI',
+    navMap: 'মানচিত্ৰ',
+    navAlerts: 'সতৰ্কবাণী',
+    navForecast: 'পূৰ্বাভাস',
     tagline: 'বতৰ ইণ্টেলিজেন্স সহায়ক',
     heroTitle: 'কাম কৰিব পৰা বতৰৰ তথ্য।',
     heroLead:
@@ -1765,6 +1801,12 @@ const STRINGS = {
     },
   },
   ta: {
+    navPrimary: 'முதன்மை வழிசெலுத்தல்',
+    navHome: 'முகப்பு',
+    navAI: 'AI',
+    navMap: 'வரைபடம்',
+    navAlerts: 'எச்சரிக்கை',
+    navForecast: 'முன்னறிவிப்பு',
     tagline: 'வானிலை நுண்ணறிவு உதவியாளர்',
     heroTitle: 'செயல்படத் தக்க வானிலைத் தகவல்.',
     heroLead:
@@ -2057,6 +2099,12 @@ const STRINGS = {
     },
   },
   kn: {
+    navPrimary: 'ಮುಖ್ಯ ನ್ಯಾವಿಗೇಷನ್',
+    navHome: 'ಮುಖಪುಟ',
+    navAI: 'AI',
+    navMap: 'ನಕ್ಷೆ',
+    navAlerts: 'ಎಚ್ಚರಿಕೆ',
+    navForecast: 'ಮುನ್ಸೂಚನೆ',
     tagline: 'ಹವಾಮಾನ ಬುದ್ಧಿಮತ್ತೆ ಸಹಾಯಕ',
     heroTitle: 'ಕ್ರಮ ಕೈಗೊಳ್ಳಬಹುದಾದ ಹವಾಮಾನ ಮಾಹಿತಿ.',
     heroLead:
@@ -2349,6 +2397,12 @@ const STRINGS = {
     },
   },
   ml: {
+    navPrimary: 'പ്രധാന നാവിഗേഷൻ',
+    navHome: 'ഹോം',
+    navAI: 'AI',
+    navMap: 'മാപ്പ്',
+    navAlerts: 'മുന്നറിയിപ്പ്',
+    navForecast: 'പ്രവചനം',
     tagline: 'കാലാവസ്ഥാ ഇന്റലിജൻസ് സഹായി',
     heroTitle: 'പ്രവർത്തിക്കാൻ കഴിയുന്ന കാലാവസ്ഥാ വിവരം.',
     heroLead:
@@ -2641,6 +2695,12 @@ const STRINGS = {
     },
   },
   gu: {
+    navPrimary: 'મુખ્ય નેવિગેશન',
+    navHome: 'હોમ',
+    navAI: 'AI',
+    navMap: 'નકશો',
+    navAlerts: 'ચેતવણી',
+    navForecast: 'આગાહી',
     tagline: 'હવામાન ઇન્ટેલિજન્સ સહાયક',
     heroTitle: 'એવું હવામાન જેના પર તમે પગલું લઈ શકો.',
     heroLead:
@@ -2933,6 +2993,12 @@ const STRINGS = {
     },
   },
   pa: {
+    navPrimary: 'ਮੁੱਖ ਨੈਵੀਗੇਸ਼ਨ',
+    navHome: 'ਹੋਮ',
+    navAI: 'AI',
+    navMap: 'ਨਕਸ਼ਾ',
+    navAlerts: 'ਚੇਤਾਵਨੀ',
+    navForecast: 'ਭਵਿੱਖਬਾਣੀ',
     tagline: 'ਮੌਸਮ ਇੰਟੈਲੀਜੈਂਸ ਸਹਾਇਕ',
     heroTitle: 'ਅਜਿਹਾ ਮੌਸਮ ਜਿਸ ਉੱਤੇ ਤੁਸੀਂ ਕਦਮ ਚੁੱਕ ਸਕੋ।',
     heroLead:
