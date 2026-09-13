@@ -161,6 +161,28 @@ class Settings:
     elevenlabs_api_base: str = field(
         default_factory=lambda: os.getenv("ELEVENLABS_API_BASE", "https://api.elevenlabs.io").strip().rstrip("/")
     )
+    # --- Sarvam speech-to-text ---------------------------------------------
+    # An Indic-first recogniser, which is why it leads the chain rather than
+    # sitting under the general-purpose ones. This app answers in eleven Indian
+    # languages; a model trained for them is the right first ask.
+    #
+    # Contract taken from Sarvam's published OpenAPI document, not from memory:
+    # POST /speech-to-text, `api-subscription-key` header, multipart with `file`,
+    # `model` and `language_code`, and a reply carrying `transcript`,
+    # `language_code` and `language_probability`.
+    sarvam_api_key: str = field(default_factory=lambda: os.getenv("SARVAM_API_KEY", "").strip())
+    sarvam_api_base: str = field(
+        default_factory=lambda: os.getenv("SARVAM_API_BASE", "https://api.sarvam.ai").strip().rstrip("/")
+    )
+    # `saarika:v2.5` is the transcription model and the API's own default;
+    # `saaras:v3` is the newer family and also translates.
+    sarvam_stt_model: str = field(
+        default_factory=lambda: os.getenv("SARVAM_STT_MODEL", "saarika:v2.5").strip()
+    )
+    sarvam_timeout_seconds: float = field(
+        default_factory=lambda: _env_float("SARVAM_TIMEOUT_SECONDS", 30.0)
+    )
+
     # --- Puter speech-to-text ----------------------------------------------
     # Puter's own SDK is a browser library: `puter.ai.speech2txt` runs in the
     # page and authenticates the visitor. This app calls it from the server

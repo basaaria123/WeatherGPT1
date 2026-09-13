@@ -26,6 +26,9 @@ const KEY_FOR_CODE = {
   offline: 'errOffline',
   unavailable: 'errUnavailable',
   generic: 'errGeneric',
+  // Sent by the server when no speech recogniser could run. It earns a sentence
+  // of its own because the useful part is the instruction: type instead.
+  stt_unavailable: 'errVoiceUnavailable',
 }
 
 export function userMessage(error, language = 'en') {

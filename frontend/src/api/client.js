@@ -69,11 +69,18 @@ async function request(path, { method = 'GET', body, signal, timeout = 30000, fo
     }
 
     if (!response.ok) {
+      // A failure can carry a code as well as a sentence. When it does, the
+      // interface can say what went wrong in the reader's own language instead
+      // of falling back to the generic line — which is the difference between
+      // "something went wrong" and "type your question instead" for someone
+      // holding down a microphone button.
+      const structured = payload?.detail && typeof payload.detail === 'object' ? payload.detail : null
       const detail =
+        structured?.message ||
         (payload && typeof payload.detail === 'string' && payload.detail) ||
         FRIENDLY[response.status] ||
         'That did not work. Please try again.'
-      throw new ApiError(detail, { status: response.status })
+      throw new ApiError(detail, { status: response.status, code: structured?.code })
     }
     return payload
   } catch (error) {

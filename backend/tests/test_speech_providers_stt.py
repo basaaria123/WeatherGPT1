@@ -120,3 +120,97 @@ def test_the_failure_message_does_not_carry_the_token(with_puter, monkeypatch):
     except speech.TranscriptionError as exc:
         assert TOKEN not in str(exc)
         assert TOKEN not in repr(exc.__cause__ or "")
+
+
+# --- Sarvam ------------------------------------------------------------------
+
+SARVAM_KEY = "sk_test_not_a_real_one"
+
+
+@pytest.fixture
+def with_sarvam(monkeypatch):
+    monkeypatch.setenv("SARVAM_API_KEY", SARVAM_KEY)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "")
+    monkeypatch.setenv("PUTER_TOKEN", "")
+    reset_settings()
+    yield
+    reset_settings()
+
+
+def test_sarvam_leads_the_chain(monkeypatch):
+    """An app that answers in eleven Indian languages asks the Indic model first."""
+    monkeypatch.setenv("SARVAM_API_KEY", SARVAM_KEY)
+    monkeypatch.setenv("ELEVENLABS_API_KEY", "some-key")
+    monkeypatch.setenv("PUTER_TOKEN", "some-token")
+    reset_settings()
+    chain = speech.transcription_chain()
+    reset_settings()
+    assert chain[0] == "sarvam"
+    assert chain.index("sarvam") < chain.index("elevenlabs") < chain.index("puter")
+
+
+def test_every_language_the_app_offers_maps_to_something_sarvam_accepts():
+    """Ten map to a code; Assamese maps to auto-detection rather than a lie."""
+    from app.schemas import SUPPORTED_LANGUAGES
+
+    accepted = {"bn-IN", "en-IN", "gu-IN", "hi-IN", "kn-IN", "ml-IN", "mr-IN", "od-IN", "pa-IN", "ta-IN", "te-IN"}
+    for code in SUPPORTED_LANGUAGES:
+        mapped = speech.SARVAM_LANGUAGES.get(code, "unknown")
+        assert mapped in accepted or mapped == "unknown", (code, mapped)
+    # Assamese is the one Sarvam does not list. Asking for it by name would be
+    # asking for a model that does not exist.
+    assert "as" not in speech.SARVAM_LANGUAGES
+    assert speech.SARVAM_LANGUAGES.get("as", "unknown") == "unknown"
+
+
+def test_the_request_matches_sarvams_published_contract(with_sarvam, monkeypatch):
+    """Endpoint, auth header, form fields and file part, per their OpenAPI doc."""
+    import httpx
+
+    seen = {}
+
+    class Reply:
+        def raise_for_status(self): pass
+        def json(self): return {"transcript": "hello", "language_code": "hi-IN", "language_probability": 0.9}
+
+    def fake_post(url, **kw):
+        seen.update(url=url, headers=kw.get("headers", {}), data=kw.get("data", {}), files=kw.get("files", {}))
+        return Reply()
+
+    monkeypatch.setattr(httpx, "post", fake_post)
+    result = speech._sarvam_transcribe(b"x" * 64, filename="q.webm", content_type="audio/webm", language="hi")
+
+    assert seen["url"].endswith("/speech-to-text")
+    assert seen["headers"] == {"api-subscription-key": SARVAM_KEY}
+    assert set(seen["data"]) == {"model", "language_code"}
+    assert seen["data"]["language_code"] == "hi-IN"
+    assert "file" in seen["files"]
+    # The reply's BCP-47 code is narrowed to the two-letter one the app speaks.
+    assert result.language == "hi"
+    assert result.engine == "sarvam"
+
+
+def test_an_empty_transcript_is_not_passed_off_as_an_answer(with_sarvam, monkeypatch):
+    import httpx
+
+    class Reply:
+        def raise_for_status(self): pass
+        def json(self): return {"transcript": "   ", "language_code": "hi-IN"}
+
+    monkeypatch.setattr(httpx, "post", lambda url, **kw: Reply())
+    with pytest.raises(speech.TranscriptionError):
+        speech._sarvam_transcribe(b"x" * 64, filename="q.webm", content_type="audio/webm", language="hi")
+
+
+def test_the_key_is_not_in_anything_the_client_receives(with_sarvam):
+    payload = json.dumps(speech.capabilities())
+    assert SARVAM_KEY not in payload
+    assert speech.capabilities()["sarvam_configured"] is True
+
+
+def test_the_key_is_not_in_the_frontend_source():
+    from pathlib import Path
+
+    frontend = Path(__file__).resolve().parents[2] / "frontend" / "src"
+    for path in frontend.rglob("*.js*"):
+        assert "SARVAM" not in path.read_text(encoding="utf-8", errors="ignore"), path

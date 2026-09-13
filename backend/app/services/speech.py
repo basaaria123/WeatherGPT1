@@ -110,8 +110,10 @@ def _has(module: str) -> bool:
 
 
 def transcription_engine() -> str:
-    """Which engine would be tried first: 'elevenlabs' | 'puter' | 'faster-whisper' | 'whisper' | 'none'."""
+    """The first provider that would be tried, of sarvam | elevenlabs | puter | a local model."""
     settings = get_settings()
+    if settings.sarvam_api_key:
+        return "sarvam"
     if settings.elevenlabs_api_key:
         return "elevenlabs"
     if settings.puter_token:
@@ -130,6 +132,8 @@ def transcription_chain() -> list[str]:
     """
     settings = get_settings()
     chain: list[str] = []
+    if settings.sarvam_api_key:
+        chain.append("sarvam")
     if settings.elevenlabs_api_key:
         chain.append("elevenlabs")
     if settings.puter_token:
@@ -260,6 +264,81 @@ def _elevenlabs_transcribe(
         language=str(payload.get("language_code") or language or "en"),
         confidence=payload.get("language_probability"),
         engine="elevenlabs",
+    )
+
+
+# Sarvam's own BCP-47 codes, for the languages this app answers in.
+#
+# Ten of our eleven. Sarvam's recogniser does not list Assamese, so `as` is
+# deliberately absent: sending `as-IN` would be asking for a language the model
+# does not have, and the honest alternative is to let it auto-detect. Anything
+# missing here falls to "unknown", which is the API's own value for that.
+SARVAM_LANGUAGES: dict[str, str] = {
+    "en": "en-IN", "hi": "hi-IN", "te": "te-IN", "bn": "bn-IN", "mr": "mr-IN",
+    "ta": "ta-IN", "kn": "kn-IN", "ml": "ml-IN", "gu": "gu-IN", "pa": "pa-IN",
+}
+
+
+def sarvam_stt_available() -> bool:
+    """A key is configured. Not a promise that the call will succeed."""
+    return bool(get_settings().sarvam_api_key)
+
+
+def _sarvam_transcribe(
+    data: bytes,
+    *,
+    filename: str | None,
+    content_type: str | None,
+    language: str | None,
+) -> Transcript:
+    """Sarvam Saarika — an Indic-first recogniser.
+
+    Request shape taken from Sarvam's published OpenAPI document rather than
+    from memory: POST /speech-to-text with an `api-subscription-key` header, the
+    audio in a `file` part, `model` and `language_code` as form fields, and a
+    reply carrying `transcript`, `language_code` and `language_probability`.
+
+    Telling it the language beats letting it guess: the interface already knows
+    which of the eleven the reader picked, and four of them share a script.
+    Assamese is the exception — Sarvam does not list it, so that one asks for
+    auto-detection instead of naming a language the model does not have.
+    """
+    import httpx
+
+    settings = get_settings()
+    form = {
+        "model": settings.sarvam_stt_model,
+        "language_code": SARVAM_LANGUAGES.get((language or "").lower(), "unknown"),
+    }
+
+    try:
+        response = httpx.post(
+            f"{settings.sarvam_api_base}/speech-to-text",
+            headers={"api-subscription-key": settings.sarvam_api_key},
+            data=form,
+            files={"file": (filename or "question.webm", data, content_type or "audio/webm")},
+            timeout=settings.sarvam_timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:  # noqa: BLE001 - any failure falls through below
+        # The key travels as a header, so it is not in the exception text — but
+        # the message stays short rather than a traceback carrying the request.
+        log.warning("Sarvam transcription failed: %s", type(exc).__name__)
+        raise TranscriptionError("Sarvam transcription failed") from exc
+
+    text = str(payload.get("transcript") or "").strip()
+    if not text:
+        raise TranscriptionError("I could not hear anything clear in that recording. Please try again.")
+
+    # Sarvam answers with its own BCP-47 code; the rest of the app speaks the
+    # two-letter one, so it is narrowed back here rather than at every reader.
+    detected = str(payload.get("language_code") or "").split("-")[0].lower()
+    return Transcript(
+        text=text,
+        language=detected or language or "en",
+        confidence=payload.get("language_probability"),
+        engine="sarvam",
     )
 
 
@@ -396,6 +475,20 @@ def transcribe(
     validate_audio(data, filename, content_type)
 
     settings = get_settings()
+
+    # Sarvam first. This app answers in eleven Indian languages and Sarvam's
+    # recogniser is built for ten of them; a general-purpose model is the right
+    # thing to fall back to, not the right thing to ask first.
+    if settings.sarvam_api_key:
+        try:
+            result = _sarvam_transcribe(
+                data, filename=filename, content_type=content_type, language=language
+            )
+            note_transcription_result(True)
+            return result
+        except TranscriptionError as exc:
+            log.warning("Sarvam unavailable, trying the next provider: %s", exc)
+
     if settings.elevenlabs_api_key:
         try:
             result = _elevenlabs_transcribe(
@@ -421,7 +514,9 @@ def transcribe(
         except TranscriptionError as exc:
             log.warning("Puter unavailable, trying on-device engine: %s", exc)
 
-    if (settings.elevenlabs_api_key or settings.puter_token) and _local_engine() == "none":
+    if (
+        settings.sarvam_api_key or settings.elevenlabs_api_key or settings.puter_token
+    ) and _local_engine() == "none":
         note_transcription_result(False)
         raise TranscriptionError(
             "Speech recognition is unavailable right now. Please type your question instead."
@@ -714,6 +809,7 @@ def capabilities() -> dict[str, object]:
         # which one is answering.
         "transcription_chain": transcription_chain(),
         "puter_configured": bool(settings.puter_token),
+        "sarvam_configured": bool(settings.sarvam_api_key),
         "synthesis": synthesis_available(),
         # Which voice would speak next, and the whole ladder behind it, so the
         # UI can say "no voice configured" without guessing and an operator can
