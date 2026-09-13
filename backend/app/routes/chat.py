@@ -106,14 +106,29 @@ async def voice_chat(
                 transcript_text = client_transcript.strip()
                 transcription_source = "client"
             else:
-                # A code as well as a sentence. The sentence is English and is
-                # what a log or an older client shows; the code is what lets the
-                # interface say the same thing in the reader's own language
-                # rather than falling back to "something went wrong", which
-                # tells someone holding a microphone nothing they can act on.
+                # Two audiences, two sentences.
+                #
+                # The operator needs to know which provider is unconfigured, so
+                # that goes to the log. The reader needs to know what to do
+                # instead, so that — and only that — goes on the wire: the
+                # exception text names environment variables and Python
+                # packages, and a reader opening devtools should no more find
+                # our configuration there than on the screen.
+                #
+                # The code travels beside the sentence so the interface can say
+                # the same thing in the reader's own language rather than
+                # falling back to "something went wrong", which tells someone
+                # holding a microphone nothing they can act on.
+                log.warning("Speech-to-text unavailable: %s", exc)
                 raise HTTPException(
                     status_code=422,
-                    detail={"message": str(exc), "code": "stt_unavailable"},
+                    detail={
+                        "message": (
+                            "Speech recognition is unavailable right now. "
+                            "Please type your question instead."
+                        ),
+                        "code": "stt_unavailable",
+                    },
                 ) from exc
     elif client_transcript and client_transcript.strip():
         transcript_text = client_transcript.strip()

@@ -4,6 +4,7 @@ import 'leaflet/dist/leaflet.css'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
+import Icon from './ui/Icon'
 import { EmptyState, Panel, Skeleton } from './ui/Primitives'
 import TileStatus from './map/TileStatus'
 import WeatherField from './map/WeatherField'
@@ -156,8 +157,8 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
       id="weather-map"
       title={t(language, 'weatherMap')}
       action={
-        <span className="flex shrink-0 items-center gap-1.5 text-[11px] tabular-nums text-muted">
-          <span aria-hidden="true">🕒</span>
+        <span className="flex shrink-0 items-center gap-1.5 text-[11px] font-semibold tabular-nums text-muted">
+          <Icon name="clock" size={12} />
           <span>{stepLabel}</span>
         </span>
       }
@@ -173,14 +174,9 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
               type="button"
               onClick={() => setLayerId(id)}
               aria-pressed={active}
-              className={`flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border px-2.5 py-1.5 text-[11px]
-                          font-medium transition ${
-                            active
-                              ? 'border-primary/60 bg-primary/15 text-primary'
-                              : 'border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] text-muted hover:border-[rgb(var(--wx-tint)/0.25)]'
-                          }`}
+              className={`wx-pill shrink-0 ${active ? 'wx-pill-on' : 'wx-pill-off'}`}
             >
-              <span aria-hidden="true">{option.icon}</span>
+              <Icon name={option.icon} size={12} />
               <span>{t(language, option.labelKey)}</span>
             </button>
           )
@@ -226,16 +222,20 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
           aria-label={t(language, 'mapRecenter')}
           title={t(language, 'mapRecenter')}
           className="glass absolute right-2.5 top-2.5 z-[500] grid h-8 w-8 place-items-center rounded-full
-                     bg-[rgb(var(--wx-scrim)/0.85)] text-sm text-ink transition hover:text-primary"
+                     bg-[var(--wx-surface)] text-ink transition hover:text-primary"
         >
-          <span aria-hidden="true">◎</span>
+          <Icon name="pin" size={15} />
         </button>
+
+        {/* The scale, on the map rather than beside it — the reference floats
+            it over the top-right corner, where it sits against the colours it
+            is explaining instead of a caption away from them. */}
+        <MapLegend layer={layer} language={language} />
       </div>
 
-      {/* --- Legend, and what this layer can and cannot say --------------- */}
-      <div className="mt-2.5 flex flex-wrap items-center justify-between gap-x-4 gap-y-2">
-        <Legend layer={layer} language={language} />
-        <p data-map-note className="text-[10.5px] leading-relaxed text-faint">
+      {/* --- What this layer can and cannot say --------------------------- */}
+      <div className="mt-2.5 min-w-0">
+        <p data-map-note className="text-[10.5px] leading-[1.45] text-faint">
           {!layer.hourly && step === 0
             ? t(language, 'mapCurrentOnly')
             : t(language, 'mapObservationNote')}
@@ -252,12 +252,10 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
               disabled={!canPlay}
               data-map-play
               aria-label={playing ? t(language, 'mapPause') : t(language, 'mapPlay')}
-              className="flex shrink-0 items-center gap-1.5 rounded-[var(--radius-pill)] border border-primary/40
-                         bg-primary/10 px-3 py-1.5 text-[11px] font-medium text-primary transition
-                         hover:bg-primary/20 disabled:opacity-40"
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-white
+                         transition hover:brightness-110 disabled:opacity-40"
             >
-              <span aria-hidden="true">{playing ? '❚❚' : '▶'}</span>
-              <span>{playing ? t(language, 'mapPause') : t(language, 'mapPlay')}</span>
+              <Icon name={playing ? 'pause' : 'play'} size={14} />
             </button>
 
             <input
@@ -288,9 +286,10 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
                   disabled={!layer.hourly && index > 0}
                   /* Tall enough to hit with a thumb: at `py-1` these came out
                      24px, which is under any touch-target guidance. */
-                  className={`min-h-[34px] shrink-0 rounded-md px-2.5 text-[10.5px] tabular-nums transition ${
-                    active ? 'bg-primary/15 text-primary' : 'text-faint hover:text-muted'
-                  } disabled:opacity-30`}
+                  className={`min-h-[32px] shrink-0 rounded-[var(--radius-pill)] px-2.5 text-[10.5px]
+                              font-semibold tabular-nums transition ${
+                                active ? 'bg-primary text-white' : 'text-muted hover:bg-[rgb(var(--wx-tint)/0.07)]'
+                              } disabled:opacity-30`}
                 >
                   {index === 0 ? t(language, 'mapNow') : clock(hour?.time)}
                 </button>
@@ -435,26 +434,30 @@ function SelectedReading({ hour, here, step, language }) {
   )
 }
 
-/** A scale that matches what is actually on the map, and nothing more. */
-function Legend({ layer, language }) {
+/**
+ * The scale, as the reference draws it: a vertical gradient bar in a small
+ * white card over the map's top-right corner, heaviest at the top.
+ *
+ * The stops are the layer's own — the same values the interpolated surface
+ * mixes between — so the bar cannot claim a colour the map does not use.
+ */
+function MapLegend({ layer, language }) {
+  const ramp = layer.stops.map((stop) => stop.color)
+  const labels = layer.legendKeys.map((key) => t(language, key))
+
   return (
-    <div className="flex min-w-0 items-center gap-2">
-      <div className="flex items-center gap-1" aria-hidden="true">
-        {[0.08, 0.35, 0.62, 0.9].map((fraction) => (
-          <span
-            key={fraction}
-            className="h-2 w-5 rounded-sm"
-            style={{
-              background: layer.ramp(
-                layer.id === 'temperature' ? 8 + fraction * 36 : fraction * (layer.id === 'wind' ? 60 : 100),
-              ),
-              opacity: 0.75,
-            }}
-          />
-        ))}
-      </div>
-      <span className="truncate text-[10.5px] text-faint">
-        {layer.legendKeys.map((key) => t(language, key)).join(' → ')}
+    <div
+      className="glass pointer-events-none absolute right-2.5 top-12 z-[500] flex items-stretch gap-1.5
+                 bg-[var(--wx-surface)] px-1.5 py-1.5"
+      aria-hidden="true"
+    >
+      <span
+        className="w-2.5 rounded-full"
+        style={{ background: `linear-gradient(to top, ${ramp.join(', ')})`, minHeight: '3.6rem' }}
+      />
+      <span className="flex flex-col justify-between py-px text-[8.5px] font-semibold text-muted">
+        <span>{labels[labels.length - 1]}</span>
+        <span>{labels[0]}</span>
       </span>
     </div>
   )

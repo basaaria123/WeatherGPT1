@@ -96,6 +96,40 @@ const CONDITION_TO_THEME = {
  * weather condition gets to negotiate. What changes is the ground the cards sit
  * on, the accent, and the atmospheric wash.
  */
+/**
+ * The reference palette.
+ *
+ * Every light theme is this object. The names on the left are the app's tokens;
+ * the values are read off the reference design, and `index.css` re-exports the
+ * same values under the reference's own names (--page-bg, --primary-blue, …)
+ * so a reader of either file finds the same colour.
+ *
+ * `tint` is the primary blue as an RGB triplet rather than a near-black, which
+ * is what makes every `rgb(var(--wx-tint)/0.06)` fill in the app a pale blue
+ * wash and every hairline a blue one — the reference's whole surface language,
+ * carried by one value.
+ */
+const REFERENCE_LIGHT = {
+  scheme: 'light',
+  scrim: '255 255 255', overlay: 'rgb(16 42 74 / 0.44)',
+  // The page, and the slightly deeper blue used behind insets and map chrome.
+  bg: '#f1f6fc', bgDeep: '#e6f0fb', raised: '#ffffff', surface: '#ffffff',
+  primary: '#1668d6', accent: '#0f9d6b', border: '#d8e6f6',
+  tint: '22 104 214',
+  ink: '#143761', inkSoft: '#284f7c', muted: '#6a83a3', faint: '#93a7c0',
+  safe: '#0f9d6b', caution: '#e29316', cautionInk: '#9a6206',
+  warning: '#dd7a1b', danger: '#dc3b3b',
+  // No vignette and no atmospheric wash: the reference page is a flat, even
+  // light blue from top to bottom.
+  vignette: 'none',
+  shadowGlass: '0 1px 2px rgb(20 55 97 / 0.04)',
+  shadowLift: '0 4px 16px rgb(20 55 97 / 0.08)',
+  atmosA: 'transparent', atmosB: 'transparent',
+  pattern: 'none',
+  // The one place the weather still tints a surface.
+  hero: 'linear-gradient(158deg, #e9f3fd 0%, #f5f9fe 52%, #ffffff 100%)',
+}
+
 export const THEMES = {
   base: {
     scheme: 'dark',
@@ -211,72 +245,33 @@ export const THEMES = {
   },
 
   // --- Light twins of the dark themes ------------------------------------
-  // Light is the app's default appearance, so every condition needs a bright
-  // rendering — not just the bright ones. These keep each condition's own
-  // character in the accent, the atmosphere and the pattern, and move only the
-  // ground beneath them. Severity colours are the darkened set: amber at full
-  // saturation is unreadable as text on white, which is the one place this
-  // palette deliberately departs from the brief.
-  baseLight: {
-    scheme: 'light',
-    scrim: '234 244 255', overlay: 'rgb(38 50 56 / 0.40)',
-    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1565c0', accent: '#00897b', border: '#d7e2ec',
-    tint: '38 50 56',
-    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
-    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#ef6c00', danger: '#d84315',
-    vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 42%, rgb(215 229 242 / 0.34) 82%, rgb(202 221 240 / 0.46) 100%)',
-    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.06)',
-    shadowLift: '0 4px 14px rgb(38 50 56 / 0.10)',
-    atmosA: 'rgb(25 118 210 / 0.07)', atmosB: 'rgb(0 137 123 / 0.05)',
-    pattern: 'none',
-  },
+  //
+  // These four are deliberately the SAME palette.
+  //
+  // The reference interface is one light-blue instrument that does not repaint
+  // itself when the sky changes: white cards on a pale blue ground, hairline
+  // blue edges, one blue accent. A page whose background, border colour and
+  // accent moved with the weather would be four products that happen to share a
+  // layout, and it is the opposite of what the reference specifies.
+  //
+  // The weather is not silenced — it still speaks through the hero card's own
+  // gradient (`hero`), the condition glyph, the risk band and the atmosphere
+  // behind the 3D scene. What it no longer does is move the ground under the
+  // cards or the colour of a button.
+  baseLight: { ...REFERENCE_LIGHT },
   rainLight: {
-    scheme: 'light',
-    scrim: '232 243 255', overlay: 'rgb(38 50 56 / 0.40)',
-    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1976d2', accent: '#00897b', border: '#d7e2ec',
-    tint: '38 50 56',
-    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
-    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#ef6c00', danger: '#d84315',
-    vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 40%, rgb(209 226 242 / 0.36) 82%, rgb(195 217 238 / 0.50) 100%)',
-    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.06)',
-    shadowLift: '0 4px 14px rgb(38 50 56 / 0.10)',
-    atmosA: 'rgb(25 118 210 / 0.10)', atmosB: 'rgb(0 137 123 / 0.05)',
-    pattern: 'radial-gradient(100% 68% at 50% 0%, rgb(25 118 210 / 0.07), transparent 64%)',
+    ...REFERENCE_LIGHT,
+    hero: 'linear-gradient(158deg, #e8f2fd 0%, #f4f9fe 52%, #ffffff 100%)',
   },
   stormLight: {
-    scheme: 'light',
-    scrim: '232 240 252', overlay: 'rgb(38 50 56 / 0.42)',
-    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1565c0', accent: '#ef6c00', border: '#d7e2ec',
-    tint: '38 50 56',
-    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
-    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#ef6c00', danger: '#d84315',
-    vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 36%, rgb(207 222 242 / 0.40) 80%, rgb(192 212 236 / 0.54) 100%)',
-    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.07)',
-    shadowLift: '0 4px 14px rgb(38 50 56 / 0.11)',
-    atmosA: 'rgb(21 101 192 / 0.11)', atmosB: 'rgb(232 113 10 / 0.06)',
-    pattern: 'radial-gradient(108% 66% at 50% -10%, rgb(21 101 192 / 0.09), transparent 62%)',
+    ...REFERENCE_LIGHT,
+    hero: 'linear-gradient(158deg, #e5eefb 0%, #f2f7fd 52%, #ffffff 100%)',
   },
   nightLight: {
-    scheme: 'light',
-    scrim: '234 241 252', overlay: 'rgb(38 50 56 / 0.40)',
-    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1565c0', accent: '#00897b', border: '#d7e2ec',
-    tint: '38 50 56',
-    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
-    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#ef6c00', danger: '#d84315',
-    vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 40%, rgb(213 224 241 / 0.36) 82%, rgb(199 213 235 / 0.50) 100%)',
-    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.06)',
-    shadowLift: '0 4px 14px rgb(38 50 56 / 0.10)',
-    atmosA: 'rgb(21 101 192 / 0.08)', atmosB: 'rgb(0 137 123 / 0.04)',
-    pattern: 'none',
+    ...REFERENCE_LIGHT,
+    hero: 'linear-gradient(158deg, #e9eefa 0%, #f4f7fd 52%, #ffffff 100%)',
   },
+
 }
 
 /**
@@ -363,6 +358,7 @@ const VAR_MAP = {
   '--wx-atmos-a': 'atmosA',
   '--wx-atmos-b': 'atmosB',
   '--wx-pattern': 'pattern',
+  '--wx-hero': 'hero',
   '--wx-tint': 'tint',
   '--wx-ink': 'ink',
   '--wx-vignette': 'vignette',
@@ -408,6 +404,10 @@ export function applyTheme(themeKey) {
   Object.entries(VAR_MAP).forEach(([cssVar, key]) => {
     if (theme[key] !== undefined) root.style.setProperty(cssVar, theme[key])
   })
+  // The dark themes carry no `hero` of their own — a dark card is already the
+  // ground it sits on — so the hero surface falls back to the plain one rather
+  // than keeping the gradient the previous theme wrote.
+  if (theme.hero === undefined) root.style.setProperty('--wx-hero', theme.surface ?? '#ffffff')
   root.dataset.weatherTheme = themeKey
   // Drives the browser's own controls, scrollbars and caret colour.
   root.style.colorScheme = theme.scheme ?? 'dark'

@@ -521,6 +521,7 @@ def _with_persona_guidance(
     lang: str,
     *,
     lead: bool = False,
+    focused: bool = False,
 ) -> str:
     """Attach the reader's own take to a general answer.
 
@@ -535,12 +536,58 @@ def _with_persona_guidance(
     tail = " ".join(fresh)
     if not lead:
         return f"{base} {tail}".strip()
-    # The question was "should I…". The guidance is the answer and the reading
-    # is the evidence for it — one sentence of evidence, not the whole reading.
-    # Leading with advice and then reciting six observations is how an answer
-    # turns back into a briefing.
+
+    # An advice question that named its subject is still a question about that
+    # subject. "Can I spray today?" and "What should I wear?" are both advice
+    # questions for a farmer, and leading both with the same profile guidance
+    # produced the same answer to two different questions — the reading they
+    # each asked for reduced to one supporting clause behind it. So when the
+    # question named something, the answer to *that* leads and the guidance
+    # follows it.
+    if focused:
+        return f"{base} {tail}".strip()
+
+    # Otherwise the question was "should I…" and nothing more. The guidance is
+    # the answer and the reading is the evidence for it — one sentence of
+    # evidence, not the whole reading. Leading with advice and then reciting six
+    # observations is how an answer turns back into a briefing.
     support = _sentences(base)
     return f"{tail} {support[0]}".strip() if support else tail
+
+
+def _risk_answer(risk: RiskOutput, lang: str) -> str:
+    """Why the score is what it is.
+
+    "Why is the hazard score high?" is a question about the engine, not about
+    the sky, and the engine already publishes its answer: the band, the number,
+    the hazard it named, and the measured values it scored. This states those
+    and nothing else, so the explanation cannot drift from the score it is
+    explaining — every part of it is read from the same `RiskOutput` the number
+    on screen came from.
+
+    Every key used here already exists in all eleven packs, which is why this
+    adds no strings: `emg_why_text` carries the band and the number, `emg_what`
+    heads the evidence, and the drivers are localised by the engine's own
+    labeller.
+    """
+    lang = i18n.normalise_lang(lang)
+    end = i18n.terminator(lang)
+    parts = [
+        i18n.sentence(
+            "emg_why_text", lang,
+            level=i18n.level_label(risk.risk_level, lang), score=risk.risk_score,
+        )
+    ]
+
+    hazard = risk.detected_hazard
+    if hazard and hazard != "None":
+        parts.append(f"{i18n.hazard_label(hazard, lang)}{end}")
+
+    drivers = i18n.driver_labels(risk.driver_details, lang)
+    if drivers:
+        parts.append(f"{i18n.sentence('emg_what', lang)}: " + "; ".join(drivers[:3]) + end)
+
+    return " ".join(parts)
 
 
 def templated_answer(
@@ -559,12 +606,51 @@ def templated_answer(
     """The full no-LLM answer. Correct, multilingual, and impossible to
     hallucinate with, because every number is substituted from real data."""
     lang = i18n.normalise_lang(lang)
+    focused = tuple(focus or ())
+
     # Emergency wording is gated on the measured risk alone. `mode` cannot
     # promote a calm reading into a warning, only the risk engine can.
     if risk_engine.is_actionable(risk):
-        # The emergency brief is already written for the persona.
-        return emergency_brief(bundle, risk, user_type, lang)
-    focused = tuple(focus or ())
+        # A broad question on a dangerous day IS the emergency question, and the
+        # brief is already written for this persona.
+        if not focused and intent not in {"forecast", "alert_check"}:
+            return emergency_brief(bundle, risk, user_type, lang)
+
+        # A narrow one is not. "Will it rain tonight?" used to be answered with
+        # the standing bulletin — the same four paragraphs whatever was asked —
+        # which is a weather report wearing an assistant's clothes, and it was
+        # worst on exactly the days people ask the most questions.
+        #
+        # So the question is answered first, and the warning follows it. The
+        # warning is never dropped: an answer that omits an active danger
+        # because the reader happened to ask about something else is the one
+        # failure this product cannot have. It is one line rather than the full
+        # brief, because the brief is a tap away on every screen.
+        if "risk" in focused:
+            answered = _risk_answer(risk, lang)
+        elif intent == "forecast":
+            answered = forecast_answer(bundle, lang, day_offset=day_offset)
+        elif intent == "alert_check":
+            answered = alerts_answer(bundle, alerts or [], lang)
+        else:
+            answered = smart_explanation(bundle, risk, lang, mode=mode, focus=focused)
+
+        warning = i18n.sentence(
+            "emg_headline",
+            lang,
+            loc=bundle.location.label,
+            hazard=i18n.hazard_label(risk.detected_hazard, lang),
+        )
+        lead = action_checklist(risk, user_type, lang)[:1]
+        return " ".join(part for part in [answered, warning, *lead] if part)
+
+    # A question about the score is answered by the score's own reasoning,
+    # whatever the band. It is the one focus that is about the engine rather
+    # than about a measurement, so it does not belong in the chain below —
+    # which answers questions about the sky.
+    if "risk" in focused:
+        return _risk_answer(risk, lang)
+
     if intent == "forecast" and not (focused and day_offset == 0):
         base = forecast_answer(bundle, lang, day_offset=day_offset)
     elif intent == "alert_check":
@@ -586,7 +672,10 @@ def templated_answer(
     # broad, or when it was itself an advice question, and not otherwise.
     if focused and not advice_question:
         return base
-    return _with_persona_guidance(base, bundle, risk, user_type, lang, lead=advice_question)
+    return _with_persona_guidance(
+        base, bundle, risk, user_type, lang,
+        lead=advice_question, focused=bool(focused),
+    )
 
 
 # ---------------------------------------------------------------------------

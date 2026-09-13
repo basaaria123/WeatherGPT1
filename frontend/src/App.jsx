@@ -34,6 +34,8 @@ import WeatherMap from './components/WeatherMap'
 import SplashScreen from './components/SplashScreen'
 import Timeline from './components/Timeline'
 import WeatherIntro from './components/WeatherIntro'
+import Icon from './components/ui/Icon'
+import { Tabs } from './components/ui/Primitives'
 
 /**
  * App shell.
@@ -42,6 +44,53 @@ import WeatherIntro from './components/WeatherIntro'
  * panel needs. Panel-specific loading and error state stays with the panel, so
  * one slow endpoint never blanks the rest of the dashboard.
  */
+
+/**
+ * Did the reader type a question, or a place?
+ *
+ * The reference gives Home ONE field and promises it takes either — "Search
+ * city, location or weather question". So something has to decide, and it has
+ * to be conservative in the direction that is cheap to undo: a question sent to
+ * the geocoder fails with "we could not find that place", while a place name
+ * sent to the assistant is answered correctly anyway, because the assistant
+ * resolves locations itself.
+ *
+ * Hence: a question mark, more than four words, or an opening interrogative in
+ * any of the eleven interface languages goes to the assistant. Everything else
+ * is treated as a place. The word lists are short on purpose — they are the
+ * openers, not a grammar.
+ */
+const QUESTION_OPENERS = [
+  // en
+  'what', 'when', 'will', 'is', 'are', 'can', 'should', 'do', 'does', 'how', 'why',
+  'where', 'who', 'am', 'could', 'would', 'tell', 'give', 'show',
+  // hi / mr
+  'क्या', 'कब', 'कैसे', 'क्यों', 'कहाँ', 'कहां', 'मुझे', 'काय', 'कधी', 'कसे', 'का',
+  // bn / as
+  'কি', 'কী', 'কখন', 'কেন', 'কোথায়', 'কেমন', 'কেনে', 'কেতিয়া',
+  // te
+  'ఏమి', 'ఎప్పుడు', 'ఎందుకు', 'ఎక్కడ', 'ఎలా', 'నేను',
+  // ta
+  'என்ன', 'எப்போது', 'ஏன்', 'எங்கே', 'எப்படி', 'நான்',
+  // kn
+  'ಏನು', 'ಯಾವಾಗ', 'ಏಕೆ', 'ಎಲ್ಲಿ', 'ಹೇಗೆ', 'ನಾನು',
+  // ml
+  'എന്ത്', 'എപ്പോൾ', 'എന്തുകൊണ്ട്', 'എവിടെ', 'എങ്ങനെ', 'ഞാൻ',
+  // gu
+  'શું', 'ક્યારે', 'કેમ', 'ક્યાં', 'કેવી', 'મારે',
+  // pa
+  'ਕੀ', 'ਕਦੋਂ', 'ਕਿਉਂ', 'ਕਿੱਥੇ', 'ਕਿਵੇਂ', 'ਮੈਨੂੰ',
+]
+
+function looksLikeAQuestion(text) {
+  const trimmed = text.trim()
+  if (!trimmed) return false
+  if (trimmed.includes('?') || trimmed.includes('？')) return true
+  const words = trimmed.split(/\s+/)
+  if (words.length > 4) return true
+  const first = words[0].toLowerCase().replace(/[.,!;:]$/, '')
+  return QUESTION_OPENERS.includes(first)
+}
 
 let messageId = 0
 const nextId = () => { messageId += 1; return messageId }
@@ -58,6 +107,9 @@ export default function App() {
   // than replacing it: splash, landing and onboarding are not destinations,
   // they are the road to them.
   const [screen, setScreen] = useState('home')
+  // Which horizon the forecast destination is showing. Local to the
+  // screen: it is a view of one dataset, not a navigation state.
+  const [forecastTab, setForecastTab] = useState('24h')
 
   const language = useStore((s) => s.language)
   const appearance = useStore((s) => s.appearance)
@@ -75,6 +127,10 @@ export default function App() {
   const onboarded = useStore((s) => s.onboarded)
 
   const [locationOpen, setLocationOpen] = useState(false)
+  // What the header's search field held when it turned out to name a
+  // place rather than ask a question. Handed to the picker so the reader
+  // does not type it twice.
+  const [searchPrefill, setSearchPrefill] = useState('')
   // Which panel onboarding opens on: the first question on a first visit, the
   // identity panel when the reader asked to sign in.
   const [onboardAt, setOnboardAt] = useState('location')
@@ -513,20 +569,34 @@ export default function App() {
             {/* Straight back to the landing page — never via the splash, which
                 belongs to first load only. */}
             <Header
+              screen={screen}
               onHome={() => setStage('landing')}
+              onBack={() => setScreen('home')}
               onOpenLocation={() => setLocationOpen(true)}
               onRefresh={refresh}
               refreshing={refreshing}
               /* Signing in re-enters the identity panel rather than opening a
                  separate modal: one flow, reachable from both places. */
               onSignIn={() => { setOnboardAt('identity'); setStage('onboarding') }}
+              /* One field, two jobs — which is what the reference's own
+                 placeholder promises. A phrase that reads as a question goes
+                 to the assistant; anything else is a place to look up. */
+              onSearch={(text) => {
+                if (looksLikeAQuestion(text)) { setScreen('ai'); send(text) }
+                else { setSearchPrefill(text); setLocationOpen(true) }
+              }}
+              onTrailing={(what) => {
+                if (what === 'alerts') setScreen('alerts')
+                else if (what === 'sliders') setScreen('map')
+                else if (what === 'dots') setDemoOpen(true)
+              }}
             />
 
             {/* One <main> for all five destinations. They share the header, the
                 store and the already-fetched response — switching tab changes
                 what is rendered, never what has been loaded, so there is no
                 second fetch and no flash of an empty screen. */}
-            <main className="mx-auto w-full min-w-0 max-w-[var(--app-width)] space-y-3 px-3 pb-28 pt-3 sm:px-4 sm:pt-4">
+            <main className="wx-shell min-w-0 space-y-2.5 px-3.5 pb-28 pt-3">
 
               {/* ---------------- HOME — what should I do now? -------------
                   Home answers one question, and the order below *is* the
@@ -555,18 +625,31 @@ export default function App() {
                     night={night}
                   />
 
-                  {/* 2 — What to do about it. The single section this product
-                      exists for, and the reason the reading above it is not
-                      the top of the page. */}
+                  {/* 2 — What has been raised for this place, if anything.
+                      The reference puts the warning card directly under the
+                      reading, which is right: a warning is about the numbers
+                      immediately above it. Renders nothing when nothing is
+                      live — an absence does not need a card. */}
+                  <AlertIndicator onOpen={() => setScreen('alerts')} onViewArea={viewArea} />
+
+                  {/* 3 — Where to ask anything else. */}
+                  <AskLauncher
+                    onOpen={() => setScreen('ai')}
+                    suggestions={currentData?.personalization?.suggested_questions}
+                    onAsk={(query) => { setScreen('ai'); send(query) }}
+                  />
+
+                  {/* 4 — What to do about it. The single section this product
+                      exists for. */}
                   <AdvisoryCard
                     advisory={advisory}
                     impacts={answerHere?.impacts?.length ? answerHere.impacts : currentData?.impacts}
                     onCompare={() => setCompareOpen(true)}
                   />
 
-                  {/* 3 — What it means for whoever is reading. Derived from
+                  {/* 5 — What it means for whoever is reading. Derived from
                       this response's own bundle and risk, so it can never
-                      disagree with the two cards above it. */}
+                      disagree with the cards above it. */}
                   <RoleIntelligence
                     intel={currentData?.role_intelligence}
                     loading={loading.current}
@@ -576,17 +659,6 @@ export default function App() {
                     // the role, and the role registry lives on the server.
                     timing={currentData?.personalization?.timing}
                   />
-
-                  {/* 4 — Where to ask anything else. */}
-                  <AskLauncher
-                    onOpen={() => setScreen('ai')}
-                    suggestions={currentData?.personalization?.suggested_questions}
-                    onAsk={(query) => { setScreen('ai'); send(query) }}
-                  />
-
-                  {/* 5 — One line, and only when something is actually live.
-                      An absence does not need a card. */}
-                  <AlertIndicator onOpen={() => setScreen('alerts')} />
 
                   {/* A door to the map, not the map. */}
                   <MapLauncher ready={Boolean(mapData?.locations?.length)} onOpen={() => setScreen('map')} />
@@ -613,8 +685,10 @@ export default function App() {
                 />
               )}
               {/* How the last answer was built. It belongs beside the answer,
-                  not on a page about the weather. */}
-              {screen === 'ai' && <PipelinePanel answer={answerHere} />}
+                  not on a page about the weather — and not at all until there
+                  is an answer, where it was a screen of placeholder under an
+                  empty conversation. */}
+              {screen === 'ai' && answerHere && <PipelinePanel answer={answerHere} />}
 
               {/* ---------------- MAP — where is the risk? ---------------- */}
               {screen === 'map' && (
@@ -650,20 +724,61 @@ export default function App() {
                 />
               )}
 
-              {/* ---------------- FORECAST — what is coming? -------------- */}
+              {/* ---------------- FORECAST — what is coming? --------------
+                  Three tabs, as the reference draws them. The first shows both
+                  horizons together, which is what the reference's own forecast
+                  screen shows; the other two are that screen's remaining
+                  questions given a tab of their own rather than a scroll. */}
               {screen === 'forecast' && (
                 <>
-                  <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
-                  <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
-                  {/* Trends: this place against its own record. Moved here from
-                      Home, where it was the fourth thing competing to be read
-                      and the first thing scrolled past. */}
-                  {/* When, as its own answer. The server computes it from the
-                      same hourly series the strip above is drawn from. */}
-                  <BestTime bestTime={currentData?.personalization?.best_time} />
-                  {/* Trends: this place against its own record. */}
-                  <HistoricalContext similarity={similarity} />
-                  <HistoricalNote comparison={similarity?.matched ? null : answerHere?.historical_comparison} />
+                  <Tabs
+                    idPrefix="forecast-tab"
+                    ariaLabel={t(language, 'forecast7')}
+                    value={forecastTab}
+                    onChange={setForecastTab}
+                    items={[
+                      { id: '24h', label: t(language, 'hours24') },
+                      { id: '7d', label: t(language, 'days7') },
+                      { id: 'trends', label: t(language, 'trends') },
+                    ]}
+                  />
+
+                  <div
+                    role="tabpanel"
+                    id={`forecast-tab-panel-${forecastTab}`}
+                    aria-labelledby={`forecast-tab-${forecastTab}`}
+                    className="min-w-0 space-y-2.5"
+                  >
+                    {forecastTab === '24h' && (
+                      <>
+                        <Timeline data={timelineData} loading={loading.timeline} error={errors.timeline} />
+                        <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
+                        {/* When, as its own answer. The server computes it from
+                            the same hourly series the strip above is drawn
+                            from. */}
+                        <BestTime bestTime={currentData?.personalization?.best_time} />
+                      </>
+                    )}
+
+                    {forecastTab === '7d' && (
+                      <>
+                        <Forecast data={forecastData} loading={loading.forecast} error={errors.forecast} />
+                        <BestTime bestTime={currentData?.personalization?.best_time} />
+                      </>
+                    )}
+
+                    {/* Trends: this place against its own record. Moved here
+                        from Home, where it was the fourth thing competing to be
+                        read and the first thing scrolled past. */}
+                    {forecastTab === 'trends' && (
+                      <>
+                        <HistoricalContext similarity={similarity} />
+                        <HistoricalNote
+                          comparison={similarity?.matched ? null : answerHere?.historical_comparison}
+                        />
+                      </>
+                    )}
+                  </div>
                 </>
               )}
 
@@ -690,7 +805,11 @@ export default function App() {
         onClose={() => setCompareOpen(false)}
         location={location?.name}
       />
-      <LocationDialog open={locationOpen} onClose={() => setLocationOpen(false)} />
+      <LocationDialog
+        open={locationOpen}
+        prefill={searchPrefill}
+        onClose={() => { setLocationOpen(false); setSearchPrefill('') }}
+      />
       <DemoMode answer={answerHere} />
     </>
   )
@@ -706,40 +825,50 @@ export default function App() {
  */
 function AskLauncher({ onOpen, suggestions, onAsk }) {
   const language = useStore((s) => s.language)
+  const [draft, setDraft] = useState('')
+
+  const ask = (text) => {
+    const query = (text ?? draft).trim()
+    if (!query) return
+    setDraft('')
+    onAsk?.(query)
+  }
 
   return (
-    <section className="glass min-w-0 p-4">
-      <h2 className="text-[10px] uppercase tracking-[0.14em] text-faint">
-        {t(language, 'askAnything')}
-      </h2>
-
-      <button
-        type="button"
-        onClick={onOpen}
-        className="mt-2 flex w-full min-w-0 items-center gap-3 rounded-[var(--radius-card)]
-                   border border-[var(--wx-border)] bg-[var(--wx-bg)] px-3.5 py-3 text-left
-                   transition hover:border-primary/50"
-      >
-        <span aria-hidden="true" className="shrink-0 text-[15px] text-primary">✦</span>
-        <span className="min-w-0 flex-1 truncate text-[13px] text-muted">
-          {t(language, 'placeholder')}
+    <section
+      className="wx-note min-w-0 p-4"
+      style={{
+        '--wx-note-line': 'rgb(var(--wx-tint) / 0.16)',
+        '--wx-note-fill': 'rgb(var(--wx-tint) / 0.05)',
+      }}
+    >
+      <div className="flex min-w-0 items-start gap-2.5">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-white">
+          <Icon name="cloud" size={17} stroke={1.9} />
         </span>
-        <span aria-hidden="true" className="shrink-0 text-[15px] text-muted">🎙</span>
-      </button>
+        <div className="min-w-0">
+          <h2 className="text-[14.5px] font-bold leading-tight tracking-[-0.01em] text-ink">
+            {t(language, 'askWeatherGPT')}
+          </h2>
+          <p className="mt-0.5 text-[11.5px] leading-[1.45] text-muted">
+            {t(language, 'askWeatherGPTBody')}
+          </p>
+        </div>
+      </div>
 
       {/* The server's own suggestions, and only for cards the reader is
           actually looking at. Tapping one opens the assistant with the question
           already asked, rather than opening an empty conversation. */}
       {suggestions?.length > 0 && (
-        <ul className="mt-2.5 flex min-w-0 flex-wrap gap-1.5">
+        <ul className="mt-3 flex min-w-0 flex-wrap gap-1.5">
           {suggestions.slice(0, 4).map((item) => (
             <li key={item.id} className="min-w-0">
               <button
                 type="button"
-                onClick={() => onAsk?.(item.query)}
+                onClick={() => ask(item.query)}
                 className="max-w-full truncate rounded-[var(--radius-pill)] border border-[var(--wx-border)]
-                           bg-[var(--wx-bg)] px-3 py-1.5 text-[11.5px] font-medium text-ink-soft
-                           transition hover:border-primary/50 hover:text-ink"
+                           bg-[var(--wx-surface)] px-2.5 py-1 text-[11px] font-medium text-ink-soft
+                           transition hover:border-primary/50 hover:text-primary"
               >
                 {item.label}
               </button>
@@ -748,15 +877,46 @@ function AskLauncher({ onOpen, suggestions, onAsk }) {
         </ul>
       )}
 
-      <button
-        type="button"
-        onClick={onOpen}
-        className="mt-3 flex w-full items-center justify-center gap-1.5 rounded-[var(--radius-card)]
-                   bg-primary px-4 py-2.5 text-[13px] font-semibold text-white
-                   transition hover:brightness-110"
+      {/* A real field, not a button dressed as one. The reference draws an
+          input here and a reader who types into a picture of an input has been
+          lied to. Submitting opens the assistant with the question already
+          asked. */}
+      <form
+        className="mt-3 flex min-w-0 items-center gap-1.5"
+        onSubmit={(event) => { event.preventDefault(); ask() }}
       >
+        <input
+          value={draft}
+          onChange={(event) => setDraft(event.target.value)}
+          placeholder={t(language, 'typeQuestion')}
+          aria-label={t(language, 'typeQuestion')}
+          className="wx-field min-w-0 flex-1"
+        />
+        <button
+          type="button"
+          onClick={onOpen}
+          aria-label={t(language, 'voice')}
+          title={t(language, 'voice')}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-[var(--wx-border)]
+                     bg-[var(--wx-surface)] text-ink-soft transition hover:border-primary/50 hover:text-primary"
+        >
+          <Icon name="mic" size={16} />
+        </button>
+        <button
+          type="submit"
+          disabled={!draft.trim()}
+          aria-label={t(language, 'send')}
+          title={t(language, 'send')}
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white
+                     transition hover:brightness-110 disabled:opacity-40"
+        >
+          <Icon name="send" size={16} />
+        </button>
+      </form>
+
+      <button type="button" onClick={onOpen} className="wx-btn wx-btn-primary mt-2.5 w-full">
+        <Icon name="sparkle" size={15} />
         {t(language, 'openAssistant')}
-        <span aria-hidden="true">→</span>
       </button>
     </section>
   )

@@ -4,6 +4,7 @@ import { claimPlayback, releasePlayback } from '../../audio/session'
 import { browserSpeechSupported, utteranceFor } from '../../audio/speech'
 import { t } from '../../i18n/ui'
 import { useStore } from '../../store/useStore'
+import Icon from '../ui/Icon'
 
 /**
  * A Listen control — one of three, each answering a different question.
@@ -258,7 +259,7 @@ export default function SpokenAdvice({ location, userType, topic = 'advice', com
 
 function PrimaryControl({ state, label, topic, compact, onStart, onResume, onReplay }) {
   const onClick = { idle: onStart, paused: onResume, completed: onReplay, error: onStart }[state]
-  const icon = { idle: '🔊', loading: '🔊', playing: '🔊', paused: '▶', completed: '✓', error: '⚠' }[state]
+  const icon = { idle: 'speaker', loading: 'speaker', playing: 'speaker', paused: 'play', completed: 'check', error: 'warning' }[state]
   const busy = state === 'loading' || state === 'playing'
 
   return (
@@ -269,16 +270,16 @@ function PrimaryControl({ state, label, topic, compact, onStart, onResume, onRep
       onClick={onClick}
       disabled={busy}
       aria-label={label}
-      className={`flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-medium transition
+      className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] font-semibold transition
                   disabled:cursor-default ${compact ? 'px-2.5 py-1 text-[11px]' : 'px-3 py-1.5 text-[12px]'} ${
         state === 'error'
-          ? 'border-danger/45 bg-danger/10 text-danger'
+          ? 'bg-danger/10 text-danger'
           : state === 'completed'
-            ? 'border-safe/45 bg-safe/10 text-safe'
-            : 'border-primary/40 bg-primary/10 text-primary hover:bg-primary/20'
+            ? 'bg-safe/12 text-safe'
+            : 'bg-[rgb(var(--wx-tint)/0.09)] text-primary hover:bg-[rgb(var(--wx-tint)/0.16)]'
       }`}
     >
-      <span aria-hidden="true">{icon}</span>
+      <Icon name={icon} size={compact ? 13 : 14} />
       <span>{label}</span>
       {state === 'playing' && <Waveform />}
     </button>
@@ -312,9 +313,8 @@ function SecondaryButton({ onClick, children }) {
     <button
       type="button"
       onClick={onClick}
-      className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.15)]
-                 bg-[rgb(var(--wx-tint)/0.05)] px-2.5 py-1.5 text-[12px] text-ink-soft transition
-                 hover:border-[rgb(var(--wx-tint)/0.30)] hover:bg-[rgb(var(--wx-tint)/0.10)]"
+      className="rounded-[var(--radius-pill)] bg-[rgb(var(--wx-tint)/0.07)] px-2.5 py-1.5
+                 text-[11.5px] font-medium text-ink-soft transition hover:bg-[rgb(var(--wx-tint)/0.14)]"
     >
       {children}
     </button>

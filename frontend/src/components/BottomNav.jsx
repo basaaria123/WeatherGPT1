@@ -73,11 +73,9 @@ export default function BottomNav({ screen, onNavigate }) {
   return (
     <nav
       aria-label={t(language, 'navPrimary')}
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-[var(--wx-border)]
-                 bg-[var(--wx-surface)]
-                 pb-[max(env(safe-area-inset-bottom),0.35rem)]"
+      className="wx-chrome wx-chrome-bottom fixed inset-x-0 bottom-0 z-40"
     >
-      <ul className="mx-auto flex w-full max-w-[var(--app-width)] items-stretch">
+      <ul className="wx-shell flex items-stretch pb-[max(env(safe-area-inset-bottom),0.25rem)]">
         {TABS.map((tab) => {
           const active = screen === tab.id
           const badge = tab.id === 'alerts' ? alertCount : 0
@@ -87,18 +85,18 @@ export default function BottomNav({ screen, onNavigate }) {
                 type="button"
                 onClick={() => onNavigate(tab.id)}
                 aria-current={active ? 'page' : undefined}
-                className={`relative flex min-h-[3.25rem] w-full flex-col items-center justify-center gap-[3px]
-                            px-1 pt-1.5 transition-colors
-                            ${active ? 'text-[rgb(var(--wx-tint))]' : 'text-faint hover:text-ink'}`}
+                className={`relative flex min-h-[3.4rem] w-full flex-col items-center justify-center gap-[3px]
+                            px-1 pt-2 transition-colors
+                            ${active ? 'text-primary' : 'text-faint hover:text-ink-soft'}`}
               >
                 <span className="relative">
                   <svg
-                    width="22"
-                    height="22"
+                    width="21"
+                    height="21"
                     viewBox="0 0 24 24"
                     fill="none"
                     stroke="currentColor"
-                    strokeWidth={active ? 2 : 1.6}
+                    strokeWidth={active ? 2.1 : 1.7}
                     strokeLinecap="round"
                     strokeLinejoin="round"
                     aria-hidden="true"
@@ -107,20 +105,23 @@ export default function BottomNav({ screen, onNavigate }) {
                   </svg>
                   {badge > 0 && (
                     <span
-                      className="absolute -right-2 -top-1.5 min-w-[1.05rem] rounded-full bg-danger px-1
-                                 text-center text-[10px] font-bold leading-[1.05rem] text-white"
+                      className="absolute -right-2 -top-1.5 min-w-[15px] rounded-full bg-danger px-[3px]
+                                 text-center text-[9px] font-bold leading-[15px] text-white"
                     >
                       {badge > 9 ? '9+' : badge}
                     </span>
                   )}
                 </span>
-                <span className="w-full truncate text-center text-[10.5px] font-medium leading-none">
+                <span
+                  className={`w-full truncate text-center text-[10px] leading-none
+                              ${active ? 'font-semibold' : 'font-medium'}`}
+                >
                   {t(language, tab.label)}
                 </span>
                 {/* The active marker is a shape as well as a colour, so the
                     current tab is still identifiable in greyscale. */}
                 {active && (
-                  <span className="absolute inset-x-[28%] top-0 h-[2.5px] rounded-full bg-[rgb(var(--wx-tint))]" />
+                  <span className="absolute inset-x-[30%] top-0 h-[2.5px] rounded-b-full bg-primary" />
                 )}
               </button>
             </li>

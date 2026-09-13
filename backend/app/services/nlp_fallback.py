@@ -118,6 +118,21 @@ ACTION_TERMS: tuple[str, ...] = (
     "what should i do", "what to do", "should i", "precaution", "precautions",
     "safety", "safe", "prepare", "preparation", "protect", "advice", "advise",
     "recommend", "suggestion", "take care", "careful", "risky", "risk",
+    # A decision asked as a decision. Without these, "Can I spray pesticides
+    # today?" and "Why is the hazard score high?" were turned away as
+    # off-topic — two of the questions this product exists to answer, and both
+    # of them weather questions that happen to name no weather word.
+    "can i", "is it ok", "is it okay", "is it fine", "all right to", "alright to",
+    "spray", "spraying", "pesticide", "pesticides", "fertiliser", "fertilizer",
+    "harvest", "harvesting", "sow", "sowing", "irrigate", "irrigation",
+    "field work", "fieldwork", "go out", "going out", "step out", "head out",
+    "wear", "what to wear", "clothes", "clothing", "jacket", "raincoat",
+    "hazard", "score", "why is", "why the", "explain",
+    "छिड़क", "कीटनाशक", "कटाई", "सिंचाई", "पहन", "कपड़े", "क्यों",
+    "फवारणी", "कीडनाशक", "कापणी", "सिंचन", "घालू", "का ",
+    "పిచికారీ", "పురుగుమందు", "కోత", "నీరు పెట్ట", "ధరించ", "ఎందుకు",
+    "স্প্রে", "কীটনাশক", "ফসল কাটা", "সেচ", "পরব", "পোশাক", "কেন",
+    "শইচ", "কীটনাশক", "দা লোৱা", "সিঁচ", "পিন্ধ", "কিয়",
     "क्या करें", "क्या करूँ", "सावधान", "सुरक्ष", "बचाव", "तैयारी", "सलाह", "यात्रा",
     "काय करावे", "खबरदार", "सुरक्षित", "प्रवास",
     "ఏం చేయాలి", "జాగ్రత్త", "భద్రత", "సలహా", "సురక్షిత", "ప్రయాణం", "బయటికి",
@@ -322,16 +337,24 @@ FOCUS_TERMS: dict[str, tuple[str, ...]] = {
     "rain": (
         "rain", "raining", "rainfall", "shower", "showers", "drizzle", "precipitation",
         "umbrella", "wet", "downpour", "monsoon",
+        # Decisions whose answer IS the rain reading. "What should I wear?" is
+        # a question about rain and temperature; "can I spray?" is a question
+        # about rain and wind. Naming them here is what turns the standing
+        # bulletin back into an answer.
+        "wear", "clothes", "clothing", "jacket", "raincoat",
+        "spray", "spraying", "pesticide", "pesticides", "irrigate", "irrigation",
+        "harvest", "harvesting", "dry the", "laundry", "washing",
         "बारिश", "वर्षा", "बरसात", "छाता", "पाऊस", "వర్షం", "వాన", "గొడుగు",
         "বৃষ্টি", "ছাতা", "বৰষুণ",
     ),
     "wind": (
         "wind", "windy", "gust", "gusts", "gusty", "breeze", "squall",
+        "spray", "spraying", "pesticide", "pesticides",
         "हवा", "आंधी", "वारा", "గాలి", "বাতাস", "বতাহ",
     ),
     "temperature": (
         "temperature", "temp", "hot", "cold", "warm", "cool", "degrees", "heat",
-        "heatwave", "feels like",
+        "heatwave", "feels like", "wear", "clothes", "clothing", "jacket",
         "तापमान", "गर्मी", "ठंड", "उकाडा", "थंडी", "ఉష్ణోగ్రత", "వేడి", "చలి",
         "তাপমাত্রা", "গরম", "ঠান্ডা", "উষ্ণতা", "ঠাণ্ডা",
     ),
@@ -346,7 +369,11 @@ FOCUS_TERMS: dict[str, tuple[str, ...]] = {
         "तूफ़ान", "तूफान", "बिजली", "वादळ", "తుఫాను", "పిడుగు", "ঝড়", "বজ্র", "ধুমুহা",
     ),
     "flood": ("flood", "waterlog", "waterlogging", "inundat", "बाढ़", "पूर", "వరద", "বন্যা", "বানপানী"),
-    "risk": ("risk", "danger", "dangerous", "severity", "how bad", "score", "जोखिम", "ख़तरा", "धोका", "ప్రమాదం", "ঝুঁকি"),
+    "risk": (
+        "risk", "danger", "dangerous", "severity", "how bad", "score", "hazard",
+        "why is it", "why is the", "how serious",
+        "जोखिम", "ख़तरा", "धोका", "ప్రమాదం", "ঝুঁকি",
+    ),
     "timing": (
         "when", "what time", "how long", "until", "by when", "start", "stop", "ease",
         "कब", "कितनी देर", "केव्हा", "ఎప్పుడు", "কখন", "কেতিয়া",

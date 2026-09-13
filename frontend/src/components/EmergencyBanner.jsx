@@ -4,6 +4,7 @@ import { hazardLabel, levelLabel, t } from '../i18n/ui'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
+import Icon from './ui/Icon'
 
 /**
  * Emergency banner.
@@ -36,7 +37,21 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
   const language = useStore((s) => s.language)
   const audibleAlerts = useStore((s) => s.audibleAlerts)
   const reduced = useReducedMotion()
-  const [dismissed, setDismissed] = useState(false)
+  /**
+   * Open, or a single line?
+   *
+   * Severe opens. High does not — it announces itself in one line and opens on
+   * a tap. The full brief is four paragraphs and a numbered list, and at High
+   * it pushed the conditions card, the warning card and the advice card off
+   * the first screen entirely: a reader on a stormy day scrolled past the
+   * emergency to find out what the weather was.
+   *
+   * Nothing is hidden by this. The line names the hazard and its band, the
+   * warning card below carries the same warning in full, and the brief is one
+   * tap away — which is a different thing from a banner that has been
+   * dismissed, and is why this is not the dismissal state.
+   */
+  const [dismissed, setDismissed] = useState(emergency?.risk_level !== 'Severe')
   const [speaking, setSpeaking] = useState(false)
   const audioRef = useRef(null)
 
@@ -45,8 +60,8 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
 
   // A new hazard, or a fresh activation, brings the banner back.
   useEffect(() => {
-    if (active) setDismissed(false)
-  }, [active, hazard])
+    if (active) setDismissed(emergency?.risk_level !== 'Severe')
+  }, [active, hazard, emergency?.risk_level])
 
   const stop = () => {
     audioRef.current?.pause()
@@ -102,23 +117,34 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
   // does, so a cleared banner can never read as an all-clear.
   if (dismissed) {
     return (
-      <div
-        role="status"
-        className="mb-2 flex items-center gap-2 rounded-xl border px-3 py-1.5"
-        style={{ borderColor: tone.ring, background: tone.tint }}
+      <button
+        type="button"
+        onClick={() => setDismissed(false)}
+        aria-expanded={false}
+        className="wx-note flex w-full min-w-0 items-center gap-2.5 p-3 text-left transition hover:brightness-[0.99]"
+        style={{
+          '--wx-note-line': `color-mix(in srgb, ${tone.color} 34%, transparent)`,
+          '--wx-note-fill': `color-mix(in srgb, ${tone.color} 6%, #fff)`,
+        }}
       >
-        <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>
-        <span className="text-[12px] font-semibold text-ink">{t(language, 'stillActive')}</span>
-        <span className="text-[12px] text-muted">· {hazardLabel(language, emergency.hazard)}</span>
-        <button
-          type="button"
-          onClick={() => setDismissed(false)}
-          className="ml-auto rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.18)]
-                     px-2 py-0.5 text-[11px] text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.35)]"
+        <span
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-white ${reduced ? '' : 'pulse-emergency'}`}
+          style={{ background: tone.color }}
         >
+          <Icon name="warning" size={15} stroke={2.1} />
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block text-[12.5px] font-bold leading-tight text-ink">
+            {t(language, 'stillActive')}
+          </span>
+          <span className="block truncate text-[11px] text-muted">
+            {hazardLabel(language, emergency.hazard)} · {levelLabel(language, emergency.risk_level)}
+          </span>
+        </span>
+        <span className="shrink-0 text-[11px] font-semibold text-primary">
           {t(language, 'emergencyNow')} →
-        </button>
-      </div>
+        </span>
+      </button>
     )
   }
 
@@ -137,32 +163,36 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
            detaches and rides over the content below it reads as a popup, and the
            content it covers is the advice it is telling you to act on. It is the
            first thing on the page; being first is enough. */
-        className="mb-3 overflow-hidden rounded-[var(--radius-card)] border-2"
-        style={{ borderColor: tone.color, background: tone.tint }}
+        className="min-w-0 overflow-hidden rounded-[var(--radius-card)]"
+        style={{
+          border: `1px solid ${tone.color}`,
+          background: `color-mix(in srgb, ${tone.color} 6%, #fff)`,
+          boxShadow: 'var(--shadow-glass)',
+        }}
       >
-        <div className="p-4 sm:p-5">
-          <div className="mb-2 flex flex-wrap items-center gap-2">
+        <div className="p-4">
+          <div className="mb-2 flex min-w-0 flex-wrap items-center gap-1.5">
             {/* Icon + word, so severity survives greyscale and colour blindness. */}
             <span
               aria-hidden="true"
               className={reduced ? '' : 'pulse-emergency'}
-              style={{ color: tone.color, fontSize: '1.1rem' }}
+              style={{ color: tone.color, fontSize: '0.85rem' }}
             >
               {tone.icon}
             </span>
             <span
-              className="rounded-[var(--radius-pill)] px-2 py-0.5 text-[11px] font-bold uppercase tracking-wider"
+              className="rounded-[var(--radius-pill)] px-2 py-[3px] text-[9.5px] font-bold uppercase tracking-[0.07em]"
               style={{ background: tone.color, color: '#fff' }}
             >
               {t(language, 'emergencyNow')} · {levelLabel(language, emergency.risk_level)}
             </span>
-            <span className="text-[13px] font-semibold text-ink">
+            <span className="min-w-0 truncate text-[11.5px] font-semibold text-ink-soft">
               {hazardLabel(language, emergency.hazard)}
             </span>
 
             {emergency.is_simulated && (
               <span className="rounded-[var(--radius-pill)] border-2 border-caution bg-caution/20
-                               px-2 py-0.5 text-[11px] font-bold tracking-wider text-caution">
+                               px-2 py-[3px] text-[9.5px] font-bold tracking-wider text-caution-ink">
                 {t(language, 'simulatedEmergency')}
               </span>
             )}
@@ -170,35 +200,33 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
             <button
               type="button"
               onClick={() => setDismissed(true)}
-              className="ml-auto rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.2)]
-                         px-2.5 py-1 text-[11px] text-ink-soft transition
-                         hover:border-[rgb(var(--wx-tint)/0.4)]"
+              className="ml-auto shrink-0 rounded-[var(--radius-pill)] bg-[rgb(var(--wx-tint)/0.07)]
+                         px-2 py-[3px] text-[10px] font-semibold text-ink-soft transition
+                         hover:bg-[rgb(var(--wx-tint)/0.14)]"
             >
               {t(language, 'dismissBanner')} ✕
             </button>
           </div>
 
-          <h2 className="text-[17px] font-semibold leading-snug text-ink sm:text-lg">
+          <h2 className="text-[15px] font-bold leading-[1.3] tracking-[-0.01em] text-ink">
             {emergency.headline}
           </h2>
 
           {/* what is happening → why it matters → what to do */}
-          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <div className="mt-2.5 grid gap-2.5">
             <Block label={t(language, 'whatIsHappening')} body={emergency.what_is_happening} />
             <Block label={t(language, 'whyItMatters')} body={emergency.why_it_matters} />
           </div>
 
           {emergency.immediate_actions?.length > 0 && (
-            <div className="mt-3 border-t border-[rgb(var(--wx-tint)/0.14)] pt-3">
-              <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">
-                {t(language, 'whatToDo')}
-              </p>
+            <div className="mt-2.5 border-t pt-2.5" style={{ borderColor: `color-mix(in srgb, ${tone.color} 22%, transparent)` }}>
+              <p className="wx-eyebrow mb-1.5">{t(language, 'whatToDo')}</p>
               <ol className="space-y-1.5">
                 {emergency.immediate_actions.map((action, index) => (
-                  <li key={index} className="flex gap-2 text-[13px] leading-relaxed text-ink">
+                  <li key={index} className="flex gap-2 text-[12.5px] leading-[1.45] text-ink">
                     <span
                       aria-hidden="true"
-                      className="mt-0.5 grid h-4 w-4 shrink-0 place-items-center rounded-full text-[10px] font-bold"
+                      className="mt-[3px] grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full text-[9px] font-bold"
                       style={{ background: tone.color, color: '#fff' }}
                     >
                       {index + 1}
@@ -210,20 +238,22 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
             </div>
           )}
 
-          <div className="mt-3 flex flex-wrap items-center gap-2">
+          <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
             {canSpeak && (
               <button
                 type="button"
                 onClick={speak}
-                className="rounded-[var(--radius-pill)] px-3.5 py-2 text-[12px] font-semibold text-white transition
-                           hover:brightness-110 focus-visible:outline-offset-2"
-                style={{ background: tone.color }}
+                className="wx-btn min-w-0 flex-1 text-white transition hover:brightness-110"
+                style={{ background: tone.color, borderColor: tone.color }}
               >
-                {speaking ? `◼ ${t(language, 'stopInstructions')}` : `🔊 ${t(language, 'listenInstructions')}`}
+                <Icon name={speaking ? 'pause' : 'speaker'} size={14} />
+                <span className="min-w-0 truncate">
+                  {speaking ? t(language, 'stopInstructions') : t(language, 'listenInstructions')}
+                </span>
               </button>
             )}
             {until && (
-              <span className="text-[11px] text-muted">
+              <span className="text-[10.5px] text-muted">
                 {t(language, 'validUntil')} {until}
               </span>
             )}
@@ -237,9 +267,9 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
 function Block({ label, body }) {
   if (!body) return null
   return (
-    <div>
-      <p className="mb-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted">{label}</p>
-      <p className="text-[13px] leading-relaxed text-ink-soft">{body}</p>
+    <div className="min-w-0">
+      <p className="wx-eyebrow mb-0.5">{label}</p>
+      <p className="text-[12.5px] leading-[1.45] text-ink-soft">{body}</p>
     </div>
   )
 }

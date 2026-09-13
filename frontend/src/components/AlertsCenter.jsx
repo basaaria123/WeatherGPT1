@@ -5,8 +5,9 @@ import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import AlertsPanel from './AlertsPanel'
 import NotificationSettings from './settings/NotificationSettings'
-import { EmptyState, ErrorState, LoadingBlock, Panel, SeverityPill } from './ui/Primitives'
+import { EmptyState, ErrorState, LoadingBlock, Panel, SeverityPill, Tabs } from './ui/Primitives'
 import { severityOf } from './ui/severity'
+import Icon from './ui/Icon'
 
 /**
  * The alerts destination: what is live, what has been, and what reaches you.
@@ -29,39 +30,43 @@ const TABS = [
 export default function AlertsCenter({ onViewArea, onSignIn }) {
   const language = useStore((s) => s.language)
   const [tab, setTab] = useState('active')
+  const alerts = useStore((s) => s.alerts)
+  const location = useStore((s) => s.location)
+
+  // Warnings in force for the place on screen — what the "Active" count means.
+  const selected = location?.name?.trim().toLowerCase() ?? ''
+  const liveHere = alerts.filter((alert) => {
+    const name = alert.location?.trim().toLowerCase() ?? ''
+    return selected && name && (name.includes(selected) || selected.includes(name))
+  }).length
 
   return (
     <>
-      <div
-        role="tablist"
-        aria-label={t(language, 'aiHazard')}
-        className="flex min-w-0 gap-1 rounded-[var(--radius-card)] border border-[var(--wx-border)] bg-[var(--wx-surface)] p-1"
-      >
-        {TABS.map((item) => {
-          const active = tab === item.id
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              id={`alerts-tab-${item.id}`}
-              aria-selected={active}
-              aria-controls={`alerts-panel-${item.id}`}
-              onClick={() => setTab(item.id)}
-              className={`min-w-0 flex-1 truncate rounded-[calc(var(--radius-card)-0.25rem)] px-3 py-2
-                          text-[12.5px] font-semibold transition
-                          ${active
-                            ? 'bg-primary text-white'
-                            : 'text-muted hover:bg-[rgb(var(--wx-tint)/0.05)] hover:text-ink'}`}
-            >
-              {t(language, item.label)}
-            </button>
-          )
-        })}
-      </div>
+      <Tabs
+        idPrefix="alerts-tab"
+        ariaLabel={t(language, 'aiHazard')}
+        value={tab}
+        onChange={setTab}
+        items={TABS.map((item) => ({
+          id: item.id,
+          label: t(language, item.label),
+          // Only the live tab carries a count, and it is the same list the
+          // panel below renders — one source, so the number on the tab can
+          // never disagree with the screen behind it.
+          count: item.id === 'active' ? liveHere : 0,
+        }))}
+      />
 
-      <div role="tabpanel" id={`alerts-panel-${tab}`} aria-labelledby={`alerts-tab-${tab}`}>
-        {tab === 'active' && <AlertsPanel onViewArea={onViewArea} />}
+      <div role="tabpanel" id={`alerts-tab-panel-${tab}`} aria-labelledby={`alerts-tab-${tab}`} className="mt-2.5 space-y-2.5">
+        {tab === 'active' && (
+          <>
+            <AlertsPanel onViewArea={onViewArea} />
+            {/* The reference prints a short history under the live list rather
+                than leaving the foot of the screen empty, and "View all" is
+                the tab beside it. Five rows, not fifty. */}
+            <AlertHistory limit={5} onViewAll={() => setTab('history')} />
+          </>
+        )}
         {tab === 'history' && <AlertHistory />}
         {tab === 'settings' && <NotificationSettings onSignIn={onSignIn} />}
       </div>
@@ -76,7 +81,7 @@ export default function AlertsCenter({ onViewArea, onSignIn }) {
  * view nobody needs until they ask for it, and a reader who never opens it
  * should not pay for the request.
  */
-function AlertHistory() {
+function AlertHistory({ limit = 50, onViewAll }) {
   const language = useStore((s) => s.language)
   const location = useStore((s) => s.location)
   const [rows, setRows] = useState(null)
@@ -90,13 +95,13 @@ function AlertHistory() {
         location: location?.name,
         language,
         include_expired: true,
-        limit: 50,
+        limit,
       })
       setRows(data?.alerts ?? [])
     } catch (err) {
       setError(userMessage(err, language))
     }
-  }, [location?.name, language])
+  }, [location?.name, language, limit])
 
   useEffect(() => { load() }, [load])
 
@@ -117,13 +122,26 @@ function AlertHistory() {
   }
 
   return (
-    <Panel title={t(language, 'tabHistory')} action={
-      rows.length > 0 ? <span className="text-[11px] font-semibold text-muted">{rows.length}</span> : null
-    }>
+    <Panel
+      title={t(language, 'alertHistory')}
+      action={
+        onViewAll ? (
+          <button
+            type="button"
+            onClick={onViewAll}
+            className="shrink-0 text-[11px] font-semibold text-primary transition hover:opacity-75"
+          >
+            {t(language, 'viewAll')}
+          </button>
+        ) : rows.length > 0 ? (
+          <span className="text-[11px] font-semibold text-muted">{rows.length}</span>
+        ) : null
+      }
+    >
       {rows.length === 0 ? (
         <EmptyState icon="○" message={t(language, 'alertHistoryEmpty')} />
       ) : (
-        <ol className="space-y-1.5">
+        <ol className="min-w-0">
           {rows.map((alert) => <HistoryRow key={alert.id} alert={alert} language={language} />)}
         </ol>
       )}
@@ -140,31 +158,30 @@ function HistoryRow({ alert, language }) {
   })()
 
   return (
-    <li className="flex min-w-0 items-start gap-2.5 border-b border-[var(--wx-border)] py-2 last:border-b-0">
-      <span aria-hidden="true" className="mt-[3px] shrink-0 text-[10px]" style={{ color: tone.ink }}>
-        {tone.icon}
+    <li className="flex min-w-0 items-center gap-2.5 border-b border-[var(--wx-border)] py-2.5 last:border-b-0">
+      <span
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full"
+        style={{ background: tone.tint, color: tone.ink }}
+      >
+        <Icon name="warning" size={13} />
       </span>
       <div className="min-w-0 flex-1">
-        <div className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
-          <span className="truncate text-[13px] font-semibold text-ink">
-            {alert.hazard_label ?? alert.alert_type}
-          </span>
-          <SeverityPill
-            level={alert.severity}
-            label={alert.severity_label ?? alert.severity}
-            compact
-          />
-        </div>
-        <p className="mt-0.5 truncate text-[11.5px] text-muted">
-          {alert.location}{when ? ` · ${when}` : ''}
+        <p className="truncate text-[12.5px] font-bold text-ink">
+          {alert.hazard_label ?? alert.alert_type}
+        </p>
+        {/* Provenance on every row. It reads "WeatherGPT" because that is what
+            produced it — no government feed is connected, and a row that
+            implied one would be the misrepresentation this product must never
+            make. */}
+        <p className="truncate text-[11px] text-muted">
+          {alert.location}{when ? ` · ${when}` : ''} · WeatherGPT
         </p>
       </div>
-      {/* Provenance on every row. It reads "WeatherGPT" because that is what
-          produced it — no government feed is connected, and a row that implied
-          one would be the misrepresentation this product must never make. */}
-      <span className="shrink-0 text-[10px] uppercase tracking-[0.1em] text-faint">
-        WeatherGPT
-      </span>
+      <SeverityPill
+        level={alert.severity}
+        label={alert.severity_label ?? alert.severity}
+        compact
+      />
     </li>
   )
 }

@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
 import { SPEECH_LOCALE, browserSpeechSupported } from '../audio/speech'
 import { Chip, SeverityPill } from './ui/Primitives'
+import Icon from './ui/Icon'
 
 /**
  * Can this answer be read aloud at all?
@@ -156,41 +157,46 @@ export default function ChatPanel({
     }
   }
 
-  return (
-    <section className="glass flex h-full min-h-[22rem] min-w-0 flex-col p-4 sm:p-5">
-      <header className="mb-3 flex items-center justify-between gap-2">
-        <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-          {t(language, 'askAnything')}
-        </h2>
-        {recorder.recording && (
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-danger">
-            <span className="h-1.5 w-1.5 rounded-full bg-danger pulse-alert" />
-            {t(language, 'listening')} {recorder.seconds}s
-          </span>
-        )}
-        {/* Transcription runs after the recording stops and can take a few
-            seconds. Without this the button just sits there looking broken. */}
-        {voicePending && !recorder.recording && (
-          <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted">
-            <span className="h-1.5 w-1.5 rounded-full bg-[rgb(var(--wx-tint))] pulse-alert" />
-            {t(language, 'transcribing')}
-          </span>
-        )}
-      </header>
+  const greeting = messages.length === 0 && !pending && !voicePending
 
+  return (
+    /* No card around the conversation. The reference puts the bubbles straight
+       on the page — a chat inside a bordered panel inside a phone frame is
+       three nested containers for one thread. */
+    <section className="flex min-h-[calc(100dvh-16rem)] min-w-0 flex-col">
       <InsightBanner insight={insight} loading={insightLoading} language={language} />
 
-      <div ref={listRef} className="scroll-y -mx-1 min-w-0 flex-1 space-y-3 px-1" aria-live="polite">
-        {messages.length === 0 && !pending && !voicePending && (
-          <div className="flex flex-col items-center gap-1.5 py-5 text-center">
-            <p className="max-w-[32ch] text-[13px] leading-relaxed text-muted">
-              {t(language, 'placeholder')}
-            </p>
-            <p className="max-w-[34ch] text-[11px] leading-relaxed text-faint">
-              {t(language, 'askHint')}
-            </p>
-            <SuggestedQuestions items={suggestions} onAsk={onSend} pending={pending} />
-          </div>
+      <div ref={listRef} className="scroll-y -mx-1 min-w-0 flex-1 space-y-3 px-1 pt-0.5" aria-live="polite">
+        {/* The opening turn is a message, not an empty state: the assistant
+            introduces itself and offers the reader's own questions, which is
+            exactly what the reference's first screen shows. */}
+        {greeting && (
+          <Bubble>
+            <p className="text-[12.5px] leading-[1.5] text-ink-soft">{t(language, 'chatGreeting')}</p>
+            {suggestions?.length > 0 && (
+              <>
+                <p className="mt-2.5 text-[11.5px] font-semibold text-ink">{t(language, 'chatSuggestLead')}</p>
+                <ul className="mt-1.5 space-y-1.5">
+                  {suggestions.slice(0, 4).map((item) => (
+                    <li key={item.id}>
+                      <button
+                        type="button"
+                        onClick={() => onSend(item.query)}
+                        disabled={pending}
+                        className="flex w-full min-w-0 items-center gap-1.5 rounded-[var(--radius-pill)]
+                                   border border-[rgb(var(--wx-tint)/0.22)] bg-[var(--wx-surface)]
+                                   px-2.5 py-1.5 text-left text-[11.5px] font-medium text-primary
+                                   transition hover:bg-[rgb(var(--wx-tint)/0.06)] disabled:opacity-50"
+                      >
+                        <Icon name="sparkle" size={12} />
+                        <span className="min-w-0 truncate">{item.label}</span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            )}
+          </Bubble>
         )}
 
         <AnimatePresence initial={false}>
@@ -209,35 +215,48 @@ export default function ChatPanel({
         {(pending || voicePending) && <TypingIndicator label={t(language, 'thinking')} />}
 
         {error && (
-          <div role="alert" className="rounded-xl border border-danger/25 bg-danger/[0.07] px-3 py-2 text-xs text-ink">
+          <div
+            role="alert"
+            className="rounded-[var(--radius-control)] border border-danger/30 bg-danger/[0.06] px-3 py-2
+                       text-[12px] leading-[1.45] text-ink"
+          >
             {error}
           </div>
         )}
       </div>
 
-      {voiceNote && !recorder.error && (
-        <p className="mt-2 text-xs text-muted" role="status">
-          {t(language, voiceNote)}
+      {/* --- Recording state, said in words ------------------------------- */}
+      {(recorder.recording || (voicePending && !recorder.recording)) && (
+        <p className="mt-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold text-danger" role="status">
+          <span className="h-1.5 w-1.5 rounded-full bg-current pulse-alert" />
+          {recorder.recording
+            ? `${t(language, 'listening')} ${recorder.seconds}s`
+            : t(language, 'transcribing')}
         </p>
+      )}
+
+      {voiceNote && !recorder.error && (
+        <p className="mt-2 px-1 text-[11px] text-muted" role="status">{t(language, voiceNote)}</p>
       )}
 
       {recorder.error && (
-        <p role="alert" className="mt-2 text-[11px] text-caution">
-          {recorder.error}
-        </p>
+        <p role="alert" className="mt-2 px-1 text-[11px] text-caution-ink">{recorder.error}</p>
       )}
 
-      <div className="mt-3 flex min-w-0 gap-1.5 pb-1 scroll-x">
-        {quick.map((label) => (
-          <span key={label} className="shrink-0">
-            <Chip onClick={() => onSend(label)} disabled={pending}>
-              {label}
-            </Chip>
-          </span>
-        ))}
-      </div>
+      {/* The stock openers, kept below the thread where they do not compete
+          with the reader's own suggested questions above it. */}
+      {greeting && (
+        <div className="scroll-x mt-3 flex min-w-0 gap-1.5 pb-1">
+          {quick.map((label) => (
+            <span key={label} className="shrink-0">
+              <Chip onClick={() => onSend(label)} disabled={pending}>{label}</Chip>
+            </span>
+          ))}
+        </div>
+      )}
 
-      <form onSubmit={submit} className="mt-2.5 flex items-end gap-2">
+      {/* --- Composer ----------------------------------------------------- */}
+      <form onSubmit={submit} className="mt-3 flex min-w-0 items-end gap-1.5">
         <textarea
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
@@ -245,12 +264,10 @@ export default function ChatPanel({
             if (event.key === 'Enter' && !event.shiftKey) submit(event)
           }}
           rows={1}
-          placeholder={t(language, 'placeholder')}
-          aria-label={t(language, 'placeholder')}
+          placeholder={t(language, 'typeMessage')}
+          aria-label={t(language, 'typeMessage')}
           disabled={pending}
-          className="max-h-28 min-h-[2.75rem] min-w-0 flex-1 resize-none rounded-xl border border-[rgb(var(--wx-tint)/0.12)]
-                     bg-[rgb(var(--wx-tint)/0.05)] px-3 py-3 text-sm text-ink placeholder:text-faint
-                     focus:border-primary/50 focus:outline-none disabled:opacity-60"
+          className="wx-field max-h-28 min-h-[2.4rem] min-w-0 flex-1 resize-none py-[9px] disabled:opacity-60"
         />
 
         {recorder.supported && voiceQuestions && (
@@ -260,21 +277,21 @@ export default function ChatPanel({
             disabled={pending || voicePending}
             aria-label={recorder.recording ? t(language, 'stopRecording') : t(language, 'voice')}
             title={recorder.recording ? t(language, 'stopRecording') : t(language, 'voice')}
-            className={`relative grid h-11 w-11 shrink-0 place-items-center rounded-xl border transition
+            className={`relative grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border transition
                         disabled:opacity-45 ${
                           recorder.recording
-                            ? 'border-danger/60 bg-danger/20 text-danger'
-                            : 'border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] text-ink-soft hover:border-[rgb(var(--wx-tint)/0.28)] hover:bg-[rgb(var(--wx-tint)/0.1)]'
+                            ? 'border-danger bg-danger/15 text-danger'
+                            : 'border-[var(--wx-border)] bg-[var(--wx-surface)] text-ink-soft hover:border-primary/50 hover:text-primary'
                         }`}
           >
             {recorder.recording && (
               <motion.span
-                className="absolute inset-0 rounded-xl border-2 border-danger"
+                className="absolute inset-0 rounded-full border-2 border-danger"
                 animate={{ opacity: [0.7, 0, 0.7], scale: [1, 1.18, 1] }}
                 transition={{ duration: 1.6, repeat: Infinity }}
               />
             )}
-            <MicIcon />
+            <Icon name="mic" size={16} />
           </button>
         )}
 
@@ -282,18 +299,71 @@ export default function ChatPanel({
           type="submit"
           disabled={pending || !draft.trim()}
           aria-label={t(language, 'send')}
-          className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-primary text-lg text-[#04121d]
+          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-primary text-white
                      transition hover:brightness-110 disabled:opacity-40"
         >
-          ↑
+          <Icon name="send" size={16} />
         </button>
       </form>
     </section>
   )
 }
 
+/**
+ * The assistant's side of the conversation: a white card with a hairline blue
+ * edge and its avatar outside it, exactly as the reference draws it.
+ */
+function Bubble({ children, className = '' }) {
+  return (
+    <div className="flex min-w-0 gap-2">
+      <span
+        aria-hidden="true"
+        className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-white"
+      >
+        <Icon name="cloud" size={15} stroke={1.9} />
+      </span>
+      <div
+        className={`min-w-0 max-w-[88%] rounded-[var(--radius-card)] rounded-tl-md border
+                    border-[rgb(var(--wx-tint)/0.18)] bg-[var(--wx-surface)] px-3 py-2.5
+                    shadow-[var(--shadow-glass)] ${className}`}
+      >
+        {children}
+      </div>
+    </div>
+  )
+}
+
 function Message({ message, onPlay, playing, audioAvailable, language }) {
   const isUser = message.role === 'user'
+
+  // The reader's own turn: a solid blue bubble on the right, white text, with
+  // the time beneath it. No avatar — the reference gives one only to the
+  // assistant, and a second one would double the gutter on a 390px screen.
+  if (isUser) {
+    return (
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="flex min-w-0 flex-col items-end"
+      >
+        <div className="min-w-0 max-w-[82%] rounded-[var(--radius-card)] rounded-br-md bg-primary px-3 py-2">
+          {message.transcript && (
+            <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-white/75">
+              <Icon name="mic" size={10} />
+              {t(language, 'voice')}
+            </p>
+          )}
+          <p className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.5] text-white">
+            {message.text}
+          </p>
+        </div>
+      </motion.div>
+    )
+  }
+
   return (
     <motion.div
       layout
@@ -301,75 +371,48 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-      className={`flex gap-2 ${isUser ? 'justify-end' : 'justify-start'}`}
+      className="min-w-0"
     >
-      {!isUser && (
-        <span
-          aria-hidden="true"
-          className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-primary/12 text-[11px] text-primary"
-        >
-          ◈
-        </span>
-      )}
+      <Bubble>
+        <p className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.5] text-ink-soft">
+          {message.text}
+        </p>
 
-      <div className={`max-w-[86%] min-w-0 ${isUser ? 'order-1' : ''}`}>
-        <div
-          className={`rounded-2xl px-3.5 py-2.5 text-sm leading-relaxed ${
-            isUser
-              ? 'rounded-br-md bg-primary/15 text-ink'
-              : 'rounded-bl-md border border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.05)] text-ink-soft'
-          }`}
-        >
-          {message.transcript && isUser && (
-            <p className="mb-1 text-[11px] uppercase tracking-wider text-faint">🎙 {t(language, 'voice')}</p>
+        {message.actions?.length > 0 && (
+          <ul className="mt-2.5 space-y-1.5 border-t border-[var(--wx-border)] pt-2.5">
+            {message.actions.map((action, index) => (
+              <li key={index} className="flex gap-2 text-[12px] leading-[1.45] text-ink">
+                <span aria-hidden="true" className="mt-[5px] h-1 w-1 shrink-0 rounded-full bg-primary" />
+                <span className="min-w-0">{action}</span>
+              </li>
+            ))}
+          </ul>
+        )}
+
+        <div className="mt-2 flex min-w-0 flex-wrap items-center gap-1.5">
+          {message.risk && (
+            <SeverityPill level={message.risk.risk_level} score={message.risk.risk_score} compact />
           )}
-          <p className="whitespace-pre-wrap break-words">{message.text}</p>
-
-          {message.actions?.length > 0 && (
-            <ul className="mt-2.5 space-y-1.5 border-t border-[rgb(var(--wx-tint)/0.08)] pt-2.5">
-              {message.actions.map((action, index) => (
-                <li key={index} className="flex gap-2 text-[13px] text-ink">
-                  <span aria-hidden="true" className="mt-[3px] text-primary">▸</span>
-                  <span className="min-w-0">{action}</span>
-                </li>
-              ))}
-            </ul>
+          {canSpeak(message, audioAvailable) && (
+            <button
+              type="button"
+              onClick={() => onPlay(message)}
+              className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-[rgb(var(--wx-tint)/0.08)]
+                         px-2 py-0.5 text-[10.5px] font-semibold text-primary transition
+                         hover:bg-[rgb(var(--wx-tint)/0.16)]"
+            >
+              <Icon name={playing ? 'pause' : 'speaker'} size={11} />
+              {playing ? t(language, 'stopAudio') : t(language, 'playAnswer')}
+            </button>
+          )}
+          {message.explanation && <WhyDisclosure explanation={message.explanation} language={language} />}
+          {message.degradedNote && (
+            <span title={message.degradedNote} className="text-faint">
+              <Icon name="info" size={12} />
+            </span>
           )}
         </div>
-
-        {!isUser && (
-          <div className="mt-1.5 flex flex-wrap items-center gap-2">
-            {message.risk && (
-              <SeverityPill level={message.risk.risk_level} score={message.risk.risk_score} compact />
-            )}
-            {canSpeak(message, audioAvailable) && (
-              <button
-                type="button"
-                onClick={() => onPlay(message)}
-                className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] px-2 py-0.5
-                           text-[11px] text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.25)]"
-              >
-                {playing ? `◼ ${t(language, 'stopAudio')}` : `▶ ${t(language, 'playAnswer')}`}
-              </button>
-            )}
-            {message.explanation && <WhyDisclosure explanation={message.explanation} language={language} />}
-            {message.degradedNote && (
-              <span title={message.degradedNote} className="text-[11px] text-faint">
-                ⓘ
-              </span>
-            )}
-          </div>
-        )}
-      </div>
-
-      {isUser && (
-        <span
-          aria-hidden="true"
-          className="order-2 mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-[rgb(var(--wx-tint)/0.07)] text-[11px] text-muted"
-        >
-          ●
-        </span>
-      )}
+      </Bubble>
     </motion.div>
   )
 }
@@ -383,10 +426,12 @@ function WhyDisclosure({ explanation, language }) {
         type="button"
         onClick={() => setOpen((value) => !value)}
         aria-expanded={open}
-        className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] px-2 py-0.5
-                   text-[11px] text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.25)]"
+        className="inline-flex items-center gap-1 rounded-[var(--radius-pill)] bg-[rgb(var(--wx-tint)/0.07)]
+                   px-2 py-0.5 text-[10.5px] font-semibold text-ink-soft transition
+                   hover:bg-[rgb(var(--wx-tint)/0.14)]"
       >
-        {t(language, 'whyThis')} {open ? '▴' : '▾'}
+        {t(language, 'whyThis')}
+        <Icon name="chevronDown" size={10} className={open ? 'rotate-180' : ''} />
       </button>
       <AnimatePresence>
         {open && (
@@ -411,11 +456,11 @@ function TypingIndicator({ label }) {
     <div className="flex items-center gap-2" role="status">
       <span
         aria-hidden="true"
-        className="grid h-7 w-7 place-items-center rounded-lg bg-primary/12 text-[11px] text-primary"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-white"
       >
-        ◈
+        <Icon name="cloud" size={15} stroke={1.9} />
       </span>
-      <div className="flex items-center gap-2 rounded-2xl rounded-bl-md border border-[rgb(var(--wx-tint)/0.08)] bg-[rgb(var(--wx-tint)/0.05)] px-3.5 py-2.5">
+      <div className="flex items-center gap-2 rounded-[var(--radius-card)] rounded-tl-md border border-[rgb(var(--wx-tint)/0.18)] bg-[var(--wx-surface)] px-3 py-2.5">
         <span className="flex gap-1" aria-hidden="true">
           {[0, 1, 2].map((index) => (
             <motion.span
@@ -432,64 +477,10 @@ function TypingIndicator({ label }) {
   )
 }
 
-function MicIcon() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-      <rect x="9" y="3" width="6" height="11" rx="3" fill="currentColor" />
-      <path d="M6 11a6 6 0 0 0 12 0M12 17v4M9 21h6" stroke="currentColor" strokeWidth="1.9" strokeLinecap="round" />
-    </svg>
-  )
-}
-
-
-/**
- * The reader's own cards, offered back to them as questions.
- *
- * The server decides these: each chip is one of the cards already on the home
- * screen, so a farmer is only asked about irrigation on a day the irrigation
- * card exists, and the label arrives already translated because it *is* that
- * card's title. The question sent to the assistant is the server's English one
- * — the answer comes back in the reader's language the same way every other
- * answer does.
- *
- * Nothing renders when the server sent no suggestions. An empty row of chips
- * would be an invitation to a conversation the data cannot support.
- */
-function SuggestedQuestions({ items, onAsk, pending }) {
-  if (!items?.length) return null
-  return (
-    <ul className="mt-2 flex flex-wrap justify-center gap-1.5">
-      {items.map((item) => (
-        <li key={item.id}>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => onAsk(item.query)}
-            className="rounded-full border border-[rgb(var(--wx-tint)/0.22)] bg-[rgb(var(--wx-tint)/0.06)]
-                       px-3 py-1.5 text-[11.5px] font-medium text-ink transition-colors
-                       hover:bg-[rgb(var(--wx-tint)/0.12)] disabled:opacity-50"
-          >
-            {item.label}
-          </button>
-        </li>
-      ))}
-    </ul>
-  )
-}
-
-
-/**
- * "What should I know?" answered before anything is asked.
- *
- * The sentences come from /weather/current's insight, which the backend builds
- * from measured values for the selected location and orders by the reader's
- * profile. Nothing here is generated in the browser, so the panel cannot drift
- * from the data the rest of the dashboard is showing.
- */
 function InsightBanner({ insight, loading, language }) {
   if (loading && !insight) {
     return (
-      <div className="mb-3 rounded-xl border border-[rgb(var(--wx-tint)/0.07)] bg-[rgb(var(--wx-tint)/0.03)] px-3.5 py-3">
+      <div className="glass mb-3 min-w-0 px-3.5 py-3">
         <p className="text-[12px] text-faint">{t(language, 'insightLoading')}</p>
       </div>
     )
@@ -504,23 +495,27 @@ function InsightBanner({ insight, loading, language }) {
       initial={{ opacity: 0, y: -6 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
-      className="mb-3 rounded-xl border px-3.5 py-3"
+      className="wx-note mb-3 min-w-0 p-3.5"
       style={{
-        borderColor: urgent ? 'rgb(251 146 60 / 0.42)' : 'rgb(var(--wx-tint) / 0.09)',
-        background: urgent ? 'rgb(251 146 60 / 0.09)' : 'rgb(var(--wx-tint) / 0.035)',
+        '--wx-note-line': urgent
+          ? 'color-mix(in srgb, var(--color-warning) 34%, transparent)'
+          : 'var(--wx-border)',
+        '--wx-note-fill': urgent
+          ? 'color-mix(in srgb, var(--color-warning) 6%, #fff)'
+          : 'var(--wx-surface)',
       }}
     >
-      <p className="text-[14px] font-medium leading-relaxed text-ink">{insight.headline}</p>
+      <p className="text-[13px] font-semibold leading-[1.45] text-ink">{insight.headline}</p>
       {insight.supporting && (
-        <p className="mt-1 text-[12px] leading-relaxed text-ink-soft">{insight.supporting}</p>
+        <p className="mt-1 text-[12px] leading-[1.45] text-ink-soft">{insight.supporting}</p>
       )}
       {insight.factors?.length > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
           {insight.factors.map((factor) => (
             <span
               key={factor}
-              className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)]
-                         px-1.5 py-0.5 text-[11px] text-muted"
+              className="rounded-[var(--radius-pill)] bg-[rgb(var(--wx-tint)/0.07)] px-1.5 py-0.5
+                         text-[10.5px] font-medium text-muted"
             >
               {factor}
             </span>

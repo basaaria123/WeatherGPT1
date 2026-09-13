@@ -9,7 +9,7 @@ import { useStore } from '../store/useStore'
 
 const SUGGESTIONS = ['Vijayawada', 'Guwahati', 'Mumbai', 'Chennai', 'Kolkata', 'New Delhi', 'Kochi', 'Puri']
 
-export default function LocationDialog({ open, onClose }) {
+export default function LocationDialog({ open, onClose, prefill = '' }) {
   const language = useStore((s) => s.language)
   const setLocation = useStore((s) => s.setLocation)
   const selectedName = useStore((s) => s.location?.name)
@@ -21,7 +21,9 @@ export default function LocationDialog({ open, onClose }) {
 
   useEffect(() => {
     if (open) {
-      setQuery('')
+      // Carried over from the header's own field, so a place typed there is
+      // not typed again here.
+      setQuery(prefill)
       setError(null)
       setStatus('idle')
       // Delay focus until the entry animation has started, or iOS skips it.
@@ -29,7 +31,7 @@ export default function LocationDialog({ open, onClose }) {
       return () => clearTimeout(timer)
     }
     return undefined
-  }, [open])
+  }, [open, prefill])
 
   useEffect(() => {
     if (!open) return undefined

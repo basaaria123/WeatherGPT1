@@ -401,7 +401,11 @@ export default function WeatherScene({
   }
 
   return (
-    <div className={`pointer-events-none fixed inset-0 -z-10 ${className}`} aria-hidden="true">
+    /* `wx-sky` caps this at the application column on a wide screen. The sky
+       belongs behind the app, not behind the desk it is sitting on: painted
+       full-bleed on a laptop it put a metre of drifting cloud either side of a
+       416px phone, which reads as a wallpaper rather than as weather. */
+    <div className={`wx-sky pointer-events-none fixed inset-0 -z-10 ${className}`} aria-hidden="true">
       {/* Always painted: the canvas is an enhancement on top of this. The
           outgoing sky sits beneath the incoming one and the top layer fades in
           over several seconds, which is what makes sunset, sunrise and an

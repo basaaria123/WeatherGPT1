@@ -1,8 +1,8 @@
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
-import { severityOf, isActionable } from './ui/severity'
-import { EmptyState, Panel, SeverityPill } from './ui/Primitives'
+import AlertCard from './alerts/AlertCard'
+import Icon from './ui/Icon'
 
 /**
  * Live alerts, fed by the /ws/alerts socket.
@@ -30,148 +30,73 @@ export default function AlertsPanel({ onViewArea }) {
   })
 
   return (
-    <Panel
-      title={t(language, 'aiHazard')}
-      action={
-        here.length > 0 ? (
-          <span className="text-[11px] font-semibold text-muted">{here.length}</span>
-        ) : null
-      }
-    >
+    <div className="min-w-0 space-y-2.5">
       {/* Said once, at the top, because every row below is this app's own
           reading rather than a warning an agency issued. */}
-      <p className="mb-2.5 text-[11px] leading-relaxed text-faint">{t(language, 'aiHazardNote')}</p>
+      <p className="px-1 text-[10.5px] leading-[1.45] text-faint">{t(language, 'aiHazardNote')}</p>
 
       {here.length === 0 ? (
-        <EmptyState icon="✓" message={t(language, 'alertHistoryEmpty')} />
+        /* The reference's own empty state: a small green card that says the
+           absence plainly, rather than a large panel of nothing. */
+        <div
+          className="wx-note flex min-w-0 items-center gap-3 p-3.5"
+          style={{
+            '--wx-note-line': 'color-mix(in srgb, var(--color-safe) 26%, transparent)',
+            '--wx-note-fill': 'color-mix(in srgb, var(--color-safe) 6%, #fff)',
+          }}
+        >
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-safe text-white">
+            <Icon name="check" size={18} stroke={2.1} />
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[13px] font-bold leading-tight text-ink">
+              {t(language, 'noOtherAlerts')}
+            </span>
+            <span className="block text-[11.5px] text-muted">{t(language, 'noOtherAlertsBody')}</span>
+          </span>
+        </div>
       ) : (
-        <ul className="scroll-y -mx-1 max-h-[22rem] space-y-2 px-1">
+        <ul className="min-w-0 space-y-2.5">
           <AnimatePresence initial={false}>
             {here.map((alert) => (
-              <AlertCard
-                key={alert.id}
-                alert={alert}
-                language={language}
-                isNew={alert.id === lastAlertId}
-                onViewArea={onViewArea}
-              />
+              <li key={alert.id} className="min-w-0">
+                <AlertCard
+                  alert={alert}
+                  isNew={alert.id === lastAlertId}
+                  onViewArea={onViewArea}
+                />
+              </li>
             ))}
           </AnimatePresence>
         </ul>
       )}
 
+      {/* How often this list is refreshed, said where the list is — the
+          reference prints it directly under the cards. */}
+      <p className="flex items-center gap-1.5 px-1 text-[10.5px] text-faint">
+        <Icon name="info" size={11} />
+        {t(language, 'alertsUpdateNote')}
+      </p>
+
       {elsewhere.length > 0 && (
-        <details className="mt-2.5 border-t border-[rgb(var(--wx-tint)/0.07)] pt-2.5">
-          <summary className="cursor-pointer list-none text-[11px] text-muted transition hover:text-ink">
+        <details className="glass min-w-0 p-3.5">
+          <summary className="wx-eyebrow cursor-pointer list-none transition hover:text-ink">
             {t(language, 'elsewhere')} · {elsewhere.length} ▾
           </summary>
-          <ul className="scroll-y -mx-1 mt-2 max-h-[16rem] space-y-2 px-1">
+          <ul className="scroll-y -mx-1 mt-2.5 max-h-[22rem] space-y-2.5 px-1">
             {elsewhere.map((alert) => (
-              <AlertCard
-                key={alert.id}
-                alert={alert}
-                language={language}
-                isNew={alert.id === lastAlertId}
-                onViewArea={onViewArea}
-              />
+              <li key={alert.id} className="min-w-0">
+                <AlertCard
+                  alert={alert}
+                  isNew={alert.id === lastAlertId}
+                  onViewArea={onViewArea}
+                />
+              </li>
             ))}
           </ul>
         </details>
       )}
-    </Panel>
+    </div>
   )
 }
 
-function AlertCard({ alert, language, isNew, onViewArea }) {
-  const tone = severityOf(alert.severity)
-  const urgent = isActionable(alert.severity)
-  const actions = alert.actions_localised?.length ? alert.actions_localised : alert.actions
-
-  return (
-    <motion.li
-      layout
-      initial={{ opacity: 0, x: 18, scale: 0.98 }}
-      animate={{ opacity: 1, x: 0, scale: 1 }}
-      exit={{ opacity: 0, height: 0 }}
-      transition={{ duration: 0.34, ease: [0.22, 1, 0.36, 1] }}
-      className="relative overflow-hidden rounded-xl border p-3"
-      style={{ borderColor: tone.ring, background: tone.tint }}
-    >
-      {isNew && (
-        <motion.span
-          className="absolute inset-0 rounded-xl"
-          style={{ background: tone.color, opacity: 0.16 }}
-          initial={{ opacity: 0.3 }}
-          animate={{ opacity: 0 }}
-          transition={{ duration: 1.6 }}
-        />
-      )}
-
-      <div className="relative flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-1.5">
-            <span
-              aria-hidden="true"
-              className={urgent ? 'pulse-alert' : ''}
-              style={{ color: tone.ink }}
-            >
-              {tone.icon}
-            </span>
-            <span className="truncate text-[13px] font-semibold text-ink">
-              {alert.hazard_label ?? alert.alert_type}
-            </span>
-            <SeverityPill
-              level={alert.severity}
-              label={alert.severity_label ?? alert.severity}
-              score={alert.risk_score}
-              compact
-            />
-          </div>
-          <p className="mt-0.5 truncate text-[12px] text-muted">{alert.location}</p>
-        </div>
-      </div>
-
-      <p className="relative mt-2 text-[12px] leading-relaxed text-ink-soft">{alert.message}</p>
-
-      {actions?.length > 0 && (
-        <ul className="relative mt-2 space-y-1 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2">
-          {actions.slice(0, 2).map((action, index) => (
-            <li key={index} className="flex gap-1.5 text-[11px] leading-relaxed text-ink-soft">
-              <span aria-hidden="true" style={{ color: tone.ink }}>▸</span>
-              <span className="min-w-0">{action}</span>
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {alert.historical_comparison && (
-        <p className="relative mt-2 rounded-lg border border-[rgb(var(--wx-tint)/0.09)] bg-[rgb(var(--wx-tint)/0.04)] px-2 py-1.5 text-[11px] leading-relaxed text-muted">
-          <span className="font-semibold text-ink-soft">Historical context · </span>
-          {alert.historical_comparison.sentence}
-        </p>
-      )}
-
-      <div className="relative mt-2 flex items-center justify-between gap-2">
-        <time className="text-[11px] text-faint" dateTime={alert.timestamp}>
-          {formatTime(alert.timestamp)}
-        </time>
-        {alert.latitude !== null && alert.latitude !== undefined && (
-          <button
-            type="button"
-            onClick={() => onViewArea?.(alert)}
-            className="rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] px-2 py-0.5
-                       text-[11px] text-ink-soft transition hover:border-[rgb(var(--wx-tint)/0.28)]"
-          >
-            {t(language, 'viewArea')} →
-          </button>
-        )}
-      </div>
-    </motion.li>
-  )
-}
-
-function formatTime(iso) {
-  const parsed = new Date(iso)
-  if (Number.isNaN(parsed.getTime())) return ''
-  return parsed.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false })
-}

@@ -15,14 +15,12 @@ export function Panel({ title, action, children, className = '', delay = 0, id }
       transition={{ duration: 0.45, delay, ease: [0.22, 1, 0.36, 1] }}
       /* min-w-0 lets the panel shrink inside a grid; without it a grid item
          sizes to its widest child and pushes the whole page sideways. */
-      className={`glass min-w-0 scroll-mt-24 p-4 sm:p-5 ${className}`}
+      className={`glass min-w-0 scroll-mt-24 p-4 ${className}`}
     >
       {(title || action) && (
         <header className="mb-3 flex items-center justify-between gap-3">
           {title && (
-            <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">
-              {title}
-            </h2>
+            <h2 className="wx-eyebrow min-w-0 truncate">{title}</h2>
           )}
           {action}
         </header>
@@ -40,10 +38,10 @@ export function SeverityPill({ level, label, score, compact = false }) {
   const language = useStore((s) => s.language)
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-[var(--radius-pill)] border font-semibold ${
-        compact ? 'px-2 py-0.5 text-[11px]' : 'px-2.5 py-1 text-[11px]'
+      className={`inline-flex items-center gap-1 rounded-[var(--radius-pill)] font-semibold ${
+        compact ? 'px-1.5 py-0.5 text-[10px]' : 'px-2 py-[3px] text-[10.5px]'
       }`}
-      style={{ background: tone.tint, borderColor: tone.ring, color: tone.ink }}
+      style={{ background: tone.tint, color: tone.ink }}
     >
       <span aria-hidden="true">{tone.icon}</span>
       <span>{label ?? levelLabel(language, level)}</span>
@@ -75,28 +73,36 @@ export function Chip({ children, onClick, active = false, disabled = false, titl
       disabled={disabled}
       title={title}
       aria-pressed={active}
-      className={`rounded-[var(--radius-pill)] border px-3 py-1.5 text-xs font-medium transition
-        disabled:cursor-not-allowed disabled:opacity-45
-        ${
-          active
-            ? 'border-primary/60 bg-primary/15 text-primary'
-            : 'border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.04)] text-ink-soft hover:border-[rgb(var(--wx-tint)/0.25)] hover:bg-[rgb(var(--wx-tint)/0.09)]'
-        }`}
+      className={`wx-pill disabled:cursor-not-allowed disabled:opacity-45
+        ${active ? 'wx-pill-on' : ''}`}
     >
       {children}
     </button>
   )
 }
 
-export function Metric({ label, value, unit }) {
+/**
+ * One reading: a quiet label over a loud value.
+ *
+ * The reference's whole statistics block is this shape repeated — a small
+ * muted label, then the number in bold with its unit at label weight beside it.
+ * Keeping it in one component is what stops the nine on the conditions card
+ * drifting from the four on a forecast row.
+ */
+export function Metric({ label, value, unit, icon }) {
   // Callers omit missing metrics entirely; this is a guard, not a placeholder.
   if (value === null || value === undefined || value === '') return null
   return (
     <div className="min-w-0">
-      <div className="truncate text-[11px] uppercase tracking-[0.1em] text-faint">{label}</div>
-      <div className="mt-0.5 truncate text-sm font-semibold text-ink">
+      <div className="flex min-w-0 items-center gap-1">
+        {icon}
+        <span className="truncate text-[9.5px] font-semibold uppercase tracking-[0.07em] text-muted">
+          {label}
+        </span>
+      </div>
+      <div className="mt-[3px] truncate text-[15px] font-bold leading-tight tracking-[-0.01em] text-ink">
         {value}
-        {unit ? <span className="ml-0.5 text-[11px] font-normal text-muted">{unit}</span> : null}
+        {unit ? <span className="ml-[2px] text-[10px] font-semibold text-muted">{unit}</span> : null}
       </div>
     </div>
   )
@@ -147,6 +153,42 @@ export function EmptyState({ message, icon = '○' }) {
 
 export function SectionTitle({ children }) {
   return (
-    <h2 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-muted">{children}</h2>
+    <h2 className="wx-eyebrow">{children}</h2>
+  )
+}
+
+/**
+ * A row of tabs, drawn the way the reference draws them: the chosen one is a
+ * solid blue pill, the rest are white with a hairline. Not a segmented control
+ * in a tray — the reference's tabs sit directly on the page.
+ *
+ * `items` are `{ id, label, count }`; a count is appended in brackets, which is
+ * how the reference shows "Active (2)".
+ */
+export function Tabs({ items, value, onChange, ariaLabel, idPrefix = 'tab' }) {
+  return (
+    <div role="tablist" aria-label={ariaLabel} className="flex min-w-0 gap-1.5">
+      {items.map((item) => {
+        const active = value === item.id
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            id={`${idPrefix}-${item.id}`}
+            aria-selected={active}
+            aria-controls={`${idPrefix}-panel-${item.id}`}
+            onClick={() => onChange(item.id)}
+            className={`wx-pill min-w-0 flex-1 justify-center px-2 py-[7px] text-[12px]
+                        ${active ? 'wx-pill-on' : 'wx-pill-off'}`}
+          >
+            <span className="min-w-0 truncate">
+              {item.label}
+              {item.count ? ` (${item.count})` : ''}
+            </span>
+          </button>
+        )
+      })}
+    </div>
   )
 }

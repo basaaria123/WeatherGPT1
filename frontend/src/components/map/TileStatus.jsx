@@ -38,18 +38,20 @@ export default function TileStatus({ url, attribution }) {
         <div
           role="status"
           /* Clear of Leaflet's zoom control, which owns the top-left corner. */
-          className="pointer-events-auto absolute right-3 top-3 z-[600] flex max-w-[calc(100%-4.5rem)]
-                     items-center justify-between gap-3
-                     rounded-[var(--radius-card)] border border-[var(--wx-border)] bg-[var(--wx-surface)]
-                     px-3 py-2 shadow-[var(--shadow-lift)]"
+          /* Bottom-left, clear of the zoom control, the recentre button and
+             the scale. A notice that the base cartography is missing must not
+             sit on top of the weather, which is the part that did arrive. */
+          className="pointer-events-auto absolute bottom-7 left-2.5 z-[600] flex max-w-[calc(100%-5rem)]
+                     items-center gap-2 rounded-[var(--radius-pill)] border border-[var(--wx-border)]
+                     bg-[var(--wx-surface)] px-2.5 py-1 shadow-[var(--shadow-glass)]"
         >
-          <span className="min-w-0 text-[12px] leading-snug text-ink-soft">
+          <span className="min-w-0 truncate text-[10.5px] leading-snug text-muted">
             {t(language, 'mapUnavailable')}
           </span>
           <button
             type="button"
             onClick={retry}
-            className="shrink-0 text-[12px] font-semibold text-primary transition hover:opacity-80"
+            className="shrink-0 text-[10.5px] font-semibold text-primary transition hover:opacity-80"
           >
             {t(language, 'retry')}
           </button>

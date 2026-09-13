@@ -1,6 +1,10 @@
 /**
  * The four map layers, and what each honestly knows.
  *
+ * `icon` names a glyph in `components/ui/Icon`, not an emoji: the reference
+ * draws every control in one outlined set, and a row of emoji beside outlined
+ * icons is two drawing styles in one control group.
+ *
  * A layer is a pure description: which field it reads, how to colour a value,
  * what its legend says, and — the part that matters most — whether the field
  * exists in the forward hourly series at all.
@@ -42,7 +46,7 @@ const rampAndStops = (stops) => ({ ramp: rampOf(stops), stops })
 export const LAYERS = {
   rain: {
     id: 'rain',
-    icon: '🌧️',
+    icon: 'droplet',
     labelKey: 'layerRain',
     // Probability is the field a reader actually reasons about, and it exists
     // for every hour as well as for now.
@@ -65,7 +69,7 @@ export const LAYERS = {
 
   wind: {
     id: 'wind',
-    icon: '🌬️',
+    icon: 'wind',
     labelKey: 'layerWind',
     field: 'wind_speed_kmh',
     hourlyField: 'wind_speed_kmh',
@@ -87,7 +91,7 @@ export const LAYERS = {
 
   temperature: {
     id: 'temperature',
-    icon: '🌡️',
+    icon: 'thermometer',
     labelKey: 'layerTemperature',
     field: 'temperature_c',
     hourlyField: 'temperature_c',
@@ -107,7 +111,7 @@ export const LAYERS = {
 
   clouds: {
     id: 'clouds',
-    icon: '☁️',
+    icon: 'cloud',
     labelKey: 'layerClouds',
     field: 'cloud_cover_pct',
     hourlyField: null,

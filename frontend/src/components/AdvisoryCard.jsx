@@ -3,7 +3,7 @@ import { hazardLabel, levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import SpokenAdvice from './audio/SpokenAdvice'
 import { STATUS, severityOf } from './ui/severity'
-import { Panel } from './ui/Primitives'
+import Icon from './ui/Icon'
 
 /**
  * Persona advisory.
@@ -45,11 +45,9 @@ function WeatherImpact({ impacts, language, location, userType }) {
   return (
     <section
       data-testid="advisory-impact"
-      className="mt-3 rounded-xl border border-[rgb(var(--wx-tint)/0.09)] bg-[rgb(var(--wx-tint)/0.03)] p-3"
+      className="mt-3 rounded-[var(--radius-control)] border border-[var(--wx-border)] bg-[var(--wx-surface)] p-3"
     >
-      <h3 className="text-[10px] font-semibold uppercase tracking-[0.14em] text-faint">
-        {t(language, 'yourWeatherImpact')}
-      </h3>
+      <h3 className="wx-eyebrow">{t(language, 'yourWeatherImpact')}</h3>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1">
         <span className="text-[12.5px] font-semibold text-ink">{mine.category}</span>
@@ -95,6 +93,23 @@ function WeatherImpact({ impacts, language, location, userType }) {
   )
 }
 
+/**
+ * The tint of the action card.
+ *
+ * The reference draws this card green, and green is right for what it is — the
+ * card that says what to do, sitting under a card that says what is wrong. But
+ * a fixed green would put "move to higher ground, water is entering your area"
+ * on a reassuring ground, so the tint follows the band instead and green is
+ * simply where a Low or Moderate day lands. On the reference's own weather this
+ * renders exactly the reference's green.
+ */
+const ADVICE_TINT = {
+  Low: { line: 'color-mix(in srgb, var(--color-safe) 26%, transparent)', fill: 'color-mix(in srgb, var(--color-safe) 7%, #fff)', ink: 'var(--color-safe)' },
+  Moderate: { line: 'color-mix(in srgb, var(--color-safe) 26%, transparent)', fill: 'color-mix(in srgb, var(--color-safe) 7%, #fff)', ink: 'var(--color-safe)' },
+  High: { line: 'color-mix(in srgb, var(--color-warning) 30%, transparent)', fill: 'color-mix(in srgb, var(--color-warning) 8%, #fff)', ink: 'var(--color-warning)' },
+  Severe: { line: 'color-mix(in srgb, var(--color-danger) 32%, transparent)', fill: 'color-mix(in srgb, var(--color-danger) 8%, #fff)', ink: 'var(--color-danger)' },
+}
+
 export default function AdvisoryCard({ advisory, impacts, onCompare }) {
   const language = useStore((s) => s.language)
   const location = useStore((s) => s.location)
@@ -104,36 +119,56 @@ export default function AdvisoryCard({ advisory, impacts, onCompare }) {
   if (!advisory?.actions?.length) return null
 
   const tone = severityOf(advisory.risk_level)
+  const tint = ADVICE_TINT[advisory.risk_level] ?? ADVICE_TINT.Low
 
   return (
-    <Panel
-      title={t(language, 'advisoryTitle')}
-      action={
-        onCompare ? (
+    <motion.section
+      data-testid="advisory-card"
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
+      className="wx-note min-w-0 p-4"
+      style={{ '--wx-note-line': tint.line, '--wx-note-fill': tint.fill }}
+    >
+      {/* --- Heading row ------------------------------------------------- */}
+      <div className="flex min-w-0 items-start gap-2.5">
+        <span
+          className="mt-px grid h-8 w-8 shrink-0 place-items-center rounded-full text-white"
+          style={{ background: tint.ink }}
+        >
+          <Icon name="shield" size={17} stroke={1.9} />
+        </span>
+
+        <div className="min-w-0 flex-1">
+          <h2 className="text-[14.5px] font-bold leading-tight tracking-[-0.01em] text-ink">
+            {t(language, 'advisoryTitle')}
+          </h2>
+          <div className="mt-1 flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1">
+            <span aria-hidden="true" className="text-[10px]" style={{ color: tone.ink }}>{tone.icon}</span>
+            <span className="text-[11.5px] font-semibold text-ink-soft">
+              {hazardLabel(language, advisory.hazard)}
+            </span>
+            <span className="text-[11px] text-muted">· {levelLabel(language, advisory.risk_level)}</span>
+          </div>
+        </div>
+
+        {onCompare && (
           <button
             type="button"
             onClick={onCompare}
-            className="rounded-[var(--radius-pill)] border border-primary/40 bg-primary/10 px-2.5 py-1
-                       text-[11px] font-medium text-primary transition hover:bg-primary/20"
+            className="mt-px shrink-0 rounded-[var(--radius-pill)] bg-[rgb(var(--wx-tint)/0.09)] px-2.5 py-1
+                       text-[10.5px] font-semibold text-primary transition hover:bg-[rgb(var(--wx-tint)/0.16)]"
           >
             {t(language, 'comparePersonas')} →
           </button>
-        ) : null
-      }
-    >
-      <div className="mb-2 flex flex-wrap items-center gap-1.5">
-        <span aria-hidden="true" style={{ color: tone.ink }}>{tone.icon}</span>
-        <span className="text-[12px] font-semibold text-ink">
-          {hazardLabel(language, advisory.hazard)}
-        </span>
-        <span className="text-[11px] text-muted">· {levelLabel(language, advisory.risk_level)}</span>
+        )}
       </div>
 
       {/* What is happening. Sits above the actions because it is the thing the
           actions are about, and stays one line: the forecast has panels of its
           own and this is not one of them. */}
       {advisory.situation && (
-        <p data-testid="advisory-situation" className="mb-3 text-[13.5px] leading-relaxed text-ink-soft">
+        <p data-testid="advisory-situation" className="mt-3 text-[13px] leading-[1.5] text-ink-soft">
           {advisory.situation}
         </p>
       )}
@@ -142,51 +177,43 @@ export default function AdvisoryCard({ advisory, impacts, onCompare }) {
           weight, the rest are visibly support. A list where every line shouts
           equally is a list a reader has to triage themselves, which is the
           work this panel exists to have already done. */}
-      <ol className="space-y-2">
+      <ol className="mt-3 space-y-2.5">
         {advisory.actions.map((item, index) => {
           const lead = index === 0
           return (
-          <motion.li
-            key={`${item.action}-${index}`}
-            data-testid={lead ? 'advisory-lead' : 'advisory-support'}
-            initial={{ opacity: 0, x: -6 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.3, delay: index * 0.06 }}
-            className="flex gap-2.5"
-          >
-            <span
-              aria-hidden="true"
-              className={`mt-0.5 grid shrink-0 place-items-center rounded-full font-semibold tabular-nums ${
-                lead
-                  ? 'h-6 w-6 border border-primary/45 bg-primary/12 text-[11px] text-primary'
-                  : 'h-5 w-5 border border-[rgb(var(--wx-tint)/0.16)] text-[10.5px] text-faint'
-              }`}
+            <motion.li
+              key={`${item.action}-${index}`}
+              data-testid={lead ? 'advisory-lead' : 'advisory-support'}
+              initial={{ opacity: 0, x: -6 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.06 }}
+              className="flex gap-2.5"
             >
-              {String(item.priority ?? index + 1).padStart(2, '0')}
-            </span>
-            <div className="min-w-0">
-              <p className={lead
-                ? 'text-[14.5px] font-medium leading-relaxed text-ink'
-                : 'text-[12.5px] leading-relaxed text-ink-soft'}>
-                {item.action}
-              </p>
-              {item.reason && (
-                <p className="mt-0.5 text-[11px] leading-relaxed text-muted">
-                  <span className="font-semibold">{t(language, 'reasonLabel')}: </span>
-                  {item.reason}
+              <span aria-hidden="true" className="wx-step mt-[2px]">
+                {String(item.priority ?? index + 1).padStart(2, '0')}
+              </span>
+              <div className="min-w-0">
+                <p className={lead
+                  ? 'text-[13.5px] font-semibold leading-[1.45] text-ink'
+                  : 'text-[12.5px] leading-[1.45] text-ink-soft'}>
+                  {item.action}
                 </p>
-              )}
-            </div>
-          </motion.li>
+                {item.reason && (
+                  <p className="mt-0.5 text-[11px] leading-[1.45] text-muted">
+                    <span className="font-semibold">{t(language, 'reasonLabel')}: </span>
+                    {item.reason}
+                  </p>
+                )}
+              </div>
+            </motion.li>
           )
         })}
       </ol>
 
       {/* Why any of this was said — the values the engine scored, not a
-          paraphrase of the advice above. Labelled rather than run together so
-          it reads as evidence and not as another instruction. */}
+          paraphrase of the advice above. */}
       {advisory.reason && (
-        <p data-testid="advisory-reason" className="mt-3 text-[11.5px] leading-relaxed text-muted">
+        <p data-testid="advisory-reason" className="mt-3 text-[11px] leading-[1.5] text-muted">
           <span className="font-semibold text-ink-soft">{t(language, 'becauseLabel')}: </span>
           {advisory.reason}
         </p>
@@ -204,10 +231,10 @@ export default function AdvisoryCard({ advisory, impacts, onCompare }) {
       <SpokenAdvice location={location?.name} userType={userType} />
 
       {advisory.disclaimer && (
-        <p className="mt-3 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2 text-[11px] leading-relaxed text-faint">
+        <p className="mt-3 border-t border-[rgb(var(--wx-tint)/0.09)] pt-2.5 text-[10.5px] leading-[1.45] text-faint">
           {advisory.disclaimer}
         </p>
       )}
-    </Panel>
+    </motion.section>
   )
 }

@@ -495,6 +495,11 @@ def handle_chat(
                 mode=mode,
                 day_offset=day_offset,
                 advice_question=extraction["advice_question"],
+                # The same focus the primary path uses. Without it a reader who
+                # asked a narrow question in Tamil got the whole reading back,
+                # while the same question in English got an answer — the one
+                # place the two paths could disagree about what was asked.
+                focus=nlp_fallback.detect_focus(text),
             ),
             advisory.smart_explanation(bundle, risk, out_lang, mode="simple") or None,
         )

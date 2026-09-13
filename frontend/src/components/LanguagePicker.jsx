@@ -13,6 +13,7 @@ import { isLatinText, safeNative } from '../i18n/scriptSupport'
 import { t } from '../i18n/ui'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useStore } from '../store/useStore'
+import Icon from './ui/Icon'
 
 /**
  * The language selector.
@@ -142,14 +143,12 @@ export default function LanguagePicker({ className = '' }) {
         aria-expanded={open}
         aria-haspopup="listbox"
         onClick={() => setOpen((value) => !value)}
-        className="flex items-center gap-1 rounded-[var(--radius-pill)] border border-[rgb(var(--wx-tint)/0.10)] bg-[rgb(var(--wx-tint)/0.05)]
-                   px-2.5 py-1.5 text-xs font-medium text-ink transition hover:border-[rgb(var(--wx-tint)/0.25)] hover:bg-[rgb(var(--wx-tint)/0.1)]"
+        className="wx-pill"
       >
         {/* The trigger names the language in its own script — a Telugu speaker
             looks for తెలుగు, not for "Telugu". */}
-        <span className="sm:hidden">{selected.short}</span>
-        <span className="hidden sm:inline">{selectedNative || selected.english}</span>
-        <span aria-hidden="true" className="text-[10px] text-faint">▾</span>
+        <span className="min-w-0 max-w-[5.5rem] truncate">{selectedNative || selected.english}</span>
+        <Icon name="chevronDown" size={11} className="text-faint" />
       </button>
 
       <AnimatePresence>

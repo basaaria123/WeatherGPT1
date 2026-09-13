@@ -5,6 +5,7 @@ import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 import { EmptyState, Panel, Skeleton } from './ui/Primitives'
 import WeatherGlyph from './ui/WeatherGlyph'
+import Icon from './ui/Icon'
 
 /** Seven-day strip. Today is highlighted; risk comes from the shared engine. */
 export default function Forecast({ data, loading, error }) {
@@ -50,35 +51,38 @@ export default function Forecast({ data, loading, error }) {
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.28, delay: index * 0.03 }}
-              className={`grid min-w-0 grid-cols-[3.1rem_1.75rem_1fr_auto] items-center gap-2 border-b
-                          border-[var(--wx-border)] py-2.5 last:border-b-0 ${
-                            isToday ? 'rounded-lg bg-primary/[0.05] px-2' : ''
+              className={`grid min-w-0 grid-cols-[2.7rem_1.6rem_1fr_auto] items-center gap-2 border-b
+                          border-[var(--wx-border)] py-2 last:border-b-0 ${
+                            isToday ? 'rounded-[var(--radius-control)] bg-[rgb(var(--wx-tint)/0.05)] px-2' : ''
                           }`}
             >
-              <span className={`truncate text-[12.5px] font-semibold ${isToday ? 'text-primary' : 'text-ink-soft'}`}>
+              <span className={`truncate text-[12px] font-bold ${isToday ? 'text-primary' : 'text-ink-soft'}`}>
                 {isToday ? t(language, 'today') : weekdayLabel(day.date, language)}
               </span>
 
               <span className="justify-self-center" title={day.condition ?? ''}>
-                <WeatherGlyph code={day.weather_code} size={22} />
+                <WeatherGlyph code={day.weather_code} size={20} />
               </span>
 
-              {/* High, then low, then how wet. Tabular figures so the column
-                  reads down as numbers rather than as ragged text. */}
-              <span className="flex min-w-0 flex-wrap items-baseline gap-x-2 gap-y-0.5 tabular-nums">
-                <span className="text-[14px] font-semibold text-ink">
+              {/* High over low, then how likely, then how much. Tabular figures
+                  so the column reads down as numbers rather than as ragged
+                  text. */}
+              <span className="flex min-w-0 items-baseline gap-2 tabular-nums">
+                <span className="shrink-0 text-[13px] font-bold text-ink">
                   {day.temp_max_c != null ? `${Math.round(day.temp_max_c)}°` : '—'}
+                  {day.temp_min_c != null && (
+                    <span className="font-semibold text-faint"> / {Math.round(day.temp_min_c)}°</span>
+                  )}
                 </span>
-                {day.temp_min_c != null && (
-                  <span className="text-[12.5px] text-faint">{Math.round(day.temp_min_c)}°</span>
-                )}
                 {day.precipitation_probability_pct != null && (
-                  <span className="text-[12px] text-primary">
+                  <span className="flex shrink-0 items-center gap-[2px] text-[11px] font-semibold text-primary">
+                    <Icon name="droplet" size={10} />
                     {Math.round(day.precipitation_probability_pct)}%
                   </span>
                 )}
                 {day.precipitation_sum_mm > 0 && (
-                  <span className="text-[12px] text-accent">
+                  <span className="shrink-0 rounded-[var(--radius-pill)] bg-[rgb(var(--wx-tint)/0.07)] px-1.5
+                                   py-px text-[10px] font-semibold text-muted">
                     {day.precipitation_sum_mm.toFixed(day.precipitation_sum_mm < 10 ? 1 : 0)} mm
                   </span>
                 )}
@@ -86,7 +90,7 @@ export default function Forecast({ data, loading, error }) {
 
               {/* Risk as shape, colour and word — never colour alone. */}
               <span
-                className="flex shrink-0 items-center gap-1 rounded-[var(--radius-pill)] px-2 py-0.5 text-[10.5px] font-semibold"
+                className="flex shrink-0 items-center gap-1 rounded-[var(--radius-pill)] px-1.5 py-[3px] text-[10px] font-bold"
                 style={{ color: tone.ink, background: tone.tint }}
               >
                 <span aria-hidden="true">{tone.icon}</span>

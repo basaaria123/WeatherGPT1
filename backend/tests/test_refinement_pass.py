@@ -311,7 +311,12 @@ def _live_payload(tz_name: str = "Asia/Kolkata", span: int = 72):
     from datetime import datetime, timedelta
     from zoneinfo import ZoneInfo
 
-    now_local = datetime.now(ZoneInfo(tz_name))
+    # Pinned to a quarter past the hour, which is the case these tests are
+    # about — and the one that cannot pass by accident. Taking the minute from
+    # the wall clock meant that for one minute in every sixty `current.time`
+    # landed exactly on an hourly stamp, and the test below asserting the two
+    # never match failed on the hour and passed the rest of the day.
+    now_local = datetime.now(ZoneInfo(tz_name)).replace(minute=15, second=0, microsecond=0)
     midnight = now_local.replace(hour=0, minute=0, second=0, microsecond=0)
     times = [(midnight + timedelta(hours=i)).strftime("%Y-%m-%dT%H:00") for i in range(span)]
     return now_local, {

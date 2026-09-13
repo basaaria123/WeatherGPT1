@@ -4,6 +4,7 @@ import { maskPhone } from '../auth/session'
 import { useReducedMotion } from '../hooks/useReducedMotion'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
+import Icon from './ui/Icon'
 
 /**
  * Who you are, and what that changes.
@@ -99,13 +100,12 @@ export default function ProfileMenu({ onSignIn }) {
         aria-haspopup="menu"
         aria-label={t(language, 'profile')}
         data-profile-trigger
-        className={`grid h-8 w-8 place-items-center rounded-full border text-[13px] transition ${
-          signedIn
-            ? 'border-primary/50 bg-primary/12 text-primary'
-            : 'border-[rgb(var(--wx-tint)/0.12)] bg-[rgb(var(--wx-tint)/0.05)] text-ink-soft hover:border-[rgb(var(--wx-tint)/0.28)]'
-        }`}
+        className={`grid h-[30px] w-[30px] place-items-center rounded-full transition
+                    hover:bg-[rgb(var(--wx-tint)/0.09)] ${
+                      signedIn ? 'bg-[rgb(var(--wx-tint)/0.1)] text-primary' : 'text-ink-soft hover:text-primary'
+                    }`}
       >
-        <span aria-hidden="true">{signedIn ? '✓' : '👤'}</span>
+        <Icon name={signedIn ? 'check' : 'user'} size={18} />
       </button>
 
       <AnimatePresence>

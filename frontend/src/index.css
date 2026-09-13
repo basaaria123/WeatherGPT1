@@ -5,64 +5,71 @@
    these; components never hardcode a hex value.
    --------------------------------------------------------------------------- */
 @theme {
-  /* These defaults are the LIGHT palette, because light is the default
-     appearance and these are what paints the first frame — the splash and the
-     landing page, before weatherTheme.js has resolved a condition. When they
-     were the dark palette the app opened dark and then flipped, which is the
-     one moment a reader forms an impression of what it is.
-
-     weatherTheme.js overwrites all of them per condition and per appearance. */
+  /* The reference palette, as the app's own token names.
+     `theme/weatherTheme.js` holds the same values under `REFERENCE_LIGHT` and
+     rewrites these on the root once a condition resolves; these are what paints
+     the first frame — splash, landing, and the moment before the first reading
+     arrives — so they must already be the finished palette rather than a
+     placeholder that flips. */
 
   /* Surfaces */
-  --color-bg: #f4f8fc;
-  --color-bg-deep: #eaf4ff;
+  --color-bg: #f1f6fc;
+  --color-bg-deep: #e6f0fb;
   --color-bg-raised: #ffffff;
   --color-surface: #ffffff;
-  --color-border: #d7e2ec;
-  --color-border-soft: #e6f0fa;
+  --color-border: #d8e6f6;
+  --color-border-soft: #e8f1fb;
 
   /* Brand */
-  --color-primary: #1565c0;
-  --color-primary-dim: #1976d2;
-  --color-secondary: #1976d2;
-  --color-accent: #00897b;
+  --color-primary: #1668d6;
+  --color-primary-dim: #1f78e6;
+  --color-secondary: #2b7fe0;
+  --color-accent: #0f9d6b;
 
-  /* Text */
-  --color-ink: #263238;
-  --color-ink-soft: #37474f;
-  --color-muted: #607d8b;
-  --color-faint: #90a4ae;
+  /* Text: dark blue-grey primary, muted blue-grey secondary. */
+  --color-ink: #143761;
+  --color-ink-soft: #284f7c;
+  --color-muted: #6a83a3;
+  --color-faint: #93a7c0;
 
   /* Severity — never used alone; always paired with an icon and a label.
      `caution` is the fill value and `caution-ink` the text one; see the note in
      weatherTheme.js for why the amber needs two. */
-  --color-safe: #2e7d32;
-  --color-caution: #f9a825;
-  --color-caution-ink: #8a5a00;
-  --color-warning: #ef6c00;
-  --color-danger: #d84315;
+  --color-safe: #0f9d6b;
+  --color-caution: #e29316;
+  --color-caution-ink: #9a6206;
+  --color-warning: #dd7a1b;
+  --color-danger: #dc3b3b;
 
-  /* Shape. Cards are rectangles with a small radius rather than the 20px
-     pills they were: this reads as an instrument, not a consumer app. */
-  --radius-card: 0.75rem;
+  /* Shape. The reference rounds a card at roughly 14px and a control at
+     10–12px; the pill is fully round. */
+  --radius-card: 0.875rem;
+  --radius-control: 0.625rem;
   --radius-pill: 999px;
 
-  /* The application column. This is a phone interface; on a laptop it is the
-     same interface, centred, rather than the same content stretched across
-     1920px until a card is a metre wide. 40rem is a generous phone. */
-  --app-width: 40rem;
+  /* The application column.
+     This is a phone interface, and the reference is a phone. On a laptop it is
+     the SAME interface, centred at the same width, rather than the same content
+     stretched until a card is a metre wide — see §10 of the brief. 26rem is a
+     416px phone, which is the reference's own proportion. */
+  --app-width: 26rem;
 
   /* Elevation is a hairline and a whisper of shadow. On a white ground a heavy
      shadow reads as a smudge, and stacking several reads as clutter. */
-  --shadow-glass: 0 1px 2px rgb(23 50 77 / 0.06);
-  --shadow-lift: 0 4px 14px rgb(23 50 77 / 0.10);
+  --shadow-glass: 0 1px 2px rgb(20 55 97 / 0.04);
+  --shadow-lift: 0 4px 16px rgb(20 55 97 / 0.08);
 
   /* Indic families sit in the stack after the Latin ones: the browser picks
      them per-glyph, so an English sentence stays Inter while a Telugu one
-     renders in Noto Sans Telugu. */
-  --font-display: 'Fraunces', 'Iowan Old Style', 'Palatino Linotype', Georgia,
-    'Noto Sans Devanagari', 'Noto Sans Telugu', 'Noto Sans Bengali', serif;
+     renders in Noto Sans Telugu.
+
+     The reference sets every word in one grotesque — headings included — so
+     `--font-display` is the same stack as `--font-sans`. The hierarchy is
+     carried by size, weight and letter-spacing, not by a second typeface. */
   --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
+    'Noto Sans Devanagari', 'Noto Sans Telugu', 'Noto Sans Bengali',
+    'Nirmala UI', 'Lohit Devanagari', 'Lohit Telugu', 'Lohit Bengali', sans-serif;
+  --font-display: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto,
     'Noto Sans Devanagari', 'Noto Sans Telugu', 'Noto Sans Bengali',
     'Nirmala UI', 'Lohit Devanagari', 'Lohit Telugu', 'Lohit Bengali', sans-serif;
 }
@@ -72,23 +79,47 @@
      conditions resolve; these defaults keep the first paint correct. */
   :root {
     color-scheme: light;
-    --wx-bg: #f4f8fc;
-    --wx-bg-deep: #eaf4ff;
+    --wx-bg: #f1f6fc;
+    --wx-bg-deep: #e6f0fb;
     --wx-raised: #ffffff;
     --wx-surface: #ffffff;
-    --wx-primary: #1565c0;
-    --wx-accent: #00897b;
-    --wx-border: #d7e2ec;
-    --wx-atmos-a: rgb(25 118 210 / 0.07);
-    --wx-atmos-b: rgb(0 137 123 / 0.05);
+    --wx-primary: #1668d6;
+    --wx-accent: #0f9d6b;
+    --wx-border: #d8e6f6;
+    --wx-atmos-a: transparent;
+    --wx-atmos-b: transparent;
     --wx-pattern: none;
-    /* Surfaces are tinted with this: deep blue over a light theme, white over a
-       dark one. Every panel, chip and hairline resolves through it, so one
-       value flips the whole interface between light and dark. */
-    --wx-tint: 38 50 56;
-    --wx-scrim: 234 244 255;
-    --wx-overlay: rgb(38 50 56 / 0.40);
-    --wx-vignette: radial-gradient(118% 80% at 50% 0%, transparent 42%, rgb(215 229 242 / 0.34) 82%, rgb(202 221 240 / 0.46) 100%);
+    /* Surfaces are tinted with this: the brand blue over a light theme, white
+       over a dark one. Every pill, inset and hairline in the app resolves
+       through it at 3–30% opacity, so this one triplet is what makes the whole
+       interface the reference's pale blue rather than a neutral grey. */
+    --wx-tint: 22 104 214;
+    --wx-scrim: 255 255 255;
+    --wx-overlay: rgb(16 42 74 / 0.44);
+    --wx-vignette: none;
+    /* The one surface the weather still tints — the conditions card. */
+    --wx-hero: linear-gradient(158deg, #e9f3fd 0%, #f5f9fe 52%, #ffffff 100%);
+  }
+
+  /* ---------------------------------------------------------------------
+     The reference's own names for the same values.
+     Requested explicitly by the brief, and useful as a reading aid: a
+     designer looking for "the border blue" finds it here without having to
+     know that the app calls it `--wx-border`. These are aliases, never a
+     second source of truth — each points at the token above it, so there is
+     no way for the two to drift apart.
+     --------------------------------------------------------------------- */
+  :root {
+    --page-bg: var(--wx-bg);
+    --card-bg: var(--wx-surface);
+    --primary-blue: var(--wx-primary);
+    --text-primary: var(--color-ink);
+    --text-secondary: var(--color-muted);
+    --border-blue: var(--wx-border);
+    --muted-blue: rgb(var(--wx-tint) / 0.07);
+    --warning: var(--color-caution);
+    --danger: var(--color-danger);
+    --success: var(--color-safe);
   }
 
   * {
@@ -104,8 +135,8 @@
     background-color: var(--wx-bg);
     color: var(--wx-ink, var(--color-ink));
     font-family: var(--font-sans);
-    font-size: 15px;
-    line-height: 1.6;
+    font-size: 14px;
+    line-height: 1.55;
     -webkit-font-smoothing: antialiased;
     /* Nothing in this app is meant to scroll sideways. */
     overflow-x: hidden;
@@ -116,6 +147,11 @@
 
   /* Atmospheric wash + the condition's own pattern. Fixed and behind
      everything, so it never sits between the reader and a number. */
+  /* The reference page is a flat, even light blue: no vignette, no radial
+     wash, no condition pattern behind the cards. The layer is kept — the dark
+     appearance still uses it, and `--wx-atmos-*` are `transparent` in light, so
+     this paints nothing rather than being deleted and having to be rebuilt when
+     someone switches to dark. */
   body::before {
     content: '';
     position: fixed;
@@ -133,9 +169,9 @@
 
   h1, h2, h3 {
     font-family: var(--font-display);
-    font-weight: 600;
-    letter-spacing: -0.015em;
-    line-height: 1.15;
+    font-weight: 700;
+    letter-spacing: -0.012em;
+    line-height: 1.2;
   }
 
   :focus-visible {
@@ -171,13 +207,223 @@
     box-shadow: var(--shadow-lift);
   }
 
-  /* Level 1 of the hierarchy: the one card that should read first. It is marked
-     by a solid rule in the weather accent along its top edge, so the emphasis
-     survives greyscale and does not depend on a glow. */
+  /* Level 1 of the hierarchy: the one card that should read first.
+     In the reference this is the conditions card, and what marks it is its own
+     pale gradient surface and a slightly firmer edge — not a coloured rule and
+     not a heavier shadow. */
   .glass-hero {
-    border-color: color-mix(in srgb, var(--wx-primary) 30%, var(--wx-border));
-    border-top: 3px solid var(--wx-primary);
-    box-shadow: var(--shadow-lift);
+    background: var(--wx-hero);
+    border-color: color-mix(in srgb, var(--wx-primary) 20%, var(--wx-border));
+  }
+
+  /* ---------------------------------------------------------------------
+     The reference's recurring parts, as classes.
+
+     Each of these appears on four or five of the five screens. Writing them
+     once is what keeps a pill on Forecast the same pill as on Alerts — the
+     single most visible way a replication drifts is fifteen hand-tuned
+     variants of the same control.
+     --------------------------------------------------------------------- */
+
+  /* Small uppercase letter-spaced section heading. The reference's quietest
+     type and its most characteristic: CURRENT CONDITIONS, ALERT HISTORY,
+     24-HOUR FORECAST. */
+  .wx-eyebrow {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    line-height: 1.3;
+  }
+
+  /* A resting pill control: pale blue fill, blue label, no border. Location,
+     role and language in the header; layer and tab switches elsewhere. */
+  .wx-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    border-radius: var(--radius-pill);
+    background: rgb(var(--wx-tint) / 0.07);
+    border: 1px solid rgb(var(--wx-tint) / 0.09);
+    padding: 0.3rem 0.6rem;
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--color-ink-soft);
+    transition: background-color 200ms ease, border-color 200ms ease, color 200ms ease;
+  }
+
+  .wx-pill:hover {
+    background: rgb(var(--wx-tint) / 0.12);
+    border-color: rgb(var(--wx-tint) / 0.2);
+  }
+
+  /* The chosen one of a set. Solid brand blue, white label. */
+  .wx-pill-on {
+    background: var(--wx-primary);
+    border-color: var(--wx-primary);
+    color: #fff;
+  }
+
+  .wx-pill-on:hover {
+    background: var(--wx-primary);
+    border-color: var(--wx-primary);
+    filter: brightness(1.06);
+  }
+
+  /* An unchosen tab in a set where one is solid: white, hairline, dark label. */
+  .wx-pill-off {
+    background: var(--wx-surface);
+    border-color: var(--wx-border);
+    color: var(--color-ink-soft);
+  }
+
+  /* Primary action. Square-ish corners rather than a pill, as in the
+     reference's View Details / Open AI Assistant buttons. */
+  .wx-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    border-radius: var(--radius-control);
+    padding: 0.55rem 0.9rem;
+    font-size: 12.5px;
+    font-weight: 600;
+    line-height: 1.2;
+    transition: filter 180ms ease, background-color 180ms ease, border-color 180ms ease;
+  }
+
+  .wx-btn-primary {
+    background: var(--wx-primary);
+    color: #fff;
+    border: 1px solid var(--wx-primary);
+  }
+
+  .wx-btn-primary:hover { filter: brightness(1.08); }
+
+  /* The Listen button. Deep navy in the reference, so it reads as a second
+     action rather than a second primary. */
+  .wx-btn-deep {
+    background: #143761;
+    color: #fff;
+    border: 1px solid #143761;
+  }
+
+  .wx-btn-deep:hover { filter: brightness(1.25); }
+
+  .wx-btn-quiet {
+    background: var(--wx-surface);
+    color: var(--color-ink-soft);
+    border: 1px solid var(--wx-border);
+  }
+
+  .wx-btn-quiet:hover { border-color: rgb(var(--wx-tint) / 0.35); }
+
+  /* A text field: white, hairline blue edge, generous height. */
+  .wx-field {
+    width: 100%;
+    border-radius: var(--radius-control);
+    border: 1px solid var(--wx-border);
+    background: var(--wx-surface);
+    padding: 0.6rem 0.8rem;
+    font-size: 12.5px;
+    color: var(--color-ink);
+    transition: border-color 200ms ease, box-shadow 200ms ease;
+  }
+
+  .wx-field::placeholder { color: var(--color-faint); }
+
+  .wx-field:focus {
+    outline: none;
+    border-color: var(--wx-primary);
+    box-shadow: 0 0 0 3px rgb(var(--wx-tint) / 0.12);
+  }
+
+  /* A tinted card: the reference's alert (red), advice (green) and assistant
+     (blue) blocks are all this shape with a different hue. Set --wx-note-line
+     and --wx-note-fill on the element. */
+  .wx-note {
+    border-radius: var(--radius-card);
+    border: 1px solid var(--wx-note-line, var(--wx-border));
+    background: var(--wx-note-fill, var(--wx-surface));
+  }
+
+  /* The circled step number in "What should you do now?". */
+  .wx-step {
+    display: grid;
+    place-items: center;
+    flex: none;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 50%;
+    background: rgb(var(--wx-tint) / 0.1);
+    color: var(--wx-primary);
+    font-size: 10px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* ---------------------------------------------------------------------
+     The application column on a wide screen.
+
+     The brief is explicit: on a laptop this is the same phone interface,
+     centred, not the same content stretched across 1920px. The column is
+     already capped at --app-width; what these add is the edge that makes it
+     read as a device rather than as a narrow website — a hairline down both
+     sides and a slightly deeper ground outside it, which is exactly how the
+     reference presents itself.
+
+     Below 640px none of it applies: on a phone the app IS the screen.
+     --------------------------------------------------------------------- */
+  .wx-shell {
+    width: 100%;
+    margin-inline: auto;
+    max-width: var(--app-width);
+    min-width: 0;
+  }
+
+  /* The two pieces of chrome. White and full-bleed on a phone, because there
+     the app IS the screen; white only *inside the column* on a wide one, where
+     an edge-to-edge white band cuts across the desk and is the one thing that
+     stops a centred phone reading as a phone.
+
+     Written as CSS rather than utilities on the elements: Tailwind's `bg-*`
+     and `border-*` live in the utilities layer, which outranks this one, so a
+     class on the element would win at every width and the media query below
+     would never take effect. */
+  .wx-chrome {
+    background: var(--wx-surface);
+  }
+
+  .wx-chrome-top { border-bottom: 1px solid var(--wx-border); }
+
+  .wx-chrome-bottom {
+    border-top: 1px solid var(--wx-border);
+    box-shadow: 0 -1px 3px rgb(20 55 97 / 0.05);
+  }
+
+  @media (min-width: 640px) {
+    body {
+      background-color: color-mix(in srgb, var(--wx-bg) 62%, #b9d0ea);
+    }
+
+    .wx-shell {
+      background: var(--wx-bg);
+      border-inline: 1px solid var(--wx-border);
+    }
+
+    .wx-chrome,
+    .wx-chrome-top,
+    .wx-chrome-bottom {
+      background: transparent;
+      border-color: transparent;
+      box-shadow: none;
+    }
+
+    .wx-chrome > .wx-shell { background: var(--wx-surface); }
+    .wx-chrome-top > .wx-shell { border-bottom: 1px solid var(--wx-border); }
+    .wx-chrome-bottom > .wx-shell { border-top: 1px solid var(--wx-border); }
+
   }
 
   /* Horizontal scrollers (timeline, forecast) keep their overflow to themselves. */
@@ -477,5 +723,21 @@
       radial-gradient(1.4px 1.4px at 6% 30%, rgb(232 240 255 / 0.34), transparent),
       /* One moon, in the corner the canvas puts it in. */
       radial-gradient(120px 120px at 84% 16%, rgb(157 192 240 / 0.10), transparent 70%);
+  }
+}
+
+/* The sky is the application column's, not the viewport's — see the note in
+   scene/WeatherScene.jsx.
+
+   Deliberately unlayered. The element carries Tailwind's `fixed inset-0`, and
+   an @layer rule loses to the utilities layer whatever its specificity, so a
+   layered version of this rule would silently do nothing. */
+@media (min-width: 640px) {
+  .wx-sky {
+    left: 50%;
+    right: auto;
+    width: min(100%, var(--app-width));
+    transform: translateX(-50%);
+    overflow: hidden;
   }
 }

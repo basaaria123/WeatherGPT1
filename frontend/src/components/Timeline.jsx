@@ -4,6 +4,7 @@ import { useStore } from '../store/useStore'
 import { severityOf, isActionable } from './ui/severity'
 import { EmptyState, LoadingBlock, Panel, Skeleton } from './ui/Primitives'
 import WeatherGlyph from './ui/WeatherGlyph'
+import Icon from './ui/Icon'
 
 /**
  * Next 24 hours, horizontally scrollable on mobile.
@@ -58,7 +59,7 @@ export default function Timeline({ data, loading, error }) {
         ) : null
       }
     >
-      <div className="scroll-x -mx-1 flex min-w-0 gap-1.5 px-1 pb-1">
+      <div className="scroll-x -mx-1 flex min-w-0 gap-0.5 px-1 pb-1">
         {hours.map((hour, index) => (
           <HourCard key={hour.time} hour={hour} index={index} isNow={index === 0} language={language} />
         ))}
@@ -77,30 +78,56 @@ function HourCard({ hour, index, isNow, language }) {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, delay: Math.min(index * 0.018, 0.4) }}
       title={`${formatHour(hour.time)} · ${hour.condition ?? ''} · ${levelLabel(language, hour.risk_level)} (${hour.risk_score}/100)`}
-      className="flex w-[4.4rem] shrink-0 flex-col items-center gap-1.5 rounded-xl border p-2 text-center"
-      style={{
-        borderColor: risky ? tone.ring : 'rgb(var(--wx-tint) / 0.07)',
-        background: risky ? tone.tint : 'rgb(var(--wx-tint) / 0.03)',
-      }}
+      /* No border and no fill — the reference's hour strip is a column of
+         readings on the card's own surface, and eight bordered boxes in a row
+         read as eight cards rather than as one forecast.
+
+         Risk is marked by a rule under the column rather than by a wash behind
+         it. On a day the engine calls High from end to end — which is the day
+         this strip matters most — a tint on every hour filled the whole strip
+         orange and stopped distinguishing anything. */
+      className="relative flex w-[3.9rem] shrink-0 flex-col items-center gap-1 rounded-[var(--radius-control)] px-1 pb-2.5 pt-2 text-center"
     >
       {/* The strip always starts at the current hour, so the first card says so
           rather than leaving the reader to infer it from the clock. */}
-      <span className={`text-[11px] font-medium ${isNow ? 'text-primary' : 'text-muted'}`}>
+      <span className={`text-[10.5px] ${isNow ? 'font-bold text-primary' : 'font-medium text-muted'}`}>
         {isNow ? t(language, 'nowLabel') : formatHour(hour.time)}
       </span>
-      <WeatherGlyph code={hour.weather_code} size={26} />
-      <span className="text-sm font-semibold text-ink">
+
+      <WeatherGlyph code={hour.weather_code} size={24} />
+
+      <span className="text-[14px] font-bold tracking-[-0.01em] text-ink">
         {hour.temperature_c !== null && hour.temperature_c !== undefined
           ? `${Math.round(hour.temperature_c)}°`
           : '—'}
       </span>
+
       {hour.precipitation_probability_pct !== null && hour.precipitation_probability_pct !== undefined && (
-        <span className="text-[11px] text-accent">{Math.round(hour.precipitation_probability_pct)}%</span>
+        <span className="flex items-center gap-[2px] text-[10px] font-semibold text-primary">
+          <Icon name="droplet" size={9} />
+          {Math.round(hour.precipitation_probability_pct)}%
+        </span>
       )}
-      {/* Icon + colour together, so risk is not conveyed by colour alone. */}
-      <span className="text-[10px] font-semibold" style={{ color: tone.ink }}>
-        <span aria-hidden="true">{tone.icon}</span> {hour.risk_score}
-      </span>
+
+      {hour.wind_speed_kmh !== null && hour.wind_speed_kmh !== undefined && (
+        <span className="text-[9.5px] text-faint">{Math.round(hour.wind_speed_kmh)} km/h</span>
+      )}
+
+      {/* Icon + colour together, so risk is not conveyed by colour alone. Shown
+          only once the engine calls the hour actionable: a "● 8" under every
+          calm hour is nine-tenths of the strip spent saying nothing. */}
+      {risky && (
+        <>
+          <span className="text-[9.5px] font-bold" style={{ color: tone.ink }}>
+            <span aria-hidden="true">{tone.icon}</span> {hour.risk_score}
+          </span>
+          <span
+            aria-hidden="true"
+            className="absolute inset-x-1.5 bottom-0 h-[2.5px] rounded-full"
+            style={{ background: tone.color }}
+          />
+        </>
+      )}
     </motion.div>
   )
 }
