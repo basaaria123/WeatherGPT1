@@ -71,10 +71,10 @@ def test_profile_changes_emphasis_but_not_the_underlying_numbers():
     b = bundle_for("New Delhi", "fog")
     risk = risk_engine.assess(b)
     outputs = {p: advisory.headline_insight(b, risk, p, "en") for p in
-               ("general", "farmer", "fisherman", "traveler", "commuter")}
+               ("general", "farmer", "marine", "driver", "student")}
 
-    # The traveller is the one who should hear about visibility first.
-    assert "visibilit" in outputs["traveler"]["headline"].lower()
+    # The driver is the one who should hear about visibility first.
+    assert "visibilit" in outputs["driver"]["headline"].lower()
     # Distinct emphasis across profiles...
     assert len({o["headline"] for o in outputs.values()}) > 1
     # ...but the risk they are all describing is one shared value.
@@ -86,7 +86,7 @@ def test_insight_never_contradicts_itself_on_visibility():
     """A closing 'conditions are fine' must not follow a low-visibility line."""
     b = bundle_for("New Delhi", "fog")
     risk = risk_engine.assess(b)
-    for profile in ("general", "traveler", "commuter"):
+    for profile in ("general", "driver", "student"):
         text = " ".join(
             [advisory.headline_insight(b, risk, profile, "en")[k] for k in ("headline", "supporting")]
         ).lower()
@@ -128,8 +128,8 @@ def test_profile_selects_impact_cards_without_changing_their_verdicts():
     risk = risk_engine.assess(b)
     general = {c.category: c for c in advisory.impact_cards(b, risk, "en", "general")}
 
-    for profile in ("farmer", "fisherman", "traveler", "driver", "outdoor_worker",
-                    "household", "student", "caregiver"):
+    for profile in ("farmer", "marine", "driver", "outdoor_worker",
+                    "student", "caregiver"):
         cards = advisory.impact_cards(b, risk, "en", profile)
         assert cards, profile
         # The reader's own sector leads.

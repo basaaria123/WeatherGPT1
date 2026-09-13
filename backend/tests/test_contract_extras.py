@@ -107,20 +107,27 @@ def test_no_english_leaks_into_localised_answers(lang, scenario):
 @pytest.mark.parametrize(
     "profile,expected",
     [
+        # The seven the selector offers, answered under their own name.
         ("farmer", "farmer"),
-        ("traveler", "traveler"),
-        ("commuter", "commuter"),
-        ("aviation", "aviation"),
-        ("general", "general"),
-        ("researcher", "researcher"),
-        ("disaster_manager", "disaster_manager"),
-        ("government", "government"),
-        ("event_planner", "event_planner"),
         ("marine", "marine"),
-        # Sent under an older name, answered under the one this build reads it
-        # as — accepted either way, and the response says which reading it is.
+        ("student", "student"),
+        ("driver", "driver"),
+        ("outdoor_worker", "outdoor_worker"),
+        ("caregiver", "caregiver"),
+        ("general", "general"),
+        # Sent under a name the selector no longer offers, answered under the
+        # reading this build maps it to — accepted either way, and the response
+        # says which reading it is rather than silently keeping the old label.
         ("fisherman", "marine"),
-        ("urban", "commuter"),
+        ("commuter", "driver"),
+        ("urban", "driver"),
+        ("household", "caregiver"),
+        ("government", "caregiver"),
+        ("disaster_manager", "caregiver"),
+        ("traveler", "general"),
+        ("researcher", "general"),
+        ("aviation", "general"),
+        ("event_planner", "general"),
     ],
 )
 def test_every_user_type_is_accepted(profile, expected, scenario):
@@ -130,11 +137,13 @@ def test_every_user_type_is_accepted(profile, expected, scenario):
     assert response.answer.strip()
 
 
-def test_aviation_and_urban_alias_to_real_advice(scenario, bundle_for):
+def test_retired_profiles_still_get_real_advice(scenario, bundle_for):
+    """A saved preference for a reading that left the selector still gets
+    advice — its substitute's advice, not an empty checklist."""
     scenario("storm")
     bundle = bundle_for("Mumbai")
     risk = risk_engine.assess(bundle)
-    for profile in ("aviation", "urban"):
+    for profile in ("aviation", "urban", "household", "traveler", "event_planner"):
         actions = advisory.action_checklist(risk, profile, "en")
         assert actions, f"{profile} produced no advice"
 

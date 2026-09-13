@@ -806,7 +806,7 @@ ROLE_SENTENCES_EXTRA: dict[str, dict[str, str]] = {
         "ri_heading_driver": "Driving intelligence",
         "ri_heading_outdoor_worker": "Site weather intelligence",
         "ri_heading_household": "Home weather intelligence",
-        "ri_heading_student": "Study-day intelligence",
+        "ri_heading_student": "Campus intelligence",
         "ri_heading_caregiver": "Care and community intelligence",
         # Driver
         "ri_road_vis_title": "Road visibility",
@@ -868,7 +868,7 @@ ROLE_SENTENCES_EXTRA: dict[str, dict[str, str]] = {
         "ri_heading_driver": "गाड़ी चलाने की मौसम जानकारी",
         "ri_heading_outdoor_worker": "काम-स्थल की मौसम जानकारी",
         "ri_heading_household": "घर की मौसम जानकारी",
-        "ri_heading_student": "पढ़ाई के दिन की मौसम जानकारी",
+        "ri_heading_student": "कैंपस की मौसम जानकारी",
         "ri_heading_caregiver": "देखभाल और समुदाय की मौसम जानकारी",
         "ri_road_vis_title": "सड़क पर दृश्यता",
         "ri_road_vis_poor": "ख़राब — गति काफ़ी घटाएँ",
@@ -925,7 +925,7 @@ ROLE_SENTENCES_EXTRA: dict[str, dict[str, str]] = {
         "ri_heading_driver": "డ్రైవింగ్ వాతావరణ సమాచారం",
         "ri_heading_outdoor_worker": "పని ప్రదేశ వాతావరణ సమాచారం",
         "ri_heading_household": "ఇంటి వాతావరణ సమాచారం",
-        "ri_heading_student": "చదువు రోజు వాతావరణ సమాచారం",
+        "ri_heading_student": "క్యాంపస్ వాతావరణ సమాచారం",
         "ri_heading_caregiver": "సంరక్షణ, సమాజ వాతావరణ సమాచారం",
         "ri_road_vis_title": "రోడ్డుపై దృశ్యత",
         "ri_road_vis_poor": "తక్కువ — వేగం బాగా తగ్గించండి",
@@ -982,7 +982,7 @@ ROLE_SENTENCES_EXTRA: dict[str, dict[str, str]] = {
         "ri_heading_driver": "গাড়ি চালানোর আবহাওয়া তথ্য",
         "ri_heading_outdoor_worker": "কর্মস্থলের আবহাওয়া তথ্য",
         "ri_heading_household": "ঘরের আবহাওয়া তথ্য",
-        "ri_heading_student": "পড়াশোনার দিনের আবহাওয়া তথ্য",
+        "ri_heading_student": "ক্যাম্পাসের আবহাওয়া তথ্য",
         "ri_heading_caregiver": "সেবা ও সমাজের আবহাওয়া তথ্য",
         "ri_road_vis_title": "রাস্তায় দৃশ্যমানতা",
         "ri_road_vis_poor": "খারাপ — গতি অনেক কমান",
@@ -1039,7 +1039,7 @@ ROLE_SENTENCES_EXTRA: dict[str, dict[str, str]] = {
         "ri_heading_driver": "वाहन चालवण्याची हवामान माहिती",
         "ri_heading_outdoor_worker": "कामाच्या जागेची हवामान माहिती",
         "ri_heading_household": "घरची हवामान माहिती",
-        "ri_heading_student": "अभ्यासाच्या दिवसाची हवामान माहिती",
+        "ri_heading_student": "कॅम्पसची हवामान माहिती",
         "ri_heading_caregiver": "काळजी व समुदायाची हवामान माहिती",
         "ri_road_vis_title": "रस्त्यावरील दृश्यमानता",
         "ri_road_vis_poor": "खराब — वेग बराच कमी करा",
@@ -1096,7 +1096,7 @@ ROLE_SENTENCES_EXTRA: dict[str, dict[str, str]] = {
         "ri_heading_driver": "গাড়ী চলোৱাৰ বতৰৰ তথ্য",
         "ri_heading_outdoor_worker": "কৰ্মস্থলীৰ বতৰৰ তথ্য",
         "ri_heading_household": "ঘৰৰ বতৰৰ তথ্য",
-        "ri_heading_student": "পঢ়াৰ দিনৰ বতৰৰ তথ্য",
+        "ri_heading_student": "কেম্পাচৰ বতৰ তথ্য",
         "ri_heading_caregiver": "যত্ন আৰু সমাজৰ বতৰৰ তথ্য",
         "ri_road_vis_title": "ৰাস্তাৰ দৃশ্যমানতা",
         "ri_road_vis_poor": "বেয়া — গতি বহুত কমাওক",
@@ -1323,5 +1323,67 @@ ROLE_SENTENCES_MARINE: dict[str, dict[str, str]] = {
 }
 
 for _lang, _extra in ROLE_SENTENCES_MARINE.items():
+    ROLE_SENTENCES.setdefault(_lang, {}).update(_extra)
+
+
+# The campus reading's own titles.
+#
+# The student used to be handed the driver's cards: road visibility, road
+# surface, crosswind. A student walking to college is not asking about a road
+# surface, and a card titled for someone else is the clearest possible signal
+# that the role selector is decoration. The verdicts under these are existing
+# sentences — only the headings are new, because only the question is.
+ROLE_SENTENCES_CAMPUS: dict[str, dict[str, str]] = {
+    # -----------------------------------------------------------------------
+    "en": {
+        "ri_campus_title": 'Campus conditions',
+        "ri_campus_clear": 'No rain or poor visibility is expected during class hours.',
+        "ri_college_title": 'College commute',
+        "ri_lightning_safety_title": 'Lightning safety',
+        "ri_student_reminder_title": 'Student reminder',
+    },
+    # -----------------------------------------------------------------------
+    "hi": {
+        "ri_campus_title": 'कैंपस की स्थिति',
+        "ri_campus_clear": 'कक्षा के समय बारिश या कम दृश्यता की संभावना नहीं है।',
+        "ri_college_title": 'कॉलेज की आवाजाही',
+        "ri_lightning_safety_title": 'बिजली से सुरक्षा',
+        "ri_student_reminder_title": 'विद्यार्थी के लिए सुझाव',
+    },
+    # -----------------------------------------------------------------------
+    "te": {
+        "ri_campus_title": 'క్యాంపస్ పరిస్థితులు',
+        "ri_campus_clear": 'తరగతి వేళల్లో వర్షం లేదా తక్కువ దృశ్యత ఉండే అవకాశం లేదు.',
+        "ri_college_title": 'కాలేజీ ప్రయాణం',
+        "ri_lightning_safety_title": 'పిడుగుల భద్రత',
+        "ri_student_reminder_title": 'విద్యార్థులకు సూచన',
+    },
+    # -----------------------------------------------------------------------
+    "bn": {
+        "ri_campus_title": 'ক্যাম্পাসের অবস্থা',
+        "ri_campus_clear": 'ক্লাসের সময় বৃষ্টি বা কম দৃশ্যমানতার সম্ভাবনা নেই।',
+        "ri_college_title": 'কলেজের যাতায়াত',
+        "ri_lightning_safety_title": 'বজ্রপাত থেকে সুরক্ষা',
+        "ri_student_reminder_title": 'শিক্ষার্থীদের জন্য পরামর্শ',
+    },
+    # -----------------------------------------------------------------------
+    "mr": {
+        "ri_campus_title": 'कॅम्पसची स्थिती',
+        "ri_campus_clear": 'वर्गाच्या वेळेत पाऊस किंवा कमी दृश्यमानतेची शक्यता नाही.',
+        "ri_college_title": 'कॉलेजचा प्रवास',
+        "ri_lightning_safety_title": 'विजेपासून सुरक्षा',
+        "ri_student_reminder_title": 'विद्यार्थ्यांसाठी सूचना',
+    },
+    # -----------------------------------------------------------------------
+    "as": {
+        "ri_campus_title": 'কেম্পাচৰ অৱস্থা',
+        "ri_campus_clear": 'শ্ৰেণীৰ সময়ত বৰষুণ বা কম দৃশ্যমানতাৰ সম্ভাৱনা নাই।',
+        "ri_college_title": 'কলেজলৈ যাতায়াত',
+        "ri_lightning_safety_title": 'বজ্ৰপাতৰ পৰা সুৰক্ষা',
+        "ri_student_reminder_title": 'শিক্ষাৰ্থীৰ বাবে পৰামৰ্শ',
+    },
+}
+
+for _lang, _extra in ROLE_SENTENCES_CAMPUS.items():
     ROLE_SENTENCES.setdefault(_lang, {}).update(_extra)
 

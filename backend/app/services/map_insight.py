@@ -16,7 +16,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from . import i18n
+from . import i18n, roles
 
 # Thresholds shared with the role panel's reading of the same numbers, so a
 # map line and a role card cannot disagree about the same hour.
@@ -28,17 +28,13 @@ CHANGE_PCT = 15  # a swing smaller than this is noise, not a trend
 _ROLE_CLAUSE = {
     "general": ("mi_role_general", "mi_role_general_calm"),
     "farmer": ("mi_role_farmer", "mi_role_farmer_calm"),
-    # Both names, one entry: `marine` is the role's key and `fisherman` is what
-    # stored preferences still carry.
+    # Keyed on the role's own name; the sentence keys keep the older one,
+    # because renaming a translated string changes nothing a reader sees.
     "marine": ("mi_role_fisherman", "mi_role_fisherman_calm"),
-    "fisherman": ("mi_role_fisherman", "mi_role_fisherman_calm"),
-    "traveler": ("mi_role_traveler", "mi_role_traveler_calm"),
     "driver": ("mi_role_driver", "mi_role_driver_calm"),
     "outdoor_worker": ("mi_role_outdoor_worker", "mi_role_outdoor_worker_calm"),
-    "household": ("mi_role_household", "mi_role_household_calm"),
     "student": ("mi_role_student", "mi_role_student_calm"),
     "caregiver": ("mi_role_caregiver", "mi_role_caregiver_calm"),
-    "commuter": ("mi_role_commuter", "mi_role_commuter_calm"),
 }
 
 
@@ -62,10 +58,11 @@ def build(hours: list[dict[str, Any]], user_type: str | None, lang: str = "en") 
     shows no line rather than an empty one.
     """
     lang = i18n.normalise_lang(lang)
-    role = (user_type or "general").strip().lower()
-    if role not in _ROLE_CLAUSE:
-        role = "general"
-    active_key, calm_key = _ROLE_CLAUSE[role]
+    # Resolved through the registry, so a stored preference for a retired
+    # reading gets the same substitute here as it gets in the role panel — a
+    # map line and a role card disagreeing about whose weather this is would be
+    # the app speaking to two different readers at once.
+    active_key, calm_key = _ROLE_CLAUSE[roles.get(user_type).key]
 
     if not hours:
         return []

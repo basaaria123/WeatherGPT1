@@ -17,10 +17,12 @@ from app.schemas import RiskOutput
 from app.services import i18n, role_intel
 from app.services._role_sentences import ROLE_SENTENCES
 
+# The seven the selector offers. Everything else a client may still send is a
+# stored preference resolving onto one of these — covered by
+# `test_legacy_profiles_still_resolve` rather than enumerated here.
 ROLES = [
-    "general", "farmer", "marine", "traveler", "driver",
-    "outdoor_worker", "household", "student", "caregiver", "commuter",
-    "researcher", "disaster_manager", "aviation", "government", "event_planner",
+    "general", "farmer", "marine", "driver",
+    "outdoor_worker", "student", "caregiver",
 ]
 
 
@@ -150,10 +152,10 @@ def test_missing_wind_direction_is_not_invented():
 
 def test_departure_hidden_without_an_hourly_series():
     bare = SimpleNamespace(current={"temperature_c": 28.0}, hourly=[], daily=[])
-    ids = {c["id"] for c in role_intel.build(bare, _risk(), "commuter", "en")["cards"]}
+    ids = {c["id"] for c in role_intel.build(bare, _risk(), "driver", "en")["cards"]}
     assert "departure" not in ids
     # The rest of the panel still renders.
-    assert {"commute_risk", "hazards", "reminder"} <= ids
+    assert {"road_visibility", "road_surface", "commute_risk"} <= ids
 
 
 # --- The verdicts have to be right -----------------------------------------
@@ -223,7 +225,7 @@ def test_departure_picks_the_calmest_hour_from_the_existing_scores():
     bundle = _bundle(hours=12)
     # Hour index 2 is 08:00 and is given the lowest score in the window.
     bundle.hourly[2]["risk_score"] = 1
-    card = {c["id"]: c for c in role_intel.build(bundle, _risk(), "commuter", "en")["cards"]}["departure"]
+    card = {c["id"]: c for c in role_intel.build(bundle, _risk(), "driver", "en")["cards"]}["departure"]
     assert card["headline"] == "08:00"
 
 
@@ -234,16 +236,15 @@ def test_compass_point_never_guesses():
     assert role_intel._compass_point(359) == "N"
 
 
-# --- The five profiles added for the nine-role selector ---------------------
+# --- The specialist readings beside the general one -------------------------
 
-NEW_ROLES = ["driver", "outdoor_worker", "household", "student", "caregiver"]
-
-# Student is deliberately absent: its panel is a recombination of the commute
-# and outdoor readings rather than a new set of sentences, so that a student and
-# a commuter can never be given two different answers to the same question. Its
-# distinctness lives in the heading, factor order, hazard actions and map
-# clause, and is covered by test_roles_actually_differ and the reuse test below.
-OWN_CARD_ROLES = [r for r in NEW_ROLES if r != "student"]
+# Student is deliberately absent: its panel is a recombination of the road and
+# outdoor readings rather than a new set of sentences, so that a student and a
+# driver can never be given two different answers to the same question. Its
+# distinctness lives in the heading, card titles, factor order, hazard actions
+# and map clause, and is covered by test_roles_actually_differ and the reuse
+# test below.
+OWN_CARD_ROLES = ["farmer", "marine", "driver", "outdoor_worker", "caregiver"]
 
 
 @pytest.mark.parametrize("role", OWN_CARD_ROLES)
@@ -313,31 +314,36 @@ def test_outdoor_worker_feels_heat_before_the_thermometer_does():
 def test_preparedness_is_gated_on_storm_and_wind_not_on_rain():
     """Heavy rain alone is not a reason to tell someone to find a torch."""
     rainy = _bundle(_hourly_mm=2.0, _hourly_prob=90.0, precipitation_mm=3.0)
-    calm = {c["id"]: c for c in role_intel.build(rainy, _risk(), "household", "en")["cards"]}
+    calm = {c["id"]: c for c in role_intel.build(rainy, _risk(), "caregiver", "en")["cards"]}
     assert calm["prepare"]["headline"] == i18n.sentence("ri_prepare_normal", "en")
 
     stormy = role_intel.build(
-        _bundle(), _risk("High", "Lightning/Storm", **{"Lightning/Storm": 70}), "household", "en",
+        _bundle(), _risk("High", "Lightning/Storm", **{"Lightning/Storm": 70}), "caregiver", "en",
     )["cards"]
     assert {c["id"]: c for c in stormy}["prepare"]["tone"] in {"caution", "warn"}
 
 
-def test_household_drying_verdict_tracks_the_forecast():
-    dry = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "household", "en")["cards"]}
+def test_drying_verdict_tracks_the_forecast():
+    """The washing card outlived the household reading it was written for: a
+    stored household preference now lands on the caregiver panel, and the
+    question it was asking has to still be answered there."""
+    dry = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "caregiver", "en")["cards"]}
     assert dry["home_rain"]["headline"] == i18n.sentence("ri_home_rain_dry", "en")
 
     wet = _bundle(_hourly_prob=85.0, _hourly_mm=1.0)
-    damp = {c["id"]: c for c in role_intel.build(wet, _risk(), "household", "en")["cards"]}
+    damp = {c["id"]: c for c in role_intel.build(wet, _risk(), "caregiver", "en")["cards"]}
     assert damp["home_rain"]["headline"] == i18n.sentence("ri_home_rain_wet", "en")
 
 
 def test_student_reuses_the_shared_readings_rather_than_a_second_opinion():
     """Two mappings for one question is two chances to disagree."""
     student = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "student", "en")["cards"]}
-    commuter = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "commuter", "en")["cards"]}
+    driver = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "driver", "en")["cards"]}
     general = {c["id"]: c for c in role_intel.build(_bundle(), _risk(), "general", "en")["cards"]}
-    assert student["commute_risk"] == commuter["commute_risk"]
-    assert student["outdoor"] == general["outdoor"]
+    # Retitled for the reader, but the same verdict on the same measurement.
+    for field in ("headline", "detail", "tone"):
+        assert student["college_commute"][field] == driver["commute_risk"][field]
+        assert student["campus"][field] == general["outdoor"][field]
 
 
 def test_caregiver_reads_heat_earlier_than_the_general_panel():
@@ -352,7 +358,8 @@ def test_caregiver_reads_heat_earlier_than_the_general_panel():
 
 def test_legacy_profiles_still_resolve():
     """A stored preference must never become an invalid request."""
-    for legacy in ("commuter", "aviation", "urban"):
+    for legacy in ("commuter", "aviation", "urban", "household", "traveler",
+                   "researcher", "disaster_manager", "government", "event_planner"):
         panel = role_intel.build(_bundle(), _risk(), legacy, "en")
         assert panel["cards"]
         assert panel["heading"]

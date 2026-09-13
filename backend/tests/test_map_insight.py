@@ -17,9 +17,12 @@ from app.main import app
 from app.services import i18n, map_insight
 from app.services._role_sentences import ROLE_SENTENCES
 
+# The seven the selector offers. A retired name resolves onto one of these
+# before a clause is chosen, so enumerating them here would only be asserting
+# that two aliases produce one line.
 ROLES = [
-    "general", "farmer", "fisherman", "traveler", "driver",
-    "outdoor_worker", "household", "student", "caregiver", "commuter",
+    "general", "farmer", "marine", "driver",
+    "outdoor_worker", "student", "caregiver",
 ]
 client = TestClient(app)
 
@@ -65,7 +68,7 @@ def test_roles_read_the_same_hour_differently():
 
 def test_the_hourly_risk_level_leads_when_it_is_high():
     """Once the engine calls the hour High, that outranks the raw probability."""
-    line = map_insight.build(_hours(95, level="High"), "commuter", "en")[0]
+    line = map_insight.build(_hours(95, level="High"), "driver", "en")[0]
     assert "High" in line
     assert "95%" not in line
 
@@ -201,6 +204,6 @@ def test_risk_map_reading_is_written_for_the_profile():
         body = client.get(f"/risk-map?limit=3&hours=6&user_type={role}").json()
         return {entry["location"]: entry["insight"] for entry in body["locations"]}
 
-    farmer, fisherman = readings("farmer"), readings("fisherman")
-    assert farmer and farmer.keys() == fisherman.keys()
-    assert any(farmer[name] != fisherman[name] for name in farmer)
+    farmer, marine = readings("farmer"), readings("marine")
+    assert farmer and farmer.keys() == marine.keys()
+    assert any(farmer[name] != marine[name] for name in farmer)

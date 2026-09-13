@@ -60,8 +60,9 @@ ROLES: dict[str, Role] = {
         key="general", icon="🌤️", heading_key="ri_heading_general",
         metrics=_TEMP + _RAIN + ("wind_speed_kmh", "humidity_pct"),
         ask=(
-            ("outdoor", "Is it a good day to be outdoors?"),
-            ("umbrella", "Will it rain today, and when?"),
+            ('outdoor', 'Is it a good day to be outdoors?'),
+            ('umbrella', 'Do I need an umbrella today?'),
+            ('hazards', 'What is the main weather risk tonight?'),
         ),
     ),
     "farmer": Role(
@@ -69,9 +70,9 @@ ROLES: dict[str, Role] = {
         metrics=_RAIN + ("humidity_pct",) + _WIND[:2] + _TEMP,
         alert_hazards=("Heavy Rainfall", "Lightning/Storm", "Strong Wind", "Extreme Heat"),
         ask=(
-            ("field_advisory", "Is today suitable for field work and spraying?"),
-            ("irrigation", "Should I irrigate today, given the rainfall forecast?"),
-            ("crop_risk", "What is the disease risk for my crop in these conditions?"),
+            ('field_advisory', 'Is today suitable for field work and spraying?'),
+            ('irrigation', 'Should I irrigate today, given the rainfall forecast?'),
+            ('crop_risk', 'What is the disease risk for my crop in these conditions?'),
         ),
     ),
     "marine": Role(
@@ -83,138 +84,57 @@ ROLES: dict[str, Role] = {
         metrics=_WIND + ("visibility_km", "pressure_hpa") + _RAIN,
         alert_hazards=("Strong Wind", "Lightning/Storm", "Heavy Rainfall"),
         ask=(
-            ("fishing_conditions", "Is it safe to go out, based on the wind and visibility you can measure?"),
-            ("wind", "When does the wind ease over the next 24 hours?"),
+            ('fishing_conditions', 'Is it safe to go out, based on the wind and visibility you can measure?'),
+            ('wind', 'What are the wind speed and gusts doing over the next 24 hours?'),
+            ('visibility', 'How is visibility at sea right now?'),
         ),
         # The one role whose real question this app cannot fully answer: no
         # provider wired into it returns wave height, swell, tide or current.
         note_key="ri_note_marine",
         timing=True,
     ),
-    "traveler": Role(
-        key="traveler", icon="🧳", heading_key="ri_heading_traveler",
-        metrics=_RAIN + _TEMP + ("visibility_km", "wind_speed_kmh"),
-        alert_hazards=("Heavy Rainfall", "Lightning/Storm", "Flood Risk"),
-        ask=(
-            ("packing", "What should I pack for these conditions?"),
-            ("activity", "What is the best time to be outdoors today?"),
-        ),
-    ),
     "driver": Role(
-        key="driver", icon="🚚", heading_key="ri_heading_driver",
+        key="driver", icon="🚗", heading_key="ri_heading_driver",
         metrics=("visibility_km",) + _RAIN + _WIND[:2] + _TEMP[:1],
         alert_hazards=("Heavy Rainfall", "Flood Risk", "Strong Wind"),
         ask=(
-            ("road_visibility", "How is visibility for driving, and when does it improve?"),
-            ("road_surface", "Is there a waterlogging risk on the roads today?"),
-        ),
-        timing=True,
-    ),
-    "commuter": Role(
-        key="commuter", icon="🚗", heading_key="ri_heading_commuter",
-        metrics=_RAIN + ("visibility_km",) + _TEMP + ("wind_speed_kmh",),
-        alert_hazards=("Heavy Rainfall", "Flood Risk", "Lightning/Storm"),
-        ask=(
-            ("departure", "When is the best time to travel today?"),
-            ("commute_risk", "Will I get caught in rain on my commute?"),
+            ('road_visibility', 'How is visibility for driving, and when does it improve?'),
+            ('road_surface', 'Is there a waterlogging risk on the roads today?'),
+            ('departure', 'When is the safest time to drive today?'),
         ),
         timing=True,
     ),
     "outdoor_worker": Role(
-        key="outdoor_worker", icon="🏗️", heading_key="ri_heading_outdoor_worker",
+        key="outdoor_worker", icon="🦺", heading_key="ri_heading_outdoor_worker",
         metrics=_TEMP + ("humidity_pct",) + _WIND[:2] + _RAIN,
         alert_hazards=("Extreme Heat", "Lightning/Storm", "Strong Wind", "Heavy Rainfall"),
         ask=(
-            ("heat_stress", "How much heat stress should I expect working outdoors today?"),
-            ("work_window", "Which hours are safest to work outdoors today?"),
+            ('work_window', 'Which hours are safest to work outdoors today?'),
+            ('heat_stress', 'How much heat stress should I expect working outdoors today?'),
+            ('lightning', 'Is it safe to work in the open with this storm risk?'),
         ),
         timing=True,
     ),
-    "household": Role(
-        key="household", icon="🏠", heading_key="ri_heading_household",
-        metrics=_RAIN + _TEMP + ("humidity_pct", "wind_speed_kmh"),
-        alert_hazards=("Heavy Rainfall", "Flood Risk", "Extreme Heat"),
-        ask=(
-            ("home_rain", "Is it a good day to dry clothes outside?"),
-            ("prepare", "What should my household prepare for today?"),
-        ),
-    ),
     "student": Role(
-        key="student", icon="🏫", heading_key="ri_heading_student",
+        key="student", icon="🎓", heading_key="ri_heading_student",
         metrics=_RAIN + _TEMP + ("wind_speed_kmh", "visibility_km"),
         alert_hazards=("Heavy Rainfall", "Lightning/Storm", "Extreme Heat"),
         ask=(
-            ("commute_risk", "What should I expect on the way to and from school today?"),
-            ("departure", "When is the best time to set out today?"),
+            ('college_commute', 'What should I expect on the way to and from college today?'),
+            ('campus', 'Is it safe to be outdoors on campus right now?'),
+            ('lightning_safety', 'Should I avoid exposed areas because of lightning?'),
         ),
         timing=True,
     ),
     "caregiver": Role(
-        key="caregiver", icon="🏥", heading_key="ri_heading_caregiver",
+        key="caregiver", icon="👨‍👩‍👧", heading_key="ri_heading_caregiver",
         metrics=_TEMP + ("humidity_pct",) + _RAIN + ("wind_speed_kmh",),
         alert_hazards=("Extreme Heat", "Heavy Rainfall", "Lightning/Storm"),
         ask=(
-            ("vulnerable", "What should I watch for in vulnerable people in these conditions?"),
-            ("prepare", "What should we prepare for today?"),
+            ('vulnerable', 'What should I watch for in vulnerable people in these conditions?'),
+            ('prepare', 'What should the household have ready?'),
+            ('exposure', 'Should the people I care for stay indoors today?'),
         ),
-    ),
-    "researcher": Role(
-        key="researcher", icon="🔬", heading_key="ri_heading_researcher",
-        # The full instrument panel, in the order an observation is read out.
-        metrics=_TEMP + ("humidity_pct", "pressure_hpa") + _WIND[:2] + _RAIN + ("visibility_km",),
-        # No reordering: to someone studying the weather, every hazard is data.
-        ask=(
-            ("comfort", "What do the current measurements show right now?"),
-            ("rain_impact", "How much rain is expected, and over what period?"),
-            ("hazards", "Which risk drivers are active, and what values produced them?"),
-        ),
-    ),
-    "disaster_manager": Role(
-        key="disaster_manager", icon="🚨", heading_key="ri_heading_disaster_manager",
-        metrics=_RAIN + _WIND[:2] + ("visibility_km",) + _TEMP,
-        alert_hazards=("Flood Risk", "Heavy Rainfall", "Lightning/Storm", "Strong Wind", "Extreme Heat"),
-        ask=(
-            ("hazards", "Which hazards are active, and how severe are they?"),
-            ("storm_risk", "Is storm activity expected to escalate?"),
-            ("prepare", "What should be prepared for tonight?"),
-        ),
-        timing=True,
-    ),
-    "aviation": Role(
-        key="aviation", icon="✈️", heading_key="ri_heading_aviation",
-        metrics=("visibility_km",) + _WIND + ("pressure_hpa",) + _RAIN,
-        alert_hazards=("Strong Wind", "Lightning/Storm", "Heavy Rainfall"),
-        ask=(
-            ("visibility", "How is visibility, and when does it change?"),
-            ("wind", "What are the wind speed and gusts doing over the next 24 hours?"),
-            ("storm_risk", "Is thunderstorm activity expected?"),
-        ),
-        # The second role whose real question this app cannot fully answer: it
-        # carries no aviation product — no METAR, TAF, cloud base, icing or
-        # turbulence — only the surface forecast everything else here uses.
-        note_key="ri_note_aviation",
-        timing=True,
-    ),
-    "government": Role(
-        key="government", icon="🏛️", heading_key="ri_heading_government",
-        metrics=_RAIN + ("wind_speed_kmh",) + _TEMP + ("visibility_km",),
-        alert_hazards=("Flood Risk", "Heavy Rainfall", "Extreme Heat", "Lightning/Storm", "Strong Wind"),
-        ask=(
-            ("hazards", "Which hazards are active in this area right now?"),
-            ("rain_impact", "How much rain is expected, and is waterlogging likely?"),
-            ("prepare", "What should residents be advised to have ready?"),
-        ),
-    ),
-    "event_planner": Role(
-        key="event_planner", icon="🎪", heading_key="ri_heading_event_planner",
-        metrics=("precipitation_probability_pct", "precipitation_mm") + _WIND[:2] + _TEMP,
-        alert_hazards=("Heavy Rainfall", "Lightning/Storm", "Strong Wind", "Extreme Heat"),
-        ask=(
-            ("outdoor", "Is this a good day to hold something outdoors?"),
-            ("work_window", "Which hours carry the lowest weather risk today?"),
-            ("umbrella", "Will people need cover from rain?"),
-        ),
-        timing=True,
     ),
 }
 
@@ -226,7 +146,25 @@ DEFAULT_ROLE = "general"
 # changed into a different reading.
 ALIASES: dict[str, str] = {
     "fisherman": "marine",
-    "urban": "commuter",
+    # Eight readings left the selector. They are aliased rather than deleted,
+    # because a stored preference is a choice somebody made and a key this build
+    # no longer knows would silently become "general" — the same reading, but
+    # arrived at by accident rather than by mapping.
+    #
+    # Each goes to the nearest kept reading: the commuter and the urban traveller
+    # are a driver by another name, the household and the officials are all
+    # asking the community question, and the rest — a traveller, a researcher, a
+    # pilot, an event planner — have no specialist reading here any more and get
+    # the everyday one.
+    "commuter": "driver",
+    "urban": "driver",
+    "household": "caregiver",
+    "government": "caregiver",
+    "disaster_manager": "caregiver",
+    "traveler": "general",
+    "researcher": "general",
+    "aviation": "general",
+    "event_planner": "general",
 }
 
 

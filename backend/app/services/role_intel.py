@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """What today's weather means for the reader, rather than what it is.
 
-One weather engine, nine readings of it. Every card below is derived from the
+One weather engine, seven readings of it. Every card below is derived from the
 same ``bundle`` the dashboard is already rendering and the same ``RiskOutput``
 the risk score came from — this module scores nothing of its own, fetches
 nothing of its own, and cannot see a value the rest of the app cannot.
@@ -205,6 +205,15 @@ class _Reading:
 # ---------------------------------------------------------------------------
 # General
 # ---------------------------------------------------------------------------
+
+def _general_full(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """Umbrella, comfort, outdoors — and the main risk, named plainly."""
+    cards = _general(m, lang)[:3]
+    hazards = _by_id(_commuter(m, lang)).get("hazards")
+    if hazards:
+        cards.append(hazards)
+    return cards[:5]
+
 
 def _general(m: _Reading, lang: str) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
@@ -536,94 +545,6 @@ def _marine(m: _Reading, lang: str) -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Traveller
-# ---------------------------------------------------------------------------
-
-def _traveller(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    cards: list[dict[str, Any]] = []
-
-    # --- Today and tomorrow --------------------------------------------------
-    if len(m.daily) >= 2:
-        today, tomorrow = m.daily[0], m.daily[1]
-        t_max = _num(today.get("temp_max_c"))
-        t_min = _num(today.get("temp_min_c"))
-        tom_rain = _num(tomorrow.get("precipitation_probability_pct"))
-        headline = (
-            f"{_r(t_min)}–{_r(t_max)}°C" if t_max is not None and t_min is not None else
-            i18n.condition_label(today.get("weather_code"), lang)
-        )
-        detail = (
-            i18n.sentence("ri_trip_tomorrow", lang, prob=_r(tom_rain))
-            if tom_rain is not None
-            else i18n.sentence("ri_trip_tomorrow_cond", lang,
-                               cond=i18n.condition_label(tomorrow.get("weather_code"), lang))
-        )
-        cards.append(_card("trip_weather", "🗓️", i18n.sentence("ri_trip_title", lang), headline, "info", detail))
-    else:
-        cards.append(_card(
-            "trip_weather", "🗓️", i18n.sentence("ri_trip_title", lang),
-            i18n.sentence("ri_no_data", lang), "info",
-        ))
-
-    # --- Travel risk ----------------------------------------------------------
-    # Named contributors only: a factor with no reading behind it is left out
-    # rather than reported as absent.
-    factors: list[str] = []
-    if m.rain_likely:
-        factors.append(i18n.sentence("ri_factor_rain", lang))
-    if m.visibility is not None and m.visibility < VIS_LOW_KM:
-        factors.append(i18n.sentence("ri_factor_visibility", lang))
-    if (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
-        factors.append(i18n.sentence("ri_factor_wind", lang))
-    if m.storm_score >= STORM_CAUTION:
-        factors.append(i18n.sentence("ri_factor_storm", lang))
-
-    if m.level == "Severe" or m.storm_score >= STORM_HIGH:
-        headline, tone = i18n.sentence("ri_travel_high", lang), "danger"
-    elif factors or m.severe:
-        headline, tone = i18n.sentence("ri_travel_moderate", lang), "caution"
-    else:
-        headline, tone = i18n.sentence("ri_travel_low", lang), "safe"
-    detail = i18n.sentence("ri_travel_factors", lang, factors=", ".join(factors)) if factors else i18n.sentence(
-        "ri_travel_clear", lang
-    )
-    cards.append(_card("travel_risk", "🚗", i18n.sentence("ri_travel_title", lang), headline, tone, detail))
-
-    # --- Outdoor suitability --------------------------------------------------
-    if m.storm_score >= STORM_HIGH or m.level == "Severe":
-        headline, tone = i18n.sentence("ri_activity_poor", lang), "danger"
-    elif m.rain_likely or m.severe:
-        headline, tone = i18n.sentence("ri_activity_caution", lang), "caution"
-    elif (m.feels is not None and m.feels >= HOT_C) or (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
-        headline, tone = i18n.sentence("ri_activity_good", lang), "caution"
-    else:
-        headline, tone = i18n.sentence("ri_activity_excellent", lang), "safe"
-    cards.append(_card("activity", "🌤️", i18n.sentence("ri_activity_title", lang), headline, tone))
-
-    # --- Packing ---------------------------------------------------------------
-    # Every item traces to a reading. Nothing generic gets added to pad the list.
-    items: list[str] = []
-    if m.rain_possible:
-        items.append(i18n.sentence("ri_pack_umbrella", lang))
-        items.append(i18n.sentence("ri_pack_raincoat", lang))
-    if m.feels is not None and m.feels >= HOT_C:
-        items.append(i18n.sentence("ri_pack_water", lang))
-        items.append(i18n.sentence("ri_pack_sun", lang))
-    if (m.temp is not None and m.temp <= COOL_C) or (m.daily and (_num(m.daily[0].get("temp_min_c")) or 99) <= COOL_C):
-        items.append(i18n.sentence("ri_pack_layer", lang))
-    if (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
-        items.append(i18n.sentence("ri_pack_windproof", lang))
-
-    cards.append(_card(
-        "packing", "🎒", i18n.sentence("ri_pack_title", lang),
-        " · ".join(items) if items else i18n.sentence("ri_pack_nothing", lang),
-        "info" if items else "safe",
-    ))
-
-    return cards
-
-
-# ---------------------------------------------------------------------------
 # Commuter
 # ---------------------------------------------------------------------------
 
@@ -733,6 +654,22 @@ def _commuter(m: _Reading, lang: str) -> list[dict[str, Any]]:
 # surface is doing, and what the wind does to the vehicle.
 # ---------------------------------------------------------------------------
 
+def _driver_full(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """The driving reading, with the two cards the brief adds to it.
+
+    Road visibility, road surface and crosswind are what the road is doing;
+    commute risk and the departure hour are what to do about it. The commuter
+    reading already computed both from the same hours, so they are borrowed
+    rather than recomputed — one departure hour in the system, not two.
+    """
+    commuter = _by_id(_commuter(m, lang))
+    cards = _driver(m, lang)[:3]
+    for key in ("commute_risk", "departure"):
+        if commuter.get(key):
+            cards.append(commuter[key])
+    return cards[:5]
+
+
 def _driver(m: _Reading, lang: str) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
 
@@ -826,6 +763,15 @@ def _best_daylight_hour(m: _Reading) -> tuple[str, int] | None:
     return label, score
 
 
+def _outdoor_worker_full(m: _Reading, lang: str) -> list[dict[str, Any]]:
+    """Heat, lightning, the working window — plus what the site is exposed to."""
+    cards = _outdoor_worker(m, lang)[:4]
+    exposure = _by_id(_caregiver(m, lang)).get("exposure")
+    if exposure:
+        cards.append(exposure)
+    return cards[:5]
+
+
 def _outdoor_worker(m: _Reading, lang: str) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
 
@@ -887,11 +833,11 @@ def _outdoor_worker(m: _Reading, lang: str) -> list[dict[str, Any]]:
 
 
 # ---------------------------------------------------------------------------
-# Household
+# Preparedness
 # ---------------------------------------------------------------------------
 
 def _preparedness_card(m: _Reading, lang: str) -> dict[str, Any]:
-    """Shared by the household and caregiver readings.
+    """Part of the caregiver reading.
 
     Gated on storm and wind, because a power interruption is what those two
     actually predict — heavy rain alone is not a reason to tell someone to find
@@ -913,41 +859,6 @@ def _preparedness_card(m: _Reading, lang: str) -> dict[str, Any]:
     )
 
 
-def _household(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    cards: list[dict[str, Any]] = []
-
-    # --- Comfort indoors ---------------------------------------------------
-    # Same card the general reading shows, deliberately: the question "is it
-    # comfortable?" does not change because the reader is at home, and two
-    # answers to it would be two chances to disagree.
-    cards.append(_general(m, lang)[1])
-
-    # --- Washing and drying ------------------------------------------------
-    if m.rain_24h is None and m.prob_max_12h is None and m.humidity is None:
-        cards.append(_card(
-            "home_rain", "🧺", i18n.sentence("ri_home_rain_title", lang),
-            i18n.sentence("ri_no_data", lang), "info",
-        ))
-    else:
-        if m.rain_likely:
-            headline, tone = i18n.sentence("ri_home_rain_wet", lang), "caution"
-        elif m.rain_possible or (m.humidity is not None and m.humidity >= VERY_HUMID_PCT):
-            headline, tone = i18n.sentence("ri_home_rain_maybe", lang), "info"
-        else:
-            headline, tone = i18n.sentence("ri_home_rain_dry", lang), "safe"
-        if m.prob_max_12h is not None:
-            detail = i18n.sentence("ri_umbrella_prob", lang, prob=_r(m.prob_max_12h))
-        elif m.rain_24h is not None:
-            detail = i18n.sentence("ri_umbrella_mm", lang, mm=_r(m.rain_24h, 1))
-        else:
-            detail = ""
-        cards.append(_card(
-            "home_rain", "🧺", i18n.sentence("ri_home_rain_title", lang), headline, tone, detail,
-        ))
-
-    cards.append(_preparedness_card(m, lang))
-    cards.append(_reminder(m, lang))
-    return cards
 
 
 # ---------------------------------------------------------------------------
@@ -959,18 +870,91 @@ def _household(m: _Reading, lang: str) -> list[dict[str, Any]]:
 # disagree.
 # ---------------------------------------------------------------------------
 
+def _retitle(card: dict[str, Any] | None, card_id: str, title_key: str, lang: str,
+             icon: str | None = None) -> dict[str, Any] | None:
+    """The same verdict, under the heading this reader would use for it.
+
+    A verdict about visibility is the same verdict whoever is reading it — the
+    measurement has not changed and neither has the threshold. What changes is
+    what the reader calls the thing they are asking about, and a card headed
+    "Road surface" in front of someone walking to college is a card written for
+    somebody else.
+
+    So this renames rather than recomputes. Nothing downstream can tell the
+    difference between this and an original card, which is the point: there is
+    still one visibility reading in the system.
+    """
+    if not card:
+        return None
+    renamed = dict(card)
+    renamed["id"] = card_id
+    renamed["title"] = i18n.sentence(title_key, lang)
+    if icon:
+        renamed["icon"] = icon
+    return renamed
+
+
 def _student(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    commute = _commuter(m, lang)
-    cards = [card for card in commute if card["id"] in {"commute_risk", "departure"}]
-    # Insert the outdoor-activity reading between the journey and the timing.
-    cards.insert(1, _general(m, lang)[2])
-    cards.append(_reminder(m, lang))
-    return cards
+    """The campus reading.
+
+    It used to be the driver's cards with a different heading above them: road
+    visibility, road surface, crosswind. Those are answers to a question about a
+    vehicle. A student is asking whether to cross the campus, how long the
+    journey will take, and whether it is safe to be outside — so the readings are
+    the same measurements under the headings that question uses.
+    """
+    general = _by_id(_general(m, lang))
+    commuter = _by_id(_commuter(m, lang))
+    marine = _by_id(_marine(m, lang))
+
+    cards = [
+        # Is it a day to be outside on campus?
+        _retitle(general.get("outdoor"), "campus", "ri_campus_title", lang, "🎓"),
+        # The journey there and back.
+        _retitle(commuter.get("commute_risk"), "college_commute", "ri_college_title", lang, "🎒"),
+        # The one hazard a campus cannot shelter from at short notice.
+        _retitle(marine.get("storm_risk"), "lightning_safety", "ri_lightning_safety_title", lang, "⚡"),
+        # When to set out.
+        commuter.get("departure"),
+        _retitle(_reminder(m, lang), "student_reminder", "ri_student_reminder_title", lang, "📌"),
+    ]
+    return [card for card in cards if card][:5]
+
+
+def _by_id(cards: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
+    """Another reading's cards, addressable by name."""
+    return {card["id"]: card for card in cards}
 
 
 # ---------------------------------------------------------------------------
 # Community / caregiver
 # ---------------------------------------------------------------------------
+
+def _drying_card(m: _Reading, lang: str) -> dict[str, Any]:
+    """Will washing hung out today dry, or come in wetter than it went out.
+
+    Kept when the household reading left the selector: whoever is running a home
+    still asks it, and the caregiver reading is where that reader now lands.
+    """
+    if m.rain_24h is None and m.prob_max_12h is None and m.humidity is None:
+        return _card(
+            "home_rain", "🧺", i18n.sentence("ri_home_rain_title", lang),
+            i18n.sentence("ri_no_data", lang), "info",
+        )
+    if m.rain_likely:
+        headline, tone = i18n.sentence("ri_home_rain_wet", lang), "caution"
+    elif m.rain_possible or (m.humidity is not None and m.humidity >= VERY_HUMID_PCT):
+        headline, tone = i18n.sentence("ri_home_rain_maybe", lang), "info"
+    else:
+        headline, tone = i18n.sentence("ri_home_rain_dry", lang), "safe"
+    if m.prob_max_12h is not None:
+        detail = i18n.sentence("ri_umbrella_prob", lang, prob=_r(m.prob_max_12h))
+    elif m.rain_24h is not None:
+        detail = i18n.sentence("ri_umbrella_mm", lang, mm=_r(m.rain_24h, 1))
+    else:
+        detail = ""
+    return _card("home_rain", "🧺", i18n.sentence("ri_home_rain_title", lang), headline, tone, detail)
+
 
 def _caregiver(m: _Reading, lang: str) -> list[dict[str, Any]]:
     cards: list[dict[str, Any]] = []
@@ -1009,117 +993,22 @@ def _caregiver(m: _Reading, lang: str) -> list[dict[str, Any]]:
         i18n.sentence("ri_exposure_detail", lang) if tone != "safe" else "",
     ))
 
+    cards.append(_drying_card(m, lang))
     cards.append(_preparedness_card(m, lang))
     cards.append(_reminder(m, lang))
     return cards
 
 
 # ---------------------------------------------------------------------------
-# Readings assembled from other readings
-#
-# These five roles ask questions the existing cards already answer, so they are
-# composed rather than rewritten — the same idiom the student reading has always
-# used. Composing rather than duplicating is what stops two roles giving
-# different verdicts from the same measurement: there is one rain card, one wind
-# card, one hazard card, and every role that needs one gets *that* one.
-#
-# What makes these readings different from each other is which cards they get
-# and in which order, plus the metric ordering, hazard emphasis and suggested
-# questions the role registry carries. None of them introduces a new claim.
-# ---------------------------------------------------------------------------
-
-def _pick(cards: list[dict[str, Any]], *ids: str) -> list[dict[str, Any]]:
-    """Cards from another reading, in the order this role needs them.
-
-    A card the other reading did not produce today is simply absent — the same
-    rule every builder here follows, so a composed reading can no more show an
-    unsupported verdict than an original one can.
-    """
-    by_id = {card["id"]: card for card in cards}
-    return [by_id[card_id] for card_id in ids if card_id in by_id]
-
-
-def _researcher(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    """Values first, then what the engine made of them.
-
-    A reader studying the weather wants the measurement before the advice, so
-    the verdict cards come last and the hazard card — which names the drivers
-    the risk engine actually scored — closes the reading.
-    """
-    return (
-        _pick(_general(m, lang), "comfort")
-        + _pick(_farmer(m, lang), "rain_impact")
-        + _pick(_marine(m, lang), "wind", "storm_risk")
-        + _pick(_commuter(m, lang), "hazards")
-    )
-
-
-def _disaster_manager(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    """What is active, whether it is escalating, and what to ready."""
-    return (
-        _pick(_commuter(m, lang), "hazards")
-        + _pick(_marine(m, lang), "storm_risk")
-        + [_preparedness_card(m, lang)]
-        + _pick(_caregiver(m, lang), "exposure")
-    )
-
-
-def _aviation(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    """Surface visibility, wind and convection — and nothing it cannot see.
-
-    Deliberately no crosswind card: the driver's one is about wind on an open
-    road, and relabelling it for a runway would imply a component this app has
-    never computed. The role's note says what is missing rather than a card
-    implying it is present.
-    """
-    return (
-        _pick(_marine(m, lang), "visibility", "wind", "storm_risk")
-        + _pick(_farmer(m, lang), "rain_impact")
-    )
-
-
-def _government(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    """The area's hazards, its rainfall, its heat, and what residents should ready.
-
-    Heat stress rather than exposure, which is what separates this reading from
-    the responder's: an official is looking at what the day does to a population
-    over hours, a responder at what is escalating right now.
-    """
-    return (
-        _pick(_commuter(m, lang), "hazards")
-        + _pick(_farmer(m, lang), "rain_impact")
-        + _pick(_outdoor_worker(m, lang), "heat_stress")
-        + [_preparedness_card(m, lang)]
-    )
-
-
-def _event_planner(m: _Reading, lang: str) -> list[dict[str, Any]]:
-    """Can it be held outdoors, will it rain on it, and when is calmest."""
-    return (
-        _pick(_general(m, lang), "outdoor", "umbrella")
-        + _pick(_marine(m, lang), "wind")
-        + _pick(_outdoor_worker(m, lang), "work_window")
-    )
-
-
-# ---------------------------------------------------------------------------
 
 _BUILDERS = {
-    "general": _general,
+    "general": _general_full,
     "farmer": _farmer,
     "marine": _marine,
-    "traveler": _traveller,
-    "driver": _driver,
-    "outdoor_worker": _outdoor_worker,
-    "household": _household,
     "student": _student,
+    "driver": _driver_full,
+    "outdoor_worker": _outdoor_worker_full,
     "caregiver": _caregiver,
-    "commuter": _commuter,
-    "researcher": _researcher,
-    "disaster_manager": _disaster_manager,
-    "aviation": _aviation,
-    "government": _government,
-    "event_planner": _event_planner,
 }
 
 # Icon, heading, note and the rest of what makes a role a role now live in

@@ -18,10 +18,13 @@ os.environ.setdefault("WEATHER_DATA_MODE", "fixture")
 from app.services import advisory, history, i18n, risk_engine, weather  # noqa: E402
 
 LANGS = ("en", "hi", "te", "bn", "mr", "as")
-# Every profile the selector offers, plus the legacy values still accepted.
+# Every profile the selector offers. Each has to be a reading in its own right
+# — its own advice line for every hazard, in every language — so retired names
+# are deliberately absent: they resolve onto one of these, and asserting that
+# an alias differs from the reading it resolves to would be asserting a bug.
 PERSONAS = (
-    "farmer", "fisherman", "traveler", "driver", "outdoor_worker",
-    "household", "student", "caregiver", "general", "commuter",
+    "farmer", "marine", "student", "driver",
+    "outdoor_worker", "caregiver", "general",
 )
 
 
@@ -87,11 +90,11 @@ def test_risk_level_controls_how_many_actions_surface():
 @pytest.mark.parametrize("lang", LANGS)
 def test_advisory_round_trips_through_every_language(lang):
     _, risk = assessed("Guwahati", "flood")
-    result = advisory.build_advisory(risk, "fisherman", lang)
+    result = advisory.build_advisory(risk, "marine", lang)
     assert result["actions"], lang
     text = result["actions"][0]["action"]
     if lang != "en":
-        english = advisory.build_advisory(risk, "fisherman", "en")["actions"][0]["action"]
+        english = advisory.build_advisory(risk, "marine", "en")["actions"][0]["action"]
         assert text != english, f"{lang} fell back to English"
     assert result["disclaimer"]
 

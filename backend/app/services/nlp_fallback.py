@@ -99,7 +99,10 @@ PROFILE_TERMS: dict[str, tuple[str, ...]] = {
                   "घर", "गृहस्थी", "बिजली कटौती", "घरकाम", "ఇల్లు", "ఇంటి", "ঘর", "ঘৰ"),
     "traveler": ("travel", "trip", "journey", "tour", "visit", "flight", "highway", "road trip",
                  "यात्रा", "सफ़र", "प्रवास", "ప్రయాణం", "যাত্রা", "ভ্রমণ", "যাত্ৰা"),
-    # Legacy: still accepted by the API, no longer offered by the selector.
+    # Names the selector no longer offers. The terms stay, because somebody
+    # typing "laundry" or "runway" has still told us something about how they
+    # want the weather read; the registry decides which of the seven readings
+    # serves them, in one place, the same way a stored preference is resolved.
     "aviation": ("aviation", "pilot", "airport", "runway", "takeoff", "landing", "visibility for flight"),
     "urban": ("city drainage", "waterlogging", "urban", "municipal"),
 }

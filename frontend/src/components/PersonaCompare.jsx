@@ -17,10 +17,11 @@ import { severityOf } from './ui/severity'
  * Everything shown comes from /advisory/personas, which reads the same risk
  * engine as the rest of the dashboard.
  */
-// The comparison view renders whichever personas the backend returns, so the
-// icons come from the shared role table; `commuter` is still in the backend's
-// comparison set even though the selector no longer offers it.
-const ICONS = { ...ROLE_ICONS, commuter: '🚌' }
+// The comparison view renders whichever personas the backend returns. Every
+// one of them is a profile the selector offers, so the shared role table has
+// an icon for it — a column the reader cannot choose would be showing advice
+// they cannot get.
+const ICONS = ROLE_ICONS
 
 export default function PersonaCompare({ open, onClose, location }) {
   const language = useStore((s) => s.language)

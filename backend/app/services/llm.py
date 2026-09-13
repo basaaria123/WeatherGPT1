@@ -29,7 +29,7 @@ import threading
 from typing import Any
 
 from ..config import get_settings
-from ..schemas import USER_TYPES
+from ..schemas import SELECTABLE_USER_TYPES
 
 log = logging.getLogger("weathergpt.llm")
 
@@ -139,7 +139,7 @@ EXTRACTION_TOOL: dict[str, Any] = {
                 "minimum": 0,
                 "maximum": 6,
             },
-            "user_type": {"type": "string", "enum": list(USER_TYPES)},
+            "user_type": {"type": "string", "enum": list(SELECTABLE_USER_TYPES)},
             "response_mode": {"type": "string", "enum": ["normal", "simple", "emergency"]},
             "advice_question": {
                 "type": "boolean",
@@ -217,8 +217,8 @@ Call extract_weather_query exactly once. Guidance:
   (recipes, politics, code, general trivia) is out_of_scope with in_scope false."""
 
 COMPOSE_SYSTEM = """You are WeatherGPT, explaining weather to people in India: farmers,
-fishermen, travellers, drivers, outdoor workers, students, households and the people who
-care for them, in disaster-prone areas.
+fishermen, students, drivers, outdoor workers and the people who care for a household,
+in disaster-prone areas.
 
 ABSOLUTE RULE ON NUMBERS. You may only state numbers that appear in the WEATHER DATA
 block given to you. Never estimate, round beyond one decimal place, convert units, or

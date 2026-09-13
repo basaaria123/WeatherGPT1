@@ -98,7 +98,7 @@ def test_the_same_weather_reads_differently_for_different_roles():
     risk = _risk("Severe", "Heavy Rainfall", **{"Heavy Rainfall": 80, "Strong Wind": 70})
     readings = {
         role: personalization.personalize(bundle=bundle, risk=risk, role=role)
-        for role in ("farmer", "fisherman", "traveler", "driver")
+        for role in ("farmer", "marine", "student", "driver")
     }
     headlines = {
         role: tuple(card["headline"] for card in out["role_cards"])
@@ -219,7 +219,7 @@ def test_the_ai_context_forbids_filling_a_gap_with_an_invention():
 
 def test_best_time_is_absent_rather_than_empty_when_there_are_no_hours():
     bundle = _bundle(hours=0)
-    out = personalization.personalize(bundle=bundle, risk=_risk(), role="commuter")
+    out = personalization.personalize(bundle=bundle, risk=_risk(), role="driver")
     assert out["best_time"] == {}
 
 
@@ -234,25 +234,20 @@ def test_the_registry_is_the_only_list_of_roles():
         assert name not in source, f"{name} is a duplicate role table"
 
 
-# --- The twelve-role brief (§11) and the differentiation test (§12) ---------
+# --- The seven-role selector (§11) and the differentiation test (§12) -------
 
-# The roles the brief names, and the key each is served by here. "at least"
-# these twelve: the app also carries household, caregiver and commuter, which
-# predate the brief and are still offered.
+# Every reading the selector offers, and the key each is served by. A reading
+# that cannot be chosen is not tested for distinctness: the point of the test
+# below is that a reader who picks a label is shown something that label earned,
+# and a label nobody can pick makes no such promise.
 BRIEF_ROLES = {
     "General Public": "general",
     "Farmer": "farmer",
     "Marine / Fisherman": "marine",
-    "Traveller": "traveler",
-    "Driver": "driver",
-    "Commuter": "commuter",
     "Student": "student",
-    "Researcher / Climate Analyst": "researcher",
-    "Disaster Manager": "disaster_manager",
-    "Aviation Professional": "aviation",
-    "Government / Smart City": "government",
+    "Driver": "driver",
     "Outdoor Worker": "outdoor_worker",
-    "Event / Outdoor Planner": "event_planner",
+    "Caregiver / Community": "caregiver",
 }
 
 
@@ -282,7 +277,7 @@ def _severe():
 
 
 def test_one_severe_forecast_reads_differently_for_every_named_role():
-    """§12. Same rain, same wind, same warning — thirteen different readings."""
+    """§12. Same rain, same wind, same warning — seven different readings."""
     bundle, risk = _severe()
     seen: dict[tuple, str] = {}
     for name, key in BRIEF_ROLES.items():
@@ -308,31 +303,32 @@ def test_severe_weather_is_equally_severe_for_everyone():
     assert {o["risk_interpretation"] for o in outs} == {outs[0]["risk_interpretation"]}
 
 
-def test_the_aviation_reading_discloses_what_it_does_not_carry():
-    """No METAR, TAF, cloud base, icing or turbulence. Say so, as marine does."""
-    out = personalization.personalize(bundle=_bundle(), risk=_risk(), role="aviation")
+def test_the_marine_reading_discloses_what_it_does_not_carry():
+    """No wave height, swell or tide from any provider here. Say so."""
+    out = personalization.personalize(bundle=_bundle(), risk=_risk(), role="marine")
     note = out["note"]
     assert note
-    for missing in ("METAR", "TAF"):
-        assert missing in note
+    assert "wave" in note.lower()
 
 
-def test_no_new_role_invented_its_own_vocabulary():
-    """Composed readings must reuse cards, so their wording is already checked."""
+def test_a_retired_preference_still_lands_on_a_real_reading():
+    """A saved role the selector no longer offers resolves onto one it does —
+    with that reading's cards, not an empty panel and not a card of its own."""
     bundle, risk = _severe()
     known_ids = set()
-    for key in ("general", "farmer", "fisherman", "traveler", "driver",
-                "commuter", "outdoor_worker", "household", "student", "caregiver"):
+    for key in BRIEF_ROLES.values():
         out = personalization.personalize(bundle=bundle, risk=risk, role=key)
         known_ids.update(card["id"] for card in out["role_cards"])
-    for key in ("researcher", "disaster_manager", "aviation", "government", "event_planner"):
+    for key in ("fisherman", "commuter", "urban", "household", "government",
+                "disaster_manager", "traveler", "researcher", "aviation",
+                "event_planner"):
         out = personalization.personalize(bundle=bundle, risk=risk, role=key)
+        assert out["role_cards"], key
         for card in out["role_cards"]:
             assert card["id"] in known_ids, f"{key} invented card {card['id']}"
 
 
-@pytest.mark.parametrize("key", ["researcher", "disaster_manager", "aviation",
-                                 "government", "event_planner"])
+@pytest.mark.parametrize("key", sorted(set(BRIEF_ROLES.values())))
 def test_new_roles_are_translated_not_left_in_english(key):
     en = personalization.personalize(bundle=_bundle(), risk=_risk(), role=key)
     for lang in ("hi", "ta", "pa", "ml", "gu", "kn", "te", "bn", "mr", "as"):

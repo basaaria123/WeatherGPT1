@@ -34,10 +34,10 @@ def test_strict_tool_schema_is_valid(tool):
 
 
 def test_extraction_enums_match_the_app_vocabulary():
-    from app.schemas import USER_TYPES
+    from app.schemas import SELECTABLE_USER_TYPES
 
     props = llm.EXTRACTION_TOOL["input_schema"]["properties"]
-    assert set(props["user_type"]["enum"]) == set(USER_TYPES)
+    assert set(props["user_type"]["enum"]) == set(SELECTABLE_USER_TYPES)
     assert "out_of_scope" in props["intent"]["enum"]
     assert props["day_offset"]["maximum"] == 6
 

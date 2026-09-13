@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..schemas import ImpactCard, RiskOutput
-from . import i18n, risk_engine
+from . import i18n, risk_engine, roles
 
 # Presentation thresholds. These change wording only; risk itself comes from
 # the risk engine, and none of these ever creates a fact the data lacks.
@@ -40,24 +40,13 @@ HOT_FEELS_C = 36
 # reader's own sector somewhere other than first.
 PROFILE_IMPACT_CATEGORIES: dict[str, tuple[str, ...]] = {
     "farmer": ("farming", "outdoor", "travel"),
-    "fisherman": ("fishing", "outdoor", "travel"),
-    "traveler": ("travel", "outdoor", "household"),
+    "marine": ("fishing", "outdoor", "travel"),
     "driver": ("travel", "outdoor"),
     "outdoor_worker": ("outdoor", "travel", "household"),
-    "household": ("household", "outdoor", "travel"),
+    # A student's day is the journey to it and the hours spent on a campus.
     "student": ("travel", "outdoor", "household"),
     # Exposure of the people being cared for first, then the home they are in.
     "caregiver": ("outdoor", "household", "travel"),
-    "commuter": ("travel", "outdoor", "household"),
-    # Reading the weather rather than acting on it: no sector is theirs, so
-    # nothing is left out.
-    "researcher": ("farming", "fishing", "travel", "household", "outdoor"),
-    # Responsible for everyone in the area, so the same: what is left out of a
-    # responder's view is what they are not warned about.
-    "disaster_manager": ("travel", "outdoor", "household", "farming", "fishing"),
-    "aviation": ("travel", "outdoor"),
-    "government": ("travel", "household", "outdoor", "farming", "fishing"),
-    "event_planner": ("outdoor", "travel", "household"),
     # No stated role means no basis for leaving anything out.
     "general": ("farming", "fishing", "travel", "household", "outdoor"),
 }
@@ -67,50 +56,27 @@ PROFILE_IMPACT_CATEGORIES: dict[str, tuple[str, ...]] = {
 # is appended after the profile's own concerns rather than crowding them out.
 PROFILE_FACTOR_ORDER: dict[str, tuple[str, ...]] = {
     "farmer": ("rain", "heat", "wind", "visibility"),
-    "fisherman": ("wind", "rain", "visibility", "heat"),
-    "traveler": ("visibility", "rain", "heat", "wind"),
+    "marine": ("wind", "rain", "visibility", "heat"),
     # A driver is steering through it: what they can see comes first, then what
     # the road surface is doing, then what the wind does to the vehicle.
     "driver": ("visibility", "rain", "wind", "heat"),
     # Someone working outside all day feels heat before anything else.
     "outdoor_worker": ("heat", "rain", "wind", "visibility"),
-    "household": ("rain", "heat", "wind", "visibility"),
     "student": ("rain", "visibility", "wind", "heat"),
     # Caring for people who overheat and get soaked faster than you do.
     "caregiver": ("heat", "rain", "wind", "visibility"),
-    "commuter": ("rain", "visibility", "wind", "heat"),
-    # Reading the measurements, so the general order: no factor is theirs.
-    "researcher": ("rain", "wind", "heat", "visibility"),
-    # Rain and the flooding behind it is what escalates fastest into a callout.
-    "disaster_manager": ("rain", "wind", "heat", "visibility"),
-    # What can be seen, then what the wind is doing to what is in it.
-    "aviation": ("visibility", "wind", "rain", "heat"),
-    "government": ("rain", "heat", "wind", "visibility"),
-    # Whether it rains on the day decides it; wind decides the structures.
-    "event_planner": ("rain", "wind", "heat", "visibility"),
     "general": ("rain", "wind", "heat", "visibility"),
 }
 
-# How far ahead each reader is actually planning. A commuter cares about the
+# How far ahead each reader is actually planning. A student cares about the
 # next couple of hours; a farmer is planning the working day.
 PROFILE_HORIZON_HOURS: dict[str, int] = {
     "farmer": 12,
-    "fisherman": 12,
-    "traveler": 12,
+    "marine": 12,
     "driver": 8,
     "outdoor_worker": 12,
-    "household": 12,
     "student": 8,
     "caregiver": 12,
-    "commuter": 6,
-    # Looking at the whole day's record, not the next errand.
-    "researcher": 24,
-    # Planning the night ahead, not the next hour.
-    "disaster_manager": 24,
-    "aviation": 12,
-    "government": 24,
-    # An event is a day being planned, so the day is the horizon.
-    "event_planner": 24,
     "general": 12,
 }
 
@@ -142,17 +108,12 @@ def _view_profile(user_type: str | None) -> str:
     """Whose *view* this is — which cards, in which order, over what horizon.
 
     Deliberately not `i18n.canonical_profile`, which answers a narrower
-    question: whose hazard-action *line* to use. Only ten profiles have a line
-    of their own, so that function reads every other one as general — correct
-    for an action sentence, wrong for an ordering. A researcher has no action
-    line and gets the general one; they still get their own factor order.
-
-    Aliases resolve first, so a profile that is genuinely another one under a
-    different name (marine and fisherman, urban and commuter) shares its view.
+    question: whose hazard-action *line* to use, over a table still keyed on
+    the older names. This one resolves through the role registry, so a stored
+    preference that named a retired reading gets that reading's nearest
+    surviving view rather than silently becoming the general one.
     """
-    profile = (user_type or "general").strip().lower()
-    profile = i18n.PROFILE_ALIASES.get(profile, profile)
-    return profile if profile in PROFILE_FACTOR_ORDER else "general"
+    return roles.get(user_type).key
 
 
 # The topics `smart_explanation` has sentences for. A focus outside this set
@@ -542,7 +503,7 @@ def persona_guidance(
 
     # Once a hazard is named, the insight's three slots fill with rain and
     # hazard sentences and the profile's own closing line is crowded out — which
-    # left a traveller and a commuter reading the same Moderate answer. The
+    # left a student and a driver reading the same Moderate answer. The
     # profile's lead action for that hazard is the same rules-table entry the
     # advisory panel shows, so this adds no new claim, only the one sentence
     # that is actually about this reader.
@@ -695,14 +656,14 @@ def headline_insight(
     winds = [_num(h.get("wind_speed_kmh")) for h in window]
     peak_wind = max([w for w in winds if w is not None], default=wind_now)
     if peak_wind is not None and peak_wind >= STRONG_WIND_KMH:
-        # A fisherman's threshold for "difficult" is lower than a commuter's.
+        # A skipper's threshold for "difficult" is lower than a driver's.
         candidates["wind"] = (
             i18n.sentence("insight_small_boat", lang, wind=_r(peak_wind))
-            if profile == "fisherman"
+            if profile == "marine"
             else i18n.sentence("insight_wind_later", lang, wind=_r(peak_wind))
         )
         factors.append(i18n.sentence("insight_factor_wind", lang))
-    elif profile == "fisherman" and wind_now is not None and not hazard_named:
+    elif profile == "marine" and wind_now is not None and not hazard_named:
         # Only offered when nothing is flagged. "Wind is light" is perfectly
         # true under a flood warning and reads as an all-clear beside one —
         # the same rule the closing lines below already follow.
@@ -750,10 +711,15 @@ def headline_insight(
                 chosen.append(i18n.sentence("insight_window_until", lang, time=clock))
             elif onset is None:
                 chosen.append(i18n.sentence("impact_farming_clear", lang))
-        elif profile in {"traveler", "commuter", "driver", "student"}:
+        elif profile == "driver":
             if onset is None and vis_ok:
                 chosen.append(i18n.sentence("impact_travel_clear", lang))
-        elif profile in {"fisherman", "outdoor_worker", "caregiver"}:
+        elif profile == "student":
+            # The same two measurements the driver's line is gated on, said
+            # about the day a student is actually planning.
+            if onset is None and vis_ok:
+                chosen.append(i18n.sentence("ri_campus_clear", lang))
+        elif profile in {"marine", "outdoor_worker", "caregiver"}:
             if onset is None and (peak_wind is None or peak_wind < STRONG_WIND_KMH):
                 chosen.append(i18n.sentence("impact_outdoor_clear", lang))
         elif onset is None and vis_ok:
@@ -939,10 +905,11 @@ def advisory_for_every_persona(risk: RiskOutput, lang: str = "en") -> list[dict[
 
 
 # The comparison view is a demonstration, not the selector: five columns is
-# what fits side by side and still reads. "commuter" left this set when the
-# selector stopped offering it — a column labelled with a profile nobody can
-# choose would be showing advice the reader cannot get.
-PERSONAS: tuple[str, ...] = ("farmer", "marine", "traveler", "driver", "general")
+# what fits side by side and still reads. Every name here is one the selector
+# still offers — a column labelled with a profile nobody can choose would be
+# showing advice the reader cannot get, which is why "commuter" and then
+# "traveler" left this set as each stopped being selectable.
+PERSONAS: tuple[str, ...] = ("farmer", "marine", "student", "driver", "general")
 
 
 # ---------------------------------------------------------------------------

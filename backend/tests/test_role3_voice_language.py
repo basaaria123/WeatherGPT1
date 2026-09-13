@@ -129,7 +129,7 @@ def test_every_profile_receives_different_leading_advice():
     b = bundle("Mumbai", "storm")
     risk = risk_engine.assess(b)
     leads = {p: advisory.action_checklist(risk, p, "en")[0]
-             for p in ("farmer", "fisherman", "traveler", "commuter", "general")}
+             for p in ("farmer", "marine", "student", "driver", "general")}
     assert len(set(leads.values())) == 5, leads
 
 
@@ -137,7 +137,7 @@ def test_profile_advice_is_translated_too():
     b = bundle("Mumbai", "storm")
     risk = risk_engine.assess(b)
     for lang in ("hi", "te", "as"):
-        lead = advisory.action_checklist(risk, "fisherman", lang)[0]
+        lead = advisory.action_checklist(risk, "marine", lang)[0]
         assert re.search(SCRIPTS[lang], lead), f"{lang}: {lead}"
 
 
@@ -168,7 +168,7 @@ def test_explanation_only_quotes_values_the_provider_returned():
 # runs on. They are written against ``handle_chat`` rather than the helpers so
 # they cover the wiring, which is where all four bugs lived.
 # ---------------------------------------------------------------------------
-PERSONAS = ("general", "farmer", "fisherman", "traveler", "driver")
+PERSONAS = ("general", "farmer", "marine", "student", "driver")
 
 
 def _answers_by_persona(scenario: str, question: str = "What is the weather in Vijayawada today?"):
@@ -222,20 +222,20 @@ def test_safety_follow_up_keeps_the_place_and_answers_about_safety():
 
     session = "reg-context"
     first = chat_engine.handle_chat(
-        query="What is the weather in Hyderabad today?", user_type="traveler", session_id=session
+        query="What is the weather in Hyderabad today?", user_type="driver", session_id=session
     )
     assert first.location and first.location.name == "Hyderabad"
 
     second = chat_engine.handle_chat(
-        query="Is it safe to travel?", user_type="traveler", session_id=session
+        query="Is it safe to travel?", user_type="driver", session_id=session
     )
     assert second.location and second.location.name == "Hyderabad", "lost the running location"
     assert second.answer != first.answer, "the safety question got the same generic answer"
     # The travel-specific line from the rules table, not an invented one.
-    assert i18n.profile_action("traveler", second.risk.detected_hazard, "en") in second.answer
+    assert i18n.profile_action("driver", second.risk.detected_hazard, "en") in second.answer
 
     third = chat_engine.handle_chat(
-        query="What about tomorrow?", user_type="traveler", session_id=session
+        query="What about tomorrow?", user_type="driver", session_id=session
     )
     assert third.location and third.location.name == "Hyderabad"
     assert third.intent == "forecast"
@@ -254,7 +254,7 @@ def test_assamese_place_names_and_advice_questions_resolve():
 
     response = chat_engine.handle_chat(
         query="মই বাহিৰলৈ যাব পাৰোঁনে?",
-        user_type="traveler",
+        user_type="driver",
         session_id="reg-as",
         selected_location="Vijayawada",
     )

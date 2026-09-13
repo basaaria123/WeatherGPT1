@@ -12,7 +12,7 @@ from datetime import datetime, timezone
 from fastapi import APIRouter
 
 from ..config import get_settings
-from ..schemas import SUPPORTED_LANGUAGES, USER_TYPES
+from ..schemas import SELECTABLE_USER_TYPES, SUPPORTED_LANGUAGES
 from ..services import history, llm, risk_engine, speech
 from ..services.alerts import hub
 
@@ -54,7 +54,10 @@ def config() -> dict:
     settings = get_settings()
     return {
         "languages": [{"code": code, "label": label} for code, label in SUPPORTED_LANGUAGES.items()],
-        "user_types": list(USER_TYPES),
+        # The selector's list, not the accepted-input list: a client building
+        # its dropdown from this must not offer a reading that is only here so
+        # somebody's saved preference keeps working.
+        "user_types": list(SELECTABLE_USER_TYPES),
         "response_modes": ["normal", "simple", "emergency"],
         "hazards": list(risk_engine.HAZARDS),
         "risk_bands": [

@@ -33,16 +33,25 @@ function savePrefs(prefs) {
 // would leave the role dropdown showing a blank label, so it is moved to the
 // nearest profile that is still offered.
 //
-// `aviation` was here until it became a reading of its own; migrating it away
-// now would take an aviation professional to the traveller's screen and give
-// them a packing list.
+// Each entry is a choice somebody made, so it is mapped rather than dropped: a
+// stored key this build does not know would fall back to the general reading by
+// accident rather than by decision.
 const RETIRED_PROFILES = {
   commuter: 'driver',
   urban: 'driver',
-  // Not retired — renamed. The backend answers to both, and the reading is
-  // byte-for-byte the same one; this only keeps the picker from showing a
-  // blank label for a key it no longer lists.
+  // Renamed rather than retired: the backend answers to both and the reading is
+  // the same one.
   fisherman: 'marine',
+  // Dropped from the selector. Each lands on the nearest reading that is still
+  // offered, and the list matches the server's own aliases — two tables that
+  // disagreed would put a reader on one screen and their advice on another.
+  household: 'caregiver',
+  government: 'caregiver',
+  disaster_manager: 'caregiver',
+  traveler: 'general',
+  researcher: 'general',
+  aviation: 'general',
+  event_planner: 'general',
 }
 
 function migrateUserType(stored) {

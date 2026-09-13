@@ -12,19 +12,10 @@
 export const ROLES = [
   { id: 'farmer', icon: '🌾' },
   { id: 'marine', icon: '🎣' },
-  { id: 'traveler', icon: '🚗' },
-  { id: 'driver', icon: '🚚' },
-  { id: 'outdoor_worker', icon: '🏗️' },
-  { id: 'household', icon: '🏠' },
-  { id: 'student', icon: '🏫' },
-  { id: 'caregiver', icon: '🏥' },
-  // Readers who come to the weather professionally. Listed after the everyday
-  // roles because most people are not one of them, not because they get less.
-  { id: 'researcher', icon: '🔬' },
-  { id: 'disaster_manager', icon: '🚨' },
-  { id: 'aviation', icon: '✈️' },
-  { id: 'government', icon: '🏛️' },
-  { id: 'event_planner', icon: '🎪' },
+  { id: 'student', icon: '🎓' },
+  { id: 'driver', icon: '🚗' },
+  { id: 'outdoor_worker', icon: '🦺' },
+  { id: 'caregiver', icon: '👨‍👩‍👧' },
   { id: 'general', icon: '🌤️' },
 ]
 

@@ -100,13 +100,13 @@ def test_follow_up_stays_on_the_place_the_user_named(scenario):
     scenario("rain")
     session = "stability-context"
     first = chat_engine.handle_chat(
-        query="What is the weather in Chennai today?", user_type="traveler",
+        query="What is the weather in Chennai today?", user_type="driver",
         session_id=session, selected_location="Guwahati",
     )
     assert first.location.name == "Chennai"
 
     second = chat_engine.handle_chat(
-        query="Is it safe to travel?", user_type="traveler",
+        query="Is it safe to travel?", user_type="driver",
         session_id=session, selected_location="Guwahati",
     )
     assert second.location.name == "Chennai", "follow-up snapped back to the dashboard pin"
@@ -150,7 +150,7 @@ def test_explanation_never_repeats_the_answer(scenario, name):
 # ---------------------------------------------------------------------------
 # 5. The four features that were already working
 # ---------------------------------------------------------------------------
-PERSONAS = ("general", "farmer", "fisherman", "traveler", "driver")
+PERSONAS = ("general", "farmer", "marine", "student", "driver")
 
 
 def test_protected_persona_advice_still_differs(scenario):

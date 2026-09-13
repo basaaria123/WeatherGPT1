@@ -11,25 +11,28 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 UserType = Literal[
+    # The seven readings the selector offers.
     "farmer",
     "marine",
-    "traveler",
+    "student",
     "driver",
     "outdoor_worker",
-    "household",
-    "student",
     "caregiver",
     "general",
-    "researcher",
-    "disaster_manager",
-    "aviation",
-    "government",
-    "event_planner",
-    # Still accepted so stored preferences and older clients keep working;
-    # each aliases onto one of the profiles above.
+    # Still accepted so stored preferences and older clients keep working. Each
+    # resolves to one of the seven above through `services.roles.ALIASES`, which
+    # is the single place that mapping is written down; rejecting them here
+    # would turn somebody's saved choice into a 422.
     "fisherman",
     "commuter",
     "urban",
+    "household",
+    "government",
+    "disaster_manager",
+    "traveler",
+    "researcher",
+    "aviation",
+    "event_planner",
 ]
 ResponseMode = Literal["normal", "simple", "emergency"]
 RiskLevel = Literal["Low", "Moderate", "High", "Severe"]
@@ -49,19 +52,24 @@ SUPPORTED_LANGUAGES: dict[str, str] = {
     "pa": "ਪੰਜਾਬੀ",
 }
 
-# The nine profiles the product offers, then the three legacy values kept
-# valid so a stored preference never becomes an invalid request.
-# What `/config` advertises and what the extractor is allowed to return.
-# Derived from the role registry rather than listed again: the two disagreeing
-# is how a role ends up selectable but unextractable, or offered by the API and
-# absent from the app. The aliases follow, so a client sending a stored
-# `fisherman` is still sending something this list contains.
+# Two lists, because they answer two questions.
+#
+# `SELECTABLE_USER_TYPES` is what a reader can choose — what `/config`
+# advertises, so a client builds its dropdown from the same seven the app
+# itself offers rather than hardcoding them. `USER_TYPES` is what a request may
+# carry: the same seven plus every retired name still resolved by the registry,
+# so a stored preference never becomes an invalid request.
+#
+# Both are derived from the role registry rather than listed again: the two
+# disagreeing is how a role ends up selectable but unextractable, or offered by
+# the API and absent from the app.
 #
 # `app.services.roles` imports nothing from the package, so this cannot cycle.
 from .services.roles import ALIASES as _ROLE_ALIASES  # noqa: E402
 from .services.roles import keys as _role_keys  # noqa: E402
 
-USER_TYPES: tuple[str, ...] = _role_keys() + tuple(_ROLE_ALIASES)
+SELECTABLE_USER_TYPES: tuple[str, ...] = _role_keys()
+USER_TYPES: tuple[str, ...] = SELECTABLE_USER_TYPES + tuple(_ROLE_ALIASES)
 
 HAZARDS: tuple[str, ...] = (
     "Heavy Rainfall",

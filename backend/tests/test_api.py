@@ -22,7 +22,10 @@ def test_config_drives_the_ui(client):
     from app.services import i18n
 
     assert {lang["code"] for lang in body["languages"]} == set(i18n.LANGUAGES)
-    assert "farmer" in body["user_types"] and "fisherman" in body["user_types"]
+    # The selector's seven, and nothing a reader cannot choose.
+    assert set(body["user_types"]) == {
+        "general", "farmer", "marine", "driver", "outdoor_worker", "student", "caregiver",
+    }
     assert [band["level"] for band in body["risk_bands"]] == ["Low", "Moderate", "High", "Severe"]
 
 
@@ -174,7 +177,7 @@ def test_the_same_weather_reads_differently_for_each_role(client):
     """
     seen = {}
     scores = set()
-    for role in ("farmer", "fisherman", "driver", "outdoor_worker"):
+    for role in ("farmer", "marine", "driver", "outdoor_worker"):
         body = client.get(
             "/weather/current", params={"location": "Guwahati", "user_type": role}
         ).json()
