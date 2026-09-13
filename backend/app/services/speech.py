@@ -27,6 +27,7 @@ import threading
 import wave
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Any
 
 from ..config import get_settings
 
@@ -109,14 +110,34 @@ def _has(module: str) -> bool:
 
 
 def transcription_engine() -> str:
-    """Which engine would be used: 'elevenlabs' | 'faster-whisper' | 'whisper' | 'none'."""
-    if get_settings().elevenlabs_api_key:
+    """Which engine would be tried first: 'elevenlabs' | 'puter' | 'faster-whisper' | 'whisper' | 'none'."""
+    settings = get_settings()
+    if settings.elevenlabs_api_key:
         return "elevenlabs"
-    if _has("faster_whisper"):
-        return "faster-whisper"
-    if _has("whisper"):
-        return "whisper"
-    return "none"
+    if settings.puter_token:
+        return "puter"
+    return _local_engine()
+
+
+def transcription_chain() -> list[str]:
+    """Every provider that would actually be tried, in order.
+
+    The health endpoint reports this rather than just the first one, because
+    with a chain the interesting question is not "is voice configured" but
+    "which of these is answering" — and after adding a provider whose request
+    shape could not be exercised locally, that is the question to be able to
+    answer from outside the process.
+    """
+    settings = get_settings()
+    chain: list[str] = []
+    if settings.elevenlabs_api_key:
+        chain.append("elevenlabs")
+    if settings.puter_token:
+        chain.append("puter")
+    local = _local_engine()
+    if local != "none":
+        chain.append(local)
+    return chain
 
 
 def _local_engine() -> str:
@@ -242,6 +263,111 @@ def _elevenlabs_transcribe(
     )
 
 
+def puter_stt_available() -> bool:
+    """A token is configured. Not a promise that the call will succeed."""
+    return bool(get_settings().puter_token)
+
+
+def _puter_transcribe(
+    data: bytes,
+    *,
+    filename: str | None,
+    content_type: str | None,
+    language: str | None,
+) -> Transcript:
+    """Puter speech-to-text, called as a driver rather than through their SDK.
+
+    Puter ships a browser library and the usual way to reach this is
+    `puter.ai.speech2txt(file)` from the page. That path needs the visitor
+    signed in to Puter, or — the alternative that gets reached for — an account
+    token embedded in the bundle. The second is not an option here: a Puter
+    token carries full account access and no expiry, so a copy in the client is
+    a copy for every visitor who opens devtools.
+
+    So this posts to the driver endpoint directly with the token as a bearer
+    credential, from the server, where the audio already is.
+
+    UNVERIFIED, deliberately and visibly. Puter's driver names are not a
+    versioned public contract and every one of their documentation hosts is
+    unreachable from the machine this was written on, so the interface and
+    method below are the documented defaults rather than something exercised
+    against a live endpoint. They are environment variables for exactly that
+    reason: if Puter answers 4xx with an unknown-interface error, correcting
+    `PUTER_STT_INTERFACE` or `PUTER_STT_METHOD` is a restart, not a release.
+    Either way the caller falls through to the next provider, so a wrong guess
+    costs a log line rather than the reader's question.
+    """
+    import httpx
+
+    settings = get_settings()
+    args: dict[str, Any] = {
+        "file": {
+            "name": filename or "question.webm",
+            "mime": content_type or "audio/webm",
+            # Base64 rather than multipart: the driver endpoint takes one JSON
+            # body, and the audio is a few hundred kilobytes at most — the
+            # recorder caps it long before this.
+            "data": base64.b64encode(data).decode("ascii"),
+        }
+    }
+    if language:
+        args["language"] = language
+    if settings.puter_stt_model:
+        args["model"] = settings.puter_stt_model
+
+    try:
+        response = httpx.post(
+            f"{settings.puter_api_base}/drivers/call",
+            headers={
+                "Authorization": f"Bearer {settings.puter_token}",
+                "Content-Type": "application/json",
+            },
+            json={
+                "interface": settings.puter_stt_interface,
+                "method": settings.puter_stt_method,
+                "args": args,
+            },
+            timeout=settings.puter_timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:  # noqa: BLE001 - any failure falls through below
+        # The token must never reach a log line. httpx does not put headers in
+        # the exception text, but the URL and body can be long, so this stays a
+        # one-line message rather than a traceback with the request in it.
+        log.warning("Puter transcription failed: %s", type(exc).__name__)
+        raise TranscriptionError("Puter transcription failed") from exc
+
+    text = _puter_text(payload)
+    if not text:
+        raise TranscriptionError("Puter returned no transcript")
+    return Transcript(text=text, language=language or "en", confidence=None, engine="puter")
+
+
+def _puter_text(payload: Any) -> str:
+    """The transcript, wherever in the reply it turns out to live.
+
+    Driver replies are wrapped — `{"success": true, "result": …}` — and the
+    result itself is documented as a string but has been seen as an object. This
+    walks the two or three shapes it can take rather than asserting one, because
+    the alternative is a working integration that fails on a wrapper change.
+    """
+    seen = payload
+    if isinstance(seen, dict):
+        if seen.get("success") is False:
+            return ""
+        for key in ("result", "text", "transcript"):
+            if key in seen:
+                seen = seen[key]
+                break
+    if isinstance(seen, dict):
+        for key in ("text", "transcript"):
+            if isinstance(seen.get(key), str):
+                return seen[key].strip()
+        return ""
+    return seen.strip() if isinstance(seen, str) else ""
+
+
 def warm_up() -> str:
     """Load the on-device model now instead of during someone's first question.
 
@@ -279,13 +405,27 @@ def transcribe(
             return result
         except TranscriptionError as exc:
             # A hosted transcriber being down is not a reason to lose the turn
-            # when a local model is installed, so try that before giving up.
-            log.warning("ElevenLabs unavailable, trying on-device engine: %s", exc)
-            if _local_engine() == "none":
-                note_transcription_result(False)
-                raise TranscriptionError(
-                    "Speech recognition is unavailable right now. Please type your question instead."
-                ) from exc
+            # when another provider or a local model can answer.
+            log.warning("ElevenLabs unavailable, trying the next provider: %s", exc)
+
+    # Puter, when a token is configured. Second rather than first because
+    # ElevenLabs is the one whose request shape has been verified against a live
+    # endpoint; this is the free path underneath it.
+    if settings.puter_token:
+        try:
+            result = _puter_transcribe(
+                data, filename=filename, content_type=content_type, language=language
+            )
+            note_transcription_result(True)
+            return result
+        except TranscriptionError as exc:
+            log.warning("Puter unavailable, trying on-device engine: %s", exc)
+
+    if (settings.elevenlabs_api_key or settings.puter_token) and _local_engine() == "none":
+        note_transcription_result(False)
+        raise TranscriptionError(
+            "Speech recognition is unavailable right now. Please type your question instead."
+        )
 
     suffix = Path(filename or "").suffix.lower() or ".wav"
     try:
@@ -569,6 +709,11 @@ def capabilities() -> dict[str, object]:
     return {
         "transcription": transcription_available(),
         "transcription_engine": transcription_engine(),
+        # The whole ladder, not just the first rung — the same reason synthesis
+        # reports its chain. With more than one provider the useful question is
+        # which one is answering.
+        "transcription_chain": transcription_chain(),
+        "puter_configured": bool(settings.puter_token),
         "synthesis": synthesis_available(),
         # Which voice would speak next, and the whole ladder behind it, so the
         # UI can say "no voice configured" without guessing and an operator can

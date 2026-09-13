@@ -161,6 +161,36 @@ class Settings:
     elevenlabs_api_base: str = field(
         default_factory=lambda: os.getenv("ELEVENLABS_API_BASE", "https://api.elevenlabs.io").strip().rstrip("/")
     )
+    # --- Puter speech-to-text ----------------------------------------------
+    # Puter's own SDK is a browser library: `puter.ai.speech2txt` runs in the
+    # page and authenticates the visitor. This app calls it from the server
+    # instead, and the reason is the token.
+    #
+    # A Puter auth token is a *full-access account* credential with no expiry —
+    # not a scoped, revocable API key. Putting one in the bundle so that visitors
+    # do not have to sign in would hand every visitor the keys to the account it
+    # belongs to; anyone could read it out of devtools and use it for anything
+    # Puter offers. So the token lives here, server-side, and the browser never
+    # sees it: the audio already travels to us for transcription, and this is one
+    # more provider on that path rather than a new one in the client.
+    puter_token: str = field(default_factory=lambda: os.getenv("PUTER_TOKEN", "").strip())
+    puter_api_base: str = field(
+        default_factory=lambda: os.getenv("PUTER_API_BASE", "https://api.puter.com").strip().rstrip("/")
+    )
+    # The driver coordinates, configurable rather than compiled in. Puter's
+    # driver names are not part of a versioned public contract, so if they move,
+    # this is an environment change rather than a release.
+    puter_stt_interface: str = field(
+        default_factory=lambda: os.getenv("PUTER_STT_INTERFACE", "puter-speech2txt").strip()
+    )
+    puter_stt_method: str = field(
+        default_factory=lambda: os.getenv("PUTER_STT_METHOD", "transcribe").strip()
+    )
+    puter_stt_model: str = field(default_factory=lambda: os.getenv("PUTER_STT_MODEL", "").strip())
+    puter_timeout_seconds: float = field(
+        default_factory=lambda: _env_float("PUTER_TIMEOUT_SECONDS", 30.0)
+    )
+
     # --- ElevenLabs speech *out* -------------------------------------------
     # The same key drives synthesis. `eleven_multilingual_v2` is the model that
     # actually speaks the Indic languages this app offers; the English-only
