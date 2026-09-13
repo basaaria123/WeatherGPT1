@@ -155,16 +155,26 @@ def _view_profile(user_type: str | None) -> str:
     return profile if profile in PROFILE_FACTOR_ORDER else "general"
 
 
+# The topics `smart_explanation` has sentences for. A focus outside this set
+# narrows nothing, because the answer to it lives in another block entirely.
+_EXPLANATION_TOPICS = frozenset({"rain", "wind", "temperature", "humidity"})
+
+
 def smart_explanation(
     bundle: Any,
     risk: RiskOutput,
     lang: str = "en",
     *,
     mode: str = "normal",
+    focus: tuple[str, ...] | None = None,
 ) -> str:
     """Plain-language reading of current conditions (Role 3.5).
 
-    ``simple`` mode keeps only the two most important sentences.
+    ``simple`` mode keeps only the two most important sentences. ``focus`` is
+    what the question asked about — when it names topics this reading covers,
+    only those sentences are returned, so a question gets an answer rather than
+    a briefing. Empty or unrecognised focus returns the whole reading, which is
+    the right answer to "what's the weather like?".
     """
     lang = i18n.normalise_lang(lang)
     cur = bundle.current or {}
@@ -177,47 +187,72 @@ def smart_explanation(
     wind = _num(cur.get("wind_speed_kmh"))
     rain24 = sum(_num(h.get("precipitation_mm")) or 0.0 for h in bundle.hourly[:24])
 
-    parts: list[str] = []
+    # Each sentence carries the topic it answers, so a question about one thing
+    # can be answered with that thing. Untagged sentences are the opening line
+    # and the closing one — the frame, not an answer to anything.
+    parts: list[tuple[str | None, str]] = []
     if temp is not None:
-        parts.append(
+        parts.append((
+            "temperature",
             i18n.sentence(
                 "now", lang, loc=loc, temp=_r(temp, 1),
                 cond=i18n.condition_label(cur.get("weather_code"), lang),
-            )
-        )
+            ),
+        ))
 
     # Only mention "feels like" when it actually differs enough to matter.
     if feels is not None and temp is not None and abs(feels - temp) >= 1.5:
-        parts.append(i18n.sentence("feels", lang, feels=_r(feels, 1)))
+        parts.append(("temperature", i18n.sentence("feels", lang, feels=_r(feels, 1))))
 
     if prob is not None:
-        parts.append(
+        parts.append((
+            "rain",
             i18n.sentence("rain_high", lang, prob=_r(prob))
             if prob >= HIGH_RAIN_PROB
-            else i18n.sentence("rain_low", lang)
-        )
+            else i18n.sentence("rain_low", lang),
+        ))
 
     if rain24 >= 1.0:
-        parts.append(i18n.sentence("rain_24", lang, mm=_r(rain24, 1)))
+        parts.append(("rain", i18n.sentence("rain_24", lang, mm=_r(rain24, 1))))
 
     if mode != "simple":
         if hum is not None and hum >= HUMID_PCT:
-            parts.append(i18n.sentence("humid", lang, hum=_r(hum)))
+            parts.append(("humidity", i18n.sentence("humid", lang, hum=_r(hum))))
         if wind is not None:
-            parts.append(
+            parts.append((
+                "wind",
                 i18n.sentence("wind_strong", lang, wind=_r(wind))
                 if wind >= STRONG_WIND_KMH
-                else i18n.sentence("wind_calm", lang, wind=_r(wind))
-            )
+                else i18n.sentence("wind_calm", lang, wind=_r(wind)),
+            ))
         if feels is not None and feels >= HOT_FEELS_C:
-            parts.append(i18n.sentence("heat_note", lang, feels=_r(feels, 1)))
+            parts.append(("temperature", i18n.sentence("heat_note", lang, feels=_r(feels, 1))))
 
     if risk.detected_hazard == "None" and not risk_engine.is_actionable(risk):
-        parts.append(i18n.sentence("calm_tail", lang))
+        parts.append((None, i18n.sentence("calm_tail", lang)))
 
+    # A question that named something gets an answer about that something.
+    #
+    # Without this, "will it rain in the next two hours?" was answered with the
+    # temperature, the feels-like, the rain chance, the 24-hour total, the
+    # humidity, the wind and a heat note — a weather report in reply to a yes-or-
+    # no question. The reading is unchanged; what changes is how much of it the
+    # reply is allowed to be.
+    #
+    # `storm`, `flood`, `risk` and `timing` are deliberately not sentence topics:
+    # they are answered by the hazard and advisory blocks around this text, so a
+    # question about them keeps the full reading as context rather than being
+    # narrowed to nothing.
+    wanted = {f for f in (focus or ()) if f in _EXPLANATION_TOPICS}
+    if wanted:
+        kept = [(topic, line) for topic, line in parts if topic in wanted]
+        if kept:
+            parts = kept
+
+    lines = [line for _, line in parts]
     if mode == "simple":
-        parts = parts[:3]
-    return " ".join(p for p in parts if p)
+        lines = lines[:3]
+    return " ".join(p for p in lines if p)
 
 
 def action_checklist(risk: RiskOutput, user_type: str | None, lang: str = "en") -> list[str]:
@@ -537,7 +572,14 @@ def _with_persona_guidance(
     if not fresh:
         return base
     tail = " ".join(fresh)
-    return f"{tail} {base}".strip() if lead else f"{base} {tail}".strip()
+    if not lead:
+        return f"{base} {tail}".strip()
+    # The question was "should I…". The guidance is the answer and the reading
+    # is the evidence for it — one sentence of evidence, not the whole reading.
+    # Leading with advice and then reciting six observations is how an answer
+    # turns back into a briefing.
+    support = _sentences(base)
+    return f"{tail} {support[0]}".strip() if support else tail
 
 
 def templated_answer(
@@ -551,6 +593,7 @@ def templated_answer(
     day_offset: int = 1,
     alerts: list[dict[str, Any]] | None = None,
     advice_question: bool = False,
+    focus: tuple[str, ...] | None = None,
 ) -> str:
     """The full no-LLM answer. Correct, multilingual, and impossible to
     hallucinate with, because every number is substituted from real data."""
@@ -560,15 +603,28 @@ def templated_answer(
     if risk_engine.is_actionable(risk):
         # The emergency brief is already written for the persona.
         return emergency_brief(bundle, risk, user_type, lang)
-    if intent == "forecast":
+    focused = tuple(focus or ())
+    if intent == "forecast" and not (focused and day_offset == 0):
         base = forecast_answer(bundle, lang, day_offset=day_offset)
     elif intent == "alert_check":
         base = alerts_answer(bundle, alerts or [], lang)
     else:
-        base = smart_explanation(bundle, risk, lang, mode=mode)
+        # A focused question about today is a question about now, not a request
+        # for the day's summary: "will it rain in the next two hours" reads as a
+        # forecast question and was answered with the whole day, high and low
+        # temperature included.
+        base = smart_explanation(bundle, risk, lang, mode=mode, focus=focused)
+
     # Below the emergency threshold the observation is the same for everyone;
     # what changes with the profile is which part of it matters. Without this
     # the selected role reached the advisory panel but never the answer itself.
+    #
+    # But a reader who asked one narrow question did not ask for it. Two extra
+    # sentences of role framing on "how windy is it?" is the briefing this whole
+    # change exists to stop — so the guidance is attached when the question was
+    # broad, or when it was itself an advice question, and not otherwise.
+    if focused and not advice_question:
+        return base
     return _with_persona_guidance(base, bundle, risk, user_type, lang, lead=advice_question)
 
 

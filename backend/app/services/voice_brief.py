@@ -43,7 +43,17 @@ log = logging.getLogger("weathergpt.voice_brief")
 # spoken list is the thing people stop listening to. So the voice gives the
 # one that matters and leaves the rest on the card, which is where a list
 # belongs.
-ACTIONS_SPOKEN = {"Low": 1, "Moderate": 1, "High": 1, "Severe": 1}
+# How many of the advisory's steps are read aloud.
+#
+# This was 1 at every level, which meant a listener who pressed play on a panel
+# showing five numbered instructions heard the first one and nothing else — and
+# had no way to know there were four more. A spoken brief being short is a good
+# instinct; silently dropping four fifths of a safety instruction is not.
+#
+# So the button now reads what the panel shows. The cap survives only as a
+# guard against a pathological advisory, well above anything the rules table
+# produces.
+ACTIONS_SPOKEN = {"Low": 8, "Moderate": 8, "High": 8, "Severe": 8}
 
 URGENT_LEVELS = ("High", "Severe")
 
@@ -124,7 +134,19 @@ def compose_parts(
     if window and level != "Severe":
         framing.append(i18n.sentence("vb_window", lang, time=window))
 
-    steps = list(actions[: ACTIONS_SPOKEN.get(level, 2)])
+    # Each step, then the reason that step exists. On screen the reason sits
+    # under the instruction in smaller type; aloud there is no smaller type, so
+    # it follows as its own sentence. Both come from the rules table verbatim —
+    # see `polish` for why neither is ever handed to a model.
+    steps: list[str] = []
+    for entry in (advisory.get("actions") or [])[: ACTIONS_SPOKEN.get(level, 8)]:
+        line = (entry.get("action") or "").strip()
+        if not line:
+            continue
+        steps.append(line)
+        reason = (entry.get("reason") or "").strip()
+        if reason:
+            steps.append(reason)
 
     # An official warning is the one fact that outranks our own reading, so it
     # is spoken even though the advisory above did not come from it.
@@ -141,6 +163,12 @@ def compose_parts(
                 noun="alert" if alert_count == 1 else "alerts",
             )
         )
+
+    # The panel closes on one sentence explaining the reading behind all of it.
+    # It is the last thing on screen and it is the last thing heard.
+    tail = (advisory.get("reason") or "").strip()
+    if tail:
+        steps.append(tail)
 
     end = i18n.terminator(lang)
     join = lambda lines: " ".join(x.rstrip(" .।") + end for x in lines if x).strip()  # noqa: E731
@@ -254,9 +282,34 @@ def conditions_brief(*, location: str, current: dict[str, Any], hours: list[dict
     # The near-term change, from the same forecast hours the timeline draws.
     # Only when it is actually ahead of the listener: rain that started an hour
     # ago is not news, and the first line already said it is raining.
+    # Feels-like and humidity in one already-translated sentence, then wind,
+    # then the chance of rain. This is the card's own reading, in the order a
+    # person would say it — not every field on it: cloud cover and pressure are
+    # numbers a listener cannot hold and would not act on, and they stay on
+    # screen where they can be looked at.
+    feels, humidity = current.get("apparent_temperature_c"), current.get("humidity_pct")
+    if feels is not None and humidity is not None:
+        parts.append(i18n.sentence(
+            "ri_comfort_detail", lang,
+            feels=int(round(float(feels))), hum=int(round(float(humidity))),
+        ))
+    elif feels is not None:
+        parts.append(i18n.sentence("feels", lang, feels=int(round(float(feels)))))
+
+    wind = current.get("wind_speed_kmh")
+    if wind is not None:
+        parts.append(i18n.sentence("vb_wind_now", lang, wind=int(round(float(wind)))))
+
+    # The chance of rain, from the reading if the provider sent one and from the
+    # forecast otherwise. Never both — two probabilities in one breath is a
+    # sentence a listener has to unpick.
     onset = _rain_onset(hours or [])
     if onset:
         parts.append(i18n.sentence("insight_rain_from", lang, time=onset[0], prob=onset[1]))
+    else:
+        prob = current.get("precipitation_probability_pct")
+        if prob is not None:
+            parts.append(i18n.sentence("vb_rain_chance", lang, prob=int(round(float(prob)))))
 
     end = i18n.terminator(lang)
     return " ".join(part.rstrip(" .।") + end for part in parts if part).strip()
@@ -287,13 +340,14 @@ def impact_brief(*, impacts: list[Any], lang: str = "en") -> str:
     lang = i18n.normalise_lang(lang)
     if not impacts:
         return ""
-    mine = impacts[0]
-    category = getattr(mine, "category", None) or mine.get("category", "")
-    headline = getattr(mine, "headline", None) or mine.get("headline", "")
-    detail = getattr(mine, "detail", None) or mine.get("detail", "")
-    if not detail:
-        return ""
 
     end = i18n.terminator(lang)
-    verdict = f"{category} — {headline}".strip(" —") if category or headline else ""
-    return " ".join(part.rstrip(" .।") + end for part in (verdict, detail) if part).strip()
+    parts: list[str] = []
+    for card in impacts:
+        get = (lambda k: getattr(card, k, None) or (card.get(k, "") if isinstance(card, dict) else ""))
+        category, headline, detail = get("category"), get("headline"), get("detail")
+        verdict = f"{category} — {headline}".strip(" —") if category or headline else ""
+        for piece in (verdict, detail):
+            if piece:
+                parts.append(piece.rstrip(" .।") + end)
+    return " ".join(parts).strip()

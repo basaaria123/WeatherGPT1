@@ -90,6 +90,8 @@ PACK: dict[str, Any] = {
         "vb_lead_clear": "{loc} ਵਿੱਚ ਹਾਲਾਤ ਇਸ ਵੇਲੇ ਆਮ ਹਨ।",
         "vb_lead_high": "{loc} ਵਿੱਚ {hazard}। ਖ਼ਤਰਾ {level} ਹੈ। ਹੁਣੇ ਕਦਮ ਚੁੱਕੋ।",
         "vb_lead_severe": "{loc} ਵਿੱਚ {hazard}। ਇਹ ਹੁਣੇ ਕਰੋ।",
+        "vb_wind_now": 'ਹਵਾ ਪ੍ਰਤੀ ਘੰਟਾ ਲਗਭਗ {wind} ਕਿਲੋਮੀਟਰ ਹੈ।',
+        "vb_rain_chance": 'ਮੀਂਹ ਦੀ ਸੰਭਾਵਨਾ ਲਗਭਗ {prob} ਫ਼ੀਸਦੀ ਹੈ।',
         "vb_window": "ਲਗਭਗ {time} ਵਜੇ ਦੀ ਸੰਭਾਵਨਾ।",
         "advisory_generic": "ਜਿੱਥੋਂ ਤੱਕ ਹੋ ਸਕੇ ਘਰ ਅੰਦਰ ਰਹੋ, ਫ਼ੋਨ ਚਾਰਜ ਰੱਖੋ ਅਤੇ ਸਥਾਨਕ ਹਦਾਇਤਾਂ ਮੰਨੋ।",
         "insight_rain_from": "ਲਗਭਗ {time} ਤੋਂ ਮੀਂਹ ਦੀ ਸੰਭਾਵਨਾ ਵਧਦੀ ਹੈ, ਕਰੀਬ {prob}%।",

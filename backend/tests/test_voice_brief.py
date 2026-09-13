@@ -99,17 +99,44 @@ def test_severity_changes_the_register_not_only_the_words():
 
 
 @pytest.mark.parametrize("level", ["Low", "Moderate", "High", "Severe"])
-def test_the_voice_gives_one_action_however_bad_it_gets(level):
-    """The screen ranks three to five; the voice speaks the one that matters.
+def test_the_voice_reads_every_step_the_panel_shows(level):
+    """Listen must read what is on screen, all of it.
 
-    A reader can scan a list. A listener cannot — by the fourth item the first
-    is gone — so a spoken list is the thing people stop listening to. The extra
-    steps stay on the card, which is where a list belongs.
+    This used to assert the opposite — that only the first action was spoken,
+    on the reasoning that a listener cannot hold a list. The reasoning was
+    wrong in the one way that matters: a reader who presses play on a panel
+    showing five numbered instructions hears one, and has no way to learn that
+    four more exist. Brevity that silently discards four fifths of a safety
+    instruction is not brevity, it is a missing feature.
     """
     spoken = voice_brief.compose(location="Puri", risk=risk(level), advisory=ADVISORY)
-    assert ADVISORY["actions"][0]["action"].rstrip(".") in spoken
-    for extra in ADVISORY["actions"][1:]:
-        assert extra["action"].rstrip(".") not in spoken, (level, spoken)
+    for step in ADVISORY["actions"]:
+        assert step["action"].rstrip(".") in spoken, (level, step["action"], spoken)
+
+
+def test_the_voice_reads_the_reason_under_each_step():
+    """On screen the reason sits in smaller type. Aloud there is no smaller type."""
+    advisory = {
+        "actions": [
+            {"action": "Return to harbour now.", "reason": "Open water offers no shelter from lightning."},
+            {"action": "Secure loose gear.", "reason": "Gusts are forecast to strengthen."},
+        ],
+        "reason": "Because the storm score has passed the severe threshold.",
+    }
+    spoken = voice_brief.compose(location="Puri", risk=risk("Severe"), advisory=advisory)
+    for step in advisory["actions"]:
+        assert step["action"].rstrip(".") in spoken, spoken
+        assert step["reason"].rstrip(".") in spoken, spoken
+    # And the sentence the panel closes on.
+    assert advisory["reason"].rstrip(".") in spoken, spoken
+
+
+def test_a_step_without_a_reason_does_not_invent_one():
+    advisory = {"actions": [{"action": "Stay indoors.", "priority": 1}]}
+    spoken = voice_brief.compose(location="Puri", risk=risk("High"), advisory=advisory)
+    assert "Stay indoors" in spoken
+    # Nothing after it but the terminator — no filler where a reason would be.
+    assert spoken.rstrip().endswith("Stay indoors.")
 
 
 def test_a_window_is_only_claimed_when_the_forecast_shows_one():

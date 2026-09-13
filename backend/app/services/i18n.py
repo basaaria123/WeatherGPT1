@@ -127,6 +127,8 @@ SENTENCES: dict[str, dict[str, str]] = {
         "vb_lead_clear": "Conditions in {loc} are normal right now.",
         "vb_lead_high": "{hazard} in {loc}. Risk is {level}. Act on this now.",
         "vb_lead_severe": "{hazard} in {loc}. Do this now.",
+        "vb_wind_now": 'Wind is about {wind} kilometres per hour.',
+        "vb_rain_chance": 'The chance of rain is about {prob} percent.',
         "vb_window": "Expected around {time}.",
     },
     "hi": {
@@ -157,6 +159,8 @@ SENTENCES: dict[str, dict[str, str]] = {
         "vb_lead_clear": "{loc} में स्थिति अभी सामान्य है।",
         "vb_lead_high": "{loc} में {hazard}। ख़तरा {level} है। अभी क़दम उठाइए।",
         "vb_lead_severe": "{loc} में {hazard}। यह अभी कीजिए।",
+        "vb_wind_now": 'हवा लगभग {wind} किलोमीटर प्रति घंटा है।',
+        "vb_rain_chance": 'बारिश की संभावना लगभग {prob} प्रतिशत है।',
         "vb_window": "लगभग {time} बजे का अनुमान है।",
     },
     "te": {
@@ -187,6 +191,8 @@ SENTENCES: dict[str, dict[str, str]] = {
         "vb_lead_clear": "{loc}లో పరిస్థితి ప్రస్తుతం సాధారణంగా ఉంది.",
         "vb_lead_high": "{loc}లో {hazard}. ముప్పు {level}. ఇప్పుడే చర్య తీసుకోండి.",
         "vb_lead_severe": "{loc}లో {hazard}. ఇది ఇప్పుడే చేయండి.",
+        "vb_wind_now": 'గాలి గంటకు సుమారు {wind} కిలోమీటర్ల వేగంతో ఉంది.',
+        "vb_rain_chance": 'వర్షం పడే అవకాశం సుమారు {prob} శాతం.',
         "vb_window": "సుమారు {time} గంటలకు అంచనా.",
     },
     "bn": {
@@ -217,6 +223,8 @@ SENTENCES: dict[str, dict[str, str]] = {
         "vb_lead_clear": "{loc}-এ পরিস্থিতি এখন স্বাভাবিক।",
         "vb_lead_high": "{loc}-এ {hazard}। ঝুঁকি {level}। এখনই ব্যবস্থা নিন।",
         "vb_lead_severe": "{loc}-এ {hazard}। এটি এখনই করুন।",
+        "vb_wind_now": 'বাতাস ঘণ্টায় প্রায় {wind} কিলোমিটার।',
+        "vb_rain_chance": 'বৃষ্টির সম্ভাবনা প্রায় {prob} শতাংশ।',
         "vb_window": "আনুমানিক {time}-এ।",
     },
     "mr": {
@@ -247,6 +255,8 @@ SENTENCES: dict[str, dict[str, str]] = {
         "vb_lead_clear": "{loc} मध्ये परिस्थिती सध्या सामान्य आहे.",
         "vb_lead_high": "{loc} मध्ये {hazard}. धोका {level} आहे. आत्ताच पावले उचला.",
         "vb_lead_severe": "{loc} मध्ये {hazard}. हे आत्ताच करा.",
+        "vb_wind_now": 'वारा ताशी सुमारे {wind} किलोमीटर आहे.',
+        "vb_rain_chance": 'पावसाची शक्यता सुमारे {prob} टक्के आहे.',
         "vb_window": "अंदाजे {time} वाजता अपेक्षित.",
     },
     "as": {
@@ -277,6 +287,8 @@ SENTENCES: dict[str, dict[str, str]] = {
         "vb_lead_clear": "{loc}ত পৰিস্থিতি এতিয়া স্বাভাৱিক।",
         "vb_lead_high": "{loc}ত {hazard}। বিপদ {level}। এতিয়াই ব্যৱস্থা লওক।",
         "vb_lead_severe": "{loc}ত {hazard}। এইটো এতিয়াই কৰক।",
+        "vb_wind_now": 'বতাহ ঘণ্টাত প্ৰায় {wind} কিলোমিটাৰ।',
+        "vb_rain_chance": 'বৰষুণৰ সম্ভাৱনা প্ৰায় {prob} শতাংশ।',
         "vb_window": "প্ৰায় {time} বজাত।",
     },
 }

@@ -306,6 +306,62 @@ def extract(query: str, *, language: str = "en", known_location: str | None = No
     }
 
 
+# What the question is *about*, as distinct from what kind of question it is.
+#
+# `detect_intent` answers "is this a forecast question or an alert question".
+# This answers the narrower one that decides how much of the reading belongs in
+# the reply: someone who asked whether it will rain wants the rain sentence, not
+# the humidity, the wind and the heat note as well.
+#
+# Order within each tuple does not matter; order of the dict does — it is the
+# order the answer states things in when a question touches more than one.
+FOCUS_TERMS: dict[str, tuple[str, ...]] = {
+    "rain": (
+        "rain", "raining", "rainfall", "shower", "showers", "drizzle", "precipitation",
+        "umbrella", "wet", "downpour", "monsoon",
+        "बारिश", "वर्षा", "बरसात", "छाता", "पाऊस", "వర్షం", "వాన", "గొడుగు",
+        "বৃষ্টি", "ছাতা", "বৰষুণ",
+    ),
+    "wind": (
+        "wind", "windy", "gust", "gusts", "gusty", "breeze", "squall",
+        "हवा", "आंधी", "वारा", "గాలి", "বাতাস", "বতাহ",
+    ),
+    "temperature": (
+        "temperature", "temp", "hot", "cold", "warm", "cool", "degrees", "heat",
+        "heatwave", "feels like",
+        "तापमान", "गर्मी", "ठंड", "उकाडा", "थंडी", "ఉష్ణోగ్రత", "వేడి", "చలి",
+        "তাপমাত্রা", "গরম", "ঠান্ডা", "উষ্ণতা", "ঠাণ্ডা",
+    ),
+    "visibility": (
+        "visibility", "fog", "foggy", "mist", "haze", "see", "clear the road",
+        "कोहरा", "धुके", "పొగమంచు", "కనిపించ", "কুয়াশা", "কুঁৱলী",
+    ),
+    "humidity": ("humidity", "humid", "muggy", "नमी", "आर्द्र", "తేమ", "আর্দ্রতা"),
+    "pressure": ("pressure", "barometer", "millibar", "hpa", "दाब", "పీడనం", "চাপ"),
+    "storm": (
+        "storm", "thunder", "thunderstorm", "lightning", "cyclone", "squall",
+        "तूफ़ान", "तूफान", "बिजली", "वादळ", "తుఫాను", "పిడుగు", "ঝড়", "বজ্র", "ধুমুহা",
+    ),
+    "flood": ("flood", "waterlog", "waterlogging", "inundat", "बाढ़", "पूर", "వరద", "বন্যা", "বানপানী"),
+    "risk": ("risk", "danger", "dangerous", "severity", "how bad", "score", "जोखिम", "ख़तरा", "धोका", "ప్రమాదం", "ঝুঁকি"),
+    "timing": (
+        "when", "what time", "how long", "until", "by when", "start", "stop", "ease",
+        "कब", "कितनी देर", "केव्हा", "ఎప్పుడు", "কখন", "কেতিয়া",
+    ),
+}
+
+
+def detect_focus(text: str) -> tuple[str, ...]:
+    """Which parts of the reading this question is actually asking about.
+
+    Empty when the question names nothing in particular — "how's the weather?"
+    — and that emptiness is meaningful: it is the one case where the whole
+    reading *is* the answer.
+    """
+    lowered = (text or "").lower()
+    return tuple(name for name, terms in FOCUS_TERMS.items() if _contains(lowered, terms))
+
+
 def is_advice_question(query: str) -> bool:
     """Is this asking what to do, rather than what the weather is?
 

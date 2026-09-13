@@ -1324,3 +1324,4 @@ ROLE_SENTENCES_MARINE: dict[str, dict[str, str]] = {
 
 for _lang, _extra in ROLE_SENTENCES_MARINE.items():
     ROLE_SENTENCES.setdefault(_lang, {}).update(_extra)
+

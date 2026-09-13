@@ -449,6 +449,10 @@ def handle_chat(
             mode=mode,
             day_offset=day_offset,
             advice_question=extraction["advice_question"],
+            # What the reader actually asked about. Derived from their own words
+            # rather than from the intent, which is too coarse to tell "will it
+            # rain?" from "what's the weather?".
+            focus=nlp_fallback.detect_focus(text),
         )
         # "Why this answer?" has to add something. On a calm or moderate day the
         # answer already *is* the plain reading of the data, so the templated
