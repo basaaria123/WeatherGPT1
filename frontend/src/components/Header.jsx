@@ -23,7 +23,7 @@ export default function Header({ onHome, onBack, onOpenLocation, onRefresh, refr
 
   return (
     <header className="sticky top-0 z-30 border-b border-[var(--wx-border)] bg-[var(--wx-surface)]">
-      <div className="mx-auto w-full max-w-7xl px-4 py-2.5 sm:px-6">
+      <div className="mx-auto w-full max-w-[var(--app-width)] px-3 py-2.5 sm:px-4">
         <div className="flex items-center justify-between gap-3">
           {/* On a sub-page the way back rides in the header, where it stays
               reachable however far down the page the reader has scrolled. A

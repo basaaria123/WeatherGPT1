@@ -104,7 +104,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
     return (
       <div
         role="status"
-        className="sticky top-[3.25rem] z-20 mb-2 flex items-center gap-2 rounded-xl border px-3 py-1.5"
+        className="mb-2 flex items-center gap-2 rounded-xl border px-3 py-1.5"
         style={{ borderColor: tone.ring, background: tone.tint }}
       >
         <span aria-hidden="true" style={{ color: tone.color }}>{tone.icon}</span>
@@ -132,13 +132,12 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
         animate={{ opacity: 1, y: 0 }}
         exit={{ opacity: 0 }}
         transition={{ duration: reduced ? 0.15 : 0.4, ease: [0.22, 1, 0.36, 1] }}
-        /* Pinned only where there is room to pin it. A severe banner runs to
-           about 630px, which on a 844px phone leaves a fifth of the screen for
-           everything it is warning you to act on — the advice below it scrolled
-           underneath a translucent panel and became unreadable. It is the first
-           thing on the page either way, so on a narrow screen it simply scrolls
-           like everything else. */
-        className="top-[3.25rem] z-20 mb-3 overflow-hidden rounded-2xl border-2 sm:sticky"
+        /* Not pinned, at any width. It was `sm:sticky` on the reasoning that the
+           most important thing on the page should stay in view — but a card that
+           detaches and rides over the content below it reads as a popup, and the
+           content it covers is the advice it is telling you to act on. It is the
+           first thing on the page; being first is enough. */
+        className="mb-3 overflow-hidden rounded-[var(--radius-card)] border-2"
         style={{ borderColor: tone.color, background: tone.tint }}
       >
         <div className="p-4 sm:p-5">

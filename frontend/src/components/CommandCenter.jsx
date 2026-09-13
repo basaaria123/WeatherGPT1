@@ -126,7 +126,12 @@ export default function CommandCenter({ data, loading, error, onRetry, night = f
         {risk && <SeverityPill level={risk.risk_level} score={`${risk.risk_score}/100`} />}
       </div>
 
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-4">
+      {/* Icon and reading on one line, always.
+          This wrapped at phone width, which put a 76px glyph on its own row
+          above a 54px temperature and pushed the metrics — the part a reader
+          came for — below the fold. `flex-nowrap` with a shrinking text column
+          keeps the whole reading in the first screen. */}
+      <div className="flex min-w-0 flex-nowrap items-center gap-x-4">
         {/* Tapping the icon replays the current condition. It is a button so it
             is reachable by keyboard too, and the glyph itself is unchanged. */}
         <button
@@ -147,16 +152,16 @@ export default function CommandCenter({ data, loading, error, onRetry, night = f
               transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
               className="block"
             >
-              <WeatherGlyph code={current.weather_code} isDay={!night} size={76} />
+              <WeatherGlyph code={current.weather_code} isDay={!night} size={56} />
             </motion.span>
           </AnimatePresence>
         </button>
 
         <div className="min-w-0">
           {current.temperature_c !== null && current.temperature_c !== undefined && (
-            <div className="flex items-start gap-1 text-[3.4rem] font-semibold leading-none tracking-tight sm:text-6xl">
+            <div className="flex items-start gap-1 text-[2.6rem] font-semibold leading-none tracking-tight">
               <AnimatedNumber value={current.temperature_c} decimals={0} />
-              <span className="mt-1.5 text-2xl text-muted">°C</span>
+              <span className="mt-1 text-lg text-muted">°C</span>
             </div>
           )}
           {current.condition && (
@@ -182,11 +187,12 @@ export default function CommandCenter({ data, loading, error, onRetry, night = f
         {risk && <RiskExplainer risk={risk} language={language} />}
       </div>
 
-      {/* A detected hazard and an issued warning are different claims, so they
-          are shown as two separate statements rather than one badge. */}
-      {risk && <HazardVsAlerts risk={risk} officialCount={officialCount} language={language} />}
-
-      <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-3.5 border-t border-[rgb(var(--wx-tint)/0.07)] pt-4 sm:grid-cols-3 lg:grid-cols-4">
+      {/* The numbers come before the explanation of them.
+          The hazard breakdown and the warning status used to sit between the
+          temperature and the metrics, so humidity and wind — the five readings
+          the card exists to show — started a full screen down. They are still
+          here, below, where a reader who wants the reasoning will find them. */}
+      <div className="mt-4 grid grid-cols-2 gap-x-4 gap-y-3 border-t border-[var(--wx-border)] pt-3.5 min-[380px]:grid-cols-3">
         <Metric
           label={t(language, 'feelsLike')}
           value={current.apparent_temperature_c?.toFixed?.(0)}
@@ -206,10 +212,15 @@ export default function CommandCenter({ data, loading, error, onRetry, night = f
         <Metric label={t(language, 'visibility')} value={current.visibility_km?.toFixed?.(1)} unit="km" />
       </div>
 
+      {/* A detected hazard and an issued warning are different claims, so they
+          are shown as two separate statements rather than one badge. Below the
+          reading, because they explain it rather than being it. */}
+      {risk && <HazardVsAlerts risk={risk} officialCount={officialCount} language={language} />}
+
       {/* Wind has a direction as well as a speed, and the grid above can only
           show the speed. The dial reads the same payload — no second request,
           no second interpretation. */}
-      <div className="mt-4 border-t border-[rgb(var(--wx-tint)/0.07)] pt-4">
+      <div className="mt-4 border-t border-[var(--wx-border)] pt-4">
         <WeatherCompass current={current} language={language} userType={userType} />
       </div>
     </motion.section>

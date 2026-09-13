@@ -29,6 +29,16 @@ function rampOf(stops) {
   }
 }
 
+/**
+ * A layer's colour, both ways round.
+ *
+ * `ramp` steps — right for a marker, which is one reading and should be one
+ * colour. `stops` are the same values as data, so the interpolated surface can
+ * mix between them: a banded surface reads as a map of regions that do not
+ * exist, and weather has no edges.
+ */
+const rampAndStops = (stops) => ({ ramp: rampOf(stops), stops })
+
 export const LAYERS = {
   rain: {
     id: 'rain',
@@ -42,7 +52,7 @@ export const LAYERS = {
     unit: '%',
     decimals: 0,
     legendKeys: ['legendLow', 'legendModerate', 'legendHigh'],
-    ramp: rampOf([
+    ...rampAndStops([
       { at: 0, color: SAFE },
       { at: 30, color: CAUTION },
       { at: 60, color: WARN },
@@ -63,7 +73,7 @@ export const LAYERS = {
     unit: ' km/h',
     decimals: 0,
     legendKeys: ['legendLower', 'legendHigher'],
-    ramp: rampOf([
+    ...rampAndStops([
       { at: 0, color: CALM },
       { at: 20, color: CAUTION },
       { at: 35, color: WARN },
@@ -85,7 +95,7 @@ export const LAYERS = {
     unit: '°',
     decimals: 0,
     legendKeys: ['legendCool', 'legendModerate', 'legendHot'],
-    ramp: rampOf([
+    ...rampAndStops([
       { at: -20, color: COOL },
       { at: 22, color: CALM },
       { at: 30, color: CAUTION },
@@ -106,7 +116,7 @@ export const LAYERS = {
     unit: '%',
     decimals: 0,
     legendKeys: ['legendClear', 'legendOvercast'],
-    ramp: rampOf([
+    ...rampAndStops([
       { at: 0, color: CALM },
       { at: 40, color: 'var(--color-muted)' },
       { at: 75, color: 'var(--color-ink-soft)' },

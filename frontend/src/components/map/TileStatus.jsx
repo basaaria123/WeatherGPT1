@@ -37,7 +37,9 @@ export default function TileStatus({ url, attribution }) {
       {failures >= FAILURES_BEFORE_SAYING_SO && (
         <div
           role="status"
-          className="pointer-events-auto absolute inset-x-3 top-3 z-[600] flex items-center justify-between gap-3
+          /* Clear of Leaflet's zoom control, which owns the top-left corner. */
+          className="pointer-events-auto absolute right-3 top-3 z-[600] flex max-w-[calc(100%-4.5rem)]
+                     items-center justify-between gap-3
                      rounded-[var(--radius-card)] border border-[var(--wx-border)] bg-[var(--wx-surface)]
                      px-3 py-2 shadow-[var(--shadow-lift)]"
         >

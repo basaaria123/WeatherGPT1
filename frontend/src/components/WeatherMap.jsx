@@ -6,6 +6,7 @@ import { levelLabel, t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { EmptyState, Panel, Skeleton } from './ui/Primitives'
 import TileStatus from './map/TileStatus'
+import WeatherField from './map/WeatherField'
 import { LAYERS, LAYER_ORDER, stepsAvailable, valueAt } from './map/mapLayers'
 
 /**
@@ -197,6 +198,11 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
             aria-label={t(language, 'weatherMap')}
           >
             <TileStatus url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+
+            {/* The layer as a surface, under the markers. Interpolated from the
+                same measured values they show, and transparent wherever no
+                reading is near enough to speak for the ground. */}
+            <WeatherField entries={entries} layer={layer} step={step} valueAt={valueAt} />
             <Recenter center={center} zoom={zoom} token={recenterToken} />
             {entries.map((entry) => (
               <LayerMarker

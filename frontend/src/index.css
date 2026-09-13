@@ -14,11 +14,11 @@
      weatherTheme.js overwrites all of them per condition and per appearance. */
 
   /* Surfaces */
-  --color-bg: #f5faff;
+  --color-bg: #f4f8fc;
   --color-bg-deep: #eaf4ff;
   --color-bg-raised: #ffffff;
   --color-surface: #ffffff;
-  --color-border: #d7e5f2;
+  --color-border: #d7e2ec;
   --color-border-soft: #e6f0fa;
 
   /* Brand */
@@ -28,24 +28,29 @@
   --color-accent: #00897b;
 
   /* Text */
-  --color-ink: #17324d;
-  --color-ink-soft: #2c4a66;
-  --color-muted: #607d94;
-  --color-faint: #8ca3b8;
+  --color-ink: #263238;
+  --color-ink-soft: #37474f;
+  --color-muted: #607d8b;
+  --color-faint: #90a4ae;
 
   /* Severity — never used alone; always paired with an icon and a label.
      `caution` is the fill value and `caution-ink` the text one; see the note in
      weatherTheme.js for why the amber needs two. */
-  --color-safe: #2e9d68;
+  --color-safe: #2e7d32;
   --color-caution: #f9a825;
   --color-caution-ink: #8a5a00;
-  --color-warning: #e8710a;
-  --color-danger: #e53935;
+  --color-warning: #ef6c00;
+  --color-danger: #d84315;
 
   /* Shape. Cards are rectangles with a small radius rather than the 20px
      pills they were: this reads as an instrument, not a consumer app. */
   --radius-card: 0.75rem;
   --radius-pill: 999px;
+
+  /* The application column. This is a phone interface; on a laptop it is the
+     same interface, centred, rather than the same content stretched across
+     1920px until a card is a metre wide. 40rem is a generous phone. */
+  --app-width: 40rem;
 
   /* Elevation is a hairline and a whisper of shadow. On a white ground a heavy
      shadow reads as a smudge, and stacking several reads as clutter. */
@@ -67,22 +72,22 @@
      conditions resolve; these defaults keep the first paint correct. */
   :root {
     color-scheme: light;
-    --wx-bg: #f5faff;
+    --wx-bg: #f4f8fc;
     --wx-bg-deep: #eaf4ff;
     --wx-raised: #ffffff;
     --wx-surface: #ffffff;
     --wx-primary: #1565c0;
     --wx-accent: #00897b;
-    --wx-border: #d7e5f2;
+    --wx-border: #d7e2ec;
     --wx-atmos-a: rgb(25 118 210 / 0.07);
     --wx-atmos-b: rgb(0 137 123 / 0.05);
     --wx-pattern: none;
     /* Surfaces are tinted with this: deep blue over a light theme, white over a
        dark one. Every panel, chip and hairline resolves through it, so one
        value flips the whole interface between light and dark. */
-    --wx-tint: 23 50 77;
+    --wx-tint: 38 50 56;
     --wx-scrim: 234 244 255;
-    --wx-overlay: rgb(23 50 77 / 0.40);
+    --wx-overlay: rgb(38 50 56 / 0.40);
     --wx-vignette: radial-gradient(118% 80% at 50% 0%, transparent 42%, rgb(215 229 242 / 0.34) 82%, rgb(202 221 240 / 0.46) 100%);
   }
 

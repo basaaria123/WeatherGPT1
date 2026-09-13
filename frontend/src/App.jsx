@@ -12,6 +12,7 @@ import { THEMES, applyTheme, approachingScene, resolveTheme, sceneForCondition }
 import AdvisoryCard from './components/AdvisoryCard'
 import AlertIndicator from './components/AlertIndicator'
 import AlertsCenter from './components/AlertsCenter'
+import BestTime from './components/BestTime'
 import BottomNav from './components/BottomNav'
 import EmergencyBanner from './components/EmergencyBanner'
 import HistoricalContext from './components/HistoricalContext'
@@ -44,6 +45,10 @@ import WeatherIntro from './components/WeatherIntro'
 
 let messageId = 0
 const nextId = () => { messageId += 1; return messageId }
+
+// How often the application asks for a fresh reading. One interval, one fetch,
+// every screen reading from the result — see the effect that uses it.
+const WEATHER_REFRESH_MS = 60_000
 
 export default function App() {
   // splash → landing → onboarding (first visit only) → app. A returning
@@ -172,6 +177,37 @@ export default function App() {
     await loadAll()
     setRefreshing(false)
   }, [loadAll])
+
+  /**
+   * The reading refreshes itself every minute.
+   *
+   * One interval for the whole application, driving the one fetch every screen
+   * reads from. Each panel calling the provider on its own timer would be five
+   * requests a minute for one answer, and five answers that could disagree.
+   *
+   * What updates is *our* copy of the forecast, not the forecast: the models
+   * behind it run on their own schedule, hours apart. This asks the provider
+   * for the latest it has, which is why the card says when the reading was
+   * taken rather than claiming it is a minute old.
+   *
+   * Paused while the tab is hidden. A phone in a pocket does not need sixty
+   * requests an hour, and the visibility handler refetches on return, so coming
+   * back to the app shows current data rather than whatever was on screen when
+   * it was put down.
+   */
+  useEffect(() => {
+    if (stage !== 'app') return undefined
+    let timer = null
+    const stop = () => { if (timer) { clearInterval(timer); timer = null } }
+    const start = () => { stop(); timer = setInterval(() => { loadAll() }, WEATHER_REFRESH_MS) }
+
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') { loadAll(); start() } else stop()
+    }
+    if (document.visibilityState === 'visible') start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility) }
+  }, [stage, loadAll])
 
   // --- Chat ---------------------------------------------------------------
   const applyAnswer = useCallback(
@@ -490,7 +526,7 @@ export default function App() {
                 store and the already-fetched response — switching tab changes
                 what is rendered, never what has been loaded, so there is no
                 second fetch and no flash of an empty screen. */}
-            <main className="mx-auto w-full min-w-0 max-w-7xl space-y-3 px-3 pb-28 pt-3 sm:px-6 sm:pt-5">
+            <main className="mx-auto w-full min-w-0 max-w-[var(--app-width)] space-y-3 px-3 pb-28 pt-3 sm:px-4 sm:pt-4">
 
               {/* ---------------- HOME — what should I do now? -------------
                   Home answers one question, and the order below *is* the
@@ -622,6 +658,10 @@ export default function App() {
                   {/* Trends: this place against its own record. Moved here from
                       Home, where it was the fourth thing competing to be read
                       and the first thing scrolled past. */}
+                  {/* When, as its own answer. The server computes it from the
+                      same hourly series the strip above is drawn from. */}
+                  <BestTime bestTime={currentData?.personalization?.best_time} />
+                  {/* Trends: this place against its own record. */}
                   <HistoricalContext similarity={similarity} />
                   <HistoricalNote comparison={similarity?.matched ? null : answerHere?.historical_comparison} />
                 </>

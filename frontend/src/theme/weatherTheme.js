@@ -219,61 +219,61 @@ export const THEMES = {
   // palette deliberately departs from the brief.
   baseLight: {
     scheme: 'light',
-    scrim: '234 244 255', overlay: 'rgb(23 50 77 / 0.40)',
-    bg: '#f5faff', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1565c0', accent: '#00897b', border: '#d7e5f2',
-    tint: '23 50 77',
-    ink: '#17324d', inkSoft: '#2c4a66', muted: '#607d94', faint: '#8ca3b8',
-    safe: '#2e9d68', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#e8710a', danger: '#e53935',
+    scrim: '234 244 255', overlay: 'rgb(38 50 56 / 0.40)',
+    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
+    primary: '#1565c0', accent: '#00897b', border: '#d7e2ec',
+    tint: '38 50 56',
+    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
+    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
+    warning: '#ef6c00', danger: '#d84315',
     vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 42%, rgb(215 229 242 / 0.34) 82%, rgb(202 221 240 / 0.46) 100%)',
-    shadowGlass: '0 1px 2px rgb(23 50 77 / 0.06)',
-    shadowLift: '0 4px 14px rgb(23 50 77 / 0.10)',
+    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.06)',
+    shadowLift: '0 4px 14px rgb(38 50 56 / 0.10)',
     atmosA: 'rgb(25 118 210 / 0.07)', atmosB: 'rgb(0 137 123 / 0.05)',
     pattern: 'none',
   },
   rainLight: {
     scheme: 'light',
-    scrim: '232 243 255', overlay: 'rgb(23 50 77 / 0.40)',
-    bg: '#f2f9ff', bgDeep: '#e4f0fd', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1976d2', accent: '#00897b', border: '#d1e2f2',
-    tint: '23 50 77',
-    ink: '#17324d', inkSoft: '#2c4a66', muted: '#607d94', faint: '#8ca3b8',
-    safe: '#2e9d68', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#e8710a', danger: '#e53935',
+    scrim: '232 243 255', overlay: 'rgb(38 50 56 / 0.40)',
+    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
+    primary: '#1976d2', accent: '#00897b', border: '#d7e2ec',
+    tint: '38 50 56',
+    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
+    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
+    warning: '#ef6c00', danger: '#d84315',
     vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 40%, rgb(209 226 242 / 0.36) 82%, rgb(195 217 238 / 0.50) 100%)',
-    shadowGlass: '0 1px 2px rgb(23 50 77 / 0.06)',
-    shadowLift: '0 4px 14px rgb(23 50 77 / 0.10)',
+    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.06)',
+    shadowLift: '0 4px 14px rgb(38 50 56 / 0.10)',
     atmosA: 'rgb(25 118 210 / 0.10)', atmosB: 'rgb(0 137 123 / 0.05)',
     pattern: 'radial-gradient(100% 68% at 50% 0%, rgb(25 118 210 / 0.07), transparent 64%)',
   },
   stormLight: {
     scheme: 'light',
-    scrim: '232 240 252', overlay: 'rgb(23 50 77 / 0.42)',
-    bg: '#f3f8ff', bgDeep: '#e6eefb', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1565c0', accent: '#e8710a', border: '#cfdef2',
-    tint: '23 50 77',
-    ink: '#17324d', inkSoft: '#2c4a66', muted: '#607d94', faint: '#8ca3b8',
-    safe: '#2e9d68', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#e8710a', danger: '#e53935',
+    scrim: '232 240 252', overlay: 'rgb(38 50 56 / 0.42)',
+    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
+    primary: '#1565c0', accent: '#ef6c00', border: '#d7e2ec',
+    tint: '38 50 56',
+    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
+    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
+    warning: '#ef6c00', danger: '#d84315',
     vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 36%, rgb(207 222 242 / 0.40) 80%, rgb(192 212 236 / 0.54) 100%)',
-    shadowGlass: '0 1px 2px rgb(23 50 77 / 0.07)',
-    shadowLift: '0 4px 14px rgb(23 50 77 / 0.11)',
+    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.07)',
+    shadowLift: '0 4px 14px rgb(38 50 56 / 0.11)',
     atmosA: 'rgb(21 101 192 / 0.11)', atmosB: 'rgb(232 113 10 / 0.06)',
     pattern: 'radial-gradient(108% 66% at 50% -10%, rgb(21 101 192 / 0.09), transparent 62%)',
   },
   nightLight: {
     scheme: 'light',
-    scrim: '234 241 252', overlay: 'rgb(23 50 77 / 0.40)',
-    bg: '#f4f8ff', bgDeep: '#e8eefb', raised: '#ffffff', surface: '#ffffff',
-    primary: '#1565c0', accent: '#00897b', border: '#d5e0f1',
-    tint: '23 50 77',
-    ink: '#17324d', inkSoft: '#2c4a66', muted: '#607d94', faint: '#8ca3b8',
-    safe: '#2e9d68', caution: '#f9a825', cautionInk: '#8a5a00',
-    warning: '#e8710a', danger: '#e53935',
+    scrim: '234 241 252', overlay: 'rgb(38 50 56 / 0.40)',
+    bg: '#f4f8fc', bgDeep: '#eaf4ff', raised: '#ffffff', surface: '#ffffff',
+    primary: '#1565c0', accent: '#00897b', border: '#d7e2ec',
+    tint: '38 50 56',
+    ink: '#263238', inkSoft: '#37474f', muted: '#607d8b', faint: '#90a4ae',
+    safe: '#2e7d32', caution: '#f9a825', cautionInk: '#8a5a00',
+    warning: '#ef6c00', danger: '#d84315',
     vignette: 'radial-gradient(118% 80% at 50% 0%, transparent 40%, rgb(213 224 241 / 0.36) 82%, rgb(199 213 235 / 0.50) 100%)',
-    shadowGlass: '0 1px 2px rgb(23 50 77 / 0.06)',
-    shadowLift: '0 4px 14px rgb(23 50 77 / 0.10)',
+    shadowGlass: '0 1px 2px rgb(38 50 56 / 0.06)',
+    shadowLift: '0 4px 14px rgb(38 50 56 / 0.10)',
     atmosA: 'rgb(21 101 192 / 0.08)', atmosB: 'rgb(0 137 123 / 0.04)',
     pattern: 'none',
   },
@@ -300,7 +300,26 @@ const STORMY_HAZARDS = new Set(['Lightning/Storm', 'Flood Risk', 'Heavy Rainfall
  * bright ground or a dark one. Resolving them the other way round would make
  * "rain" mean something different in each mode.
  */
-const LIGHT_TWIN = { base: 'baseLight', rain: 'rainLight', storm: 'stormLight', night: 'nightLight' }
+// Every theme the resolver can return needs a light twin, or light appearance
+// silently serves a dark-era palette.
+//
+// `clear`, `cloudy` and `fog` had none, so a clear day in light mode resolved to
+// the amber-primary sun theme built for a dark ground: the location chip, the
+// today marker and every percentage on the forecast came out orange on white.
+// It looked like a palette decision. It was a missing dictionary entry.
+//
+// They map to `baseLight` for the same reason their dark counterparts map to
+// `base`: a bright sky has no colour of its own on a bright ground. Rain, storm
+// and night are the three that do.
+const LIGHT_TWIN = {
+  base: 'baseLight',
+  clear: 'baseLight',
+  cloudy: 'baseLight',
+  fog: 'baseLight',
+  rain: 'rainLight',
+  storm: 'stormLight',
+  night: 'nightLight',
+}
 // In dark appearance the three bright conditions have no dark character of
 // their own — an overcast sky at night is simply night — so they fall to the
 // dark base and let rain, storm and night carry the weather.
@@ -308,7 +327,11 @@ const DARK_TWIN = { clear: 'base', cloudy: 'base', fog: 'base' }
 
 export function forAppearance(themeKey, appearance = 'light') {
   if (appearance === 'dark') return DARK_TWIN[themeKey] ?? themeKey
-  return LIGHT_TWIN[themeKey] ?? themeKey
+  // Falling through to `themeKey` is what let a dark theme reach a light
+  // screen. A key with no twin now lands on the light base, which is wrong
+  // about the weather but never wrong about the appearance — and the test
+  // beside this asserts every resolvable key has a twin of its own.
+  return LIGHT_TWIN[themeKey] ?? 'baseLight'
 }
 
 export function resolveTheme({ weatherCode, isDay = true, riskLevel, hazard, appearance = 'light' } = {}) {

@@ -77,7 +77,7 @@ export default function BottomNav({ screen, onNavigate }) {
                  bg-[var(--wx-surface)]
                  pb-[max(env(safe-area-inset-bottom),0.35rem)]"
     >
-      <ul className="mx-auto flex w-full max-w-lg items-stretch">
+      <ul className="mx-auto flex w-full max-w-[var(--app-width)] items-stretch">
         {TABS.map((tab) => {
           const active = screen === tab.id
           const badge = tab.id === 'alerts' ? alertCount : 0
