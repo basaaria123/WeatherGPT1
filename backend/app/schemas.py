@@ -297,6 +297,22 @@ class ChatResponse(BaseModel):
     degraded: DegradationInfo = Field(default_factory=DegradationInfo)
 
 
+class TranscriptionResponse(BaseModel):
+    """What `/transcribe` returns: the words, and how they were heard.
+
+    Deliberately not a `ChatResponse`. This endpoint does not answer anything,
+    and a response shape that carried an empty answer, an empty advisory and an
+    inactive emergency block would invite a client to render them.
+    """
+
+    transcript: str
+    language: str | None = None
+    confidence: float | None = None
+    # Which provider heard it, for the pipeline panel and for a bug report that
+    # needs to say which of the chain answered. Never a key, never a URL.
+    engine: str | None = None
+
+
 class VoiceChatResponse(ChatResponse):
     transcript: str = ""
     transcription_confidence: float | None = None

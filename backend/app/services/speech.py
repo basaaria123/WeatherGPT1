@@ -110,8 +110,10 @@ def _has(module: str) -> bool:
 
 
 def transcription_engine() -> str:
-    """The first provider that would be tried, of sarvam | elevenlabs | puter | a local model."""
+    """The first provider tried, of deepgram | sarvam | elevenlabs | puter | a local model."""
     settings = get_settings()
+    if settings.deepgram_api_key:
+        return "deepgram"
     if settings.sarvam_api_key:
         return "sarvam"
     if settings.elevenlabs_api_key:
@@ -132,6 +134,8 @@ def transcription_chain() -> list[str]:
     """
     settings = get_settings()
     chain: list[str] = []
+    if settings.deepgram_api_key:
+        chain.append("deepgram")
     if settings.sarvam_api_key:
         chain.append("sarvam")
     if settings.elevenlabs_api_key:
@@ -282,6 +286,110 @@ SARVAM_LANGUAGES: dict[str, str] = {
 def sarvam_stt_available() -> bool:
     """A key is configured. Not a promise that the call will succeed."""
     return bool(get_settings().sarvam_api_key)
+
+
+def deepgram_stt_available() -> bool:
+    """A key is configured. Not a promise that the call will succeed."""
+    return bool(get_settings().deepgram_api_key)
+
+
+def _deepgram_languages() -> set[str]:
+    """The codes this deployment is willing to *name* to Deepgram.
+
+    Read from configuration rather than written here, because Deepgram's
+    coverage moves with the model and a hardcoded list is how a build comes to
+    claim a language it cannot actually transcribe. Anything outside this set is
+    sent for automatic detection instead.
+    """
+    raw = get_settings().deepgram_languages or ""
+    return {code.strip().lower() for code in raw.split(",") if code.strip()}
+
+
+def _deepgram_transcribe(
+    data: bytes,
+    *,
+    filename: str | None,
+    content_type: str | None,
+    language: str | None,
+) -> Transcript:
+    """Deepgram — the recogniser this deployment reaches for first.
+
+    Deepgram's REST shape: the audio is the request *body* under its own
+    Content-Type, not a multipart part, with the options as query parameters and
+    the key in an `Authorization: Token …` header. The transcript is nested four
+    levels down, at results.channels[0].alternatives[0].transcript.
+
+    That nesting is the thing to get right. A naive read of `payload["transcript"]`
+    returns None on a perfectly good response, which surfaces as "I could not
+    hear anything" for audio the recogniser heard perfectly — so the path is
+    walked defensively and a shape that does not match is an error with a reason
+    rather than a silent empty string.
+
+    Telling it the language beats letting it guess, but only for a language this
+    account can actually be told about; see `_deepgram_languages`.
+    """
+    import httpx
+
+    settings = get_settings()
+    code = (language or "").split("-")[0].lower()
+    params: dict[str, str] = {
+        "model": settings.deepgram_model,
+        # Punctuation and number formatting, so the transcript that lands in the
+        # input box reads like something a person typed.
+        "smart_format": "true",
+        "punctuate": "true",
+    }
+    if code and code in _deepgram_languages():
+        params["language"] = code
+    else:
+        params["detect_language"] = "true"
+
+    try:
+        response = httpx.post(
+            f"{settings.deepgram_api_base}/v1/listen",
+            params=params,
+            headers={
+                "Authorization": f"Token {settings.deepgram_api_key}",
+                # Deepgram sniffs the container, but naming it avoids a guess on
+                # the webm/ogg pair the browser actually produces.
+                "Content-Type": content_type or "audio/webm",
+            },
+            content=data,
+            timeout=settings.deepgram_timeout_seconds,
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except Exception as exc:  # noqa: BLE001 - any failure falls through below
+        # The key travels in a header, so it is not in the exception text — and
+        # only the exception *type* is logged, never the response body, which on
+        # a 401 can echo the request back.
+        log.warning("Deepgram transcription failed: %s", type(exc).__name__)
+        raise TranscriptionError("Deepgram transcription failed") from exc
+
+    try:
+        channel = payload["results"]["channels"][0]
+        alternative = channel["alternatives"][0]
+    except (KeyError, IndexError, TypeError) as exc:
+        log.warning("Deepgram returned a shape this client does not understand")
+        raise TranscriptionError("Deepgram returned an unexpected response") from exc
+
+    text = str(alternative.get("transcript") or "").strip()
+    if not text:
+        # A real answer meaning "there was no speech in that", which is a
+        # different thing from the call having failed — and the one the reader
+        # needs worded as advice rather than as an outage.
+        raise TranscriptionError(
+            "I could not hear anything clear in that recording. Please try again."
+        )
+
+    detected = str(channel.get("detected_language") or "").split("-")[0].lower()
+    confidence = alternative.get("confidence")
+    return Transcript(
+        text=text,
+        language=detected or code or "en",
+        confidence=float(confidence) if isinstance(confidence, (int, float)) else None,
+        engine="deepgram",
+    )
 
 
 def _sarvam_transcribe(
@@ -476,9 +584,21 @@ def transcribe(
 
     settings = get_settings()
 
-    # Sarvam first. This app answers in eleven Indian languages and Sarvam's
-    # recogniser is built for ten of them; a general-purpose model is the right
-    # thing to fall back to, not the right thing to ask first.
+    # Deepgram first when it is configured: it is the provider this deployment
+    # is keyed for, and it is fast enough that a reader does not notice the round
+    # trip. Sarvam stays directly beneath it — for the nine Indic languages
+    # Deepgram may not name, an Indic-first recogniser is the better fallback
+    # than a general-purpose one.
+    if settings.deepgram_api_key:
+        try:
+            result = _deepgram_transcribe(
+                data, filename=filename, content_type=content_type, language=language
+            )
+            note_transcription_result(True)
+            return result
+        except TranscriptionError as exc:
+            log.warning("Deepgram unavailable, trying the next provider: %s", exc)
+
     if settings.sarvam_api_key:
         try:
             result = _sarvam_transcribe(
@@ -515,7 +635,10 @@ def transcribe(
             log.warning("Puter unavailable, trying on-device engine: %s", exc)
 
     if (
-        settings.sarvam_api_key or settings.elevenlabs_api_key or settings.puter_token
+        settings.deepgram_api_key
+        or settings.sarvam_api_key
+        or settings.elevenlabs_api_key
+        or settings.puter_token
     ) and _local_engine() == "none":
         note_transcription_result(False)
         raise TranscriptionError(

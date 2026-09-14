@@ -8,6 +8,8 @@
 
 const STRINGS = {
   en: {
+    clickToStop: 'click to stop',
+    voiceNoLanguage: 'Spoken playback is not available for this language on this device. The full text is above.',
     chatGreeting: 'I\'m WeatherGPT, your personal weather assistant. I already know your location, role and current weather conditions, so you can ask me anything about the weather, forecasts, risks or what you should do.',
     chatSuggestLead: 'Here are some suggestions for you:',
     typeMessage: 'Type a message…',
@@ -349,6 +351,8 @@ const STRINGS = {
   },
 
   hi: {
+    clickToStop: 'रोकने के लिए क्लिक करें',
+    voiceNoLanguage: 'इस डिवाइस पर इस भाषा में आवाज़ उपलब्ध नहीं है। पूरा पाठ ऊपर है।',
     chatGreeting: 'मैं WeatherGPT हूँ, आपका निजी मौसम सहायक। मुझे आपका स्थान, भूमिका और मौजूदा मौसम पहले से पता है — मौसम, पूर्वानुमान, ख़तरों या आपको क्या करना चाहिए, कुछ भी पूछिए।',
     chatSuggestLead: 'आपके लिए कुछ सुझाव:',
     typeMessage: 'संदेश लिखें…',
@@ -690,6 +694,8 @@ const STRINGS = {
   },
 
   te: {
+    clickToStop: 'ఆపడానికి క్లిక్ చేయండి',
+    voiceNoLanguage: 'ఈ పరికరంలో ఈ భాషకు వాయిస్ అందుబాటులో లేదు. పూర్తి పాఠం పైన ఉంది.',
     chatGreeting: 'నేను WeatherGPT, మీ వ్యక్తిగత వాతావరణ సహాయకుడిని. మీ ప్రాంతం, పాత్ర, ప్రస్తుత వాతావరణం నాకు తెలుసు — వాతావరణం, సూచన, ప్రమాదాలు లేదా మీరు ఏమి చేయాలి, ఏదైనా అడగండి.',
     chatSuggestLead: 'మీ కోసం కొన్ని సూచనలు:',
     typeMessage: 'సందేశం టైప్ చేయండి…',
@@ -1031,6 +1037,8 @@ const STRINGS = {
   },
 
   bn: {
+    clickToStop: 'থামাতে ক্লিক করুন',
+    voiceNoLanguage: 'এই ডিভাইসে এই ভাষার কণ্ঠস্বর নেই। সম্পূর্ণ লেখা উপরে আছে।',
     chatGreeting: 'আমি WeatherGPT, আপনার ব্যক্তিগত আবহাওয়া সহকারী। আপনার অবস্থান, ভূমিকা ও বর্তমান আবহাওয়া আমি জানি — আবহাওয়া, পূর্বাভাস, ঝুঁকি বা আপনার কী করা উচিত, যা খুশি জিজ্ঞাসা করুন।',
     chatSuggestLead: 'আপনার জন্য কিছু প্রস্তাব:',
     typeMessage: 'বার্তা লিখুন…',
@@ -1372,6 +1380,8 @@ const STRINGS = {
   },
 
   mr: {
+    clickToStop: 'थांबवण्यासाठी क्लिक करा',
+    voiceNoLanguage: 'या उपकरणावर या भाषेसाठी आवाज उपलब्ध नाही. संपूर्ण मजकूर वर आहे.',
     chatGreeting: 'मी WeatherGPT, तुमचा वैयक्तिक हवामान सहाय्यक. तुमचे ठिकाण, भूमिका आणि सध्याचे हवामान मला माहीत आहे — हवामान, अंदाज, धोके किंवा तुम्ही काय करावे, काहीही विचारा.',
     chatSuggestLead: 'तुमच्यासाठी काही सूचना:',
     typeMessage: 'संदेश लिहा…',
@@ -1713,6 +1723,8 @@ const STRINGS = {
   },
 
   as: {
+    clickToStop: 'বন্ধ কৰিবলৈ ক্লিক কৰক',
+    voiceNoLanguage: 'এই ডিভাইচত এই ভাষাৰ মাত নাই। সম্পূৰ্ণ লেখা ওপৰত আছে।',
     chatGreeting: 'মই WeatherGPT, আপোনাৰ ব্যক্তিগত বতৰ সহায়ক। আপোনাৰ ঠাই, ভূমিকা আৰু বৰ্তমানৰ বতৰ মই জানো — বতৰ, পূৰ্বাভাস, বিপদ বা আপুনি কি কৰিব লাগে, যিকোনো সোধক।',
     chatSuggestLead: 'আপোনাৰ বাবে কিছু পৰামৰ্শ:',
     typeMessage: 'বাৰ্তা লিখক…',
@@ -2053,6 +2065,8 @@ const STRINGS = {
     },
   },
   ta: {
+    clickToStop: 'நிறுத்த கிளிக் செய்யுங்கள்',
+    voiceNoLanguage: 'இந்தச் சாதனத்தில் இந்த மொழிக்கான குரல் இல்லை. முழு உரை மேலே உள்ளது.',
     chatGreeting: 'நான் WeatherGPT, உங்கள் தனிப்பட்ட வானிலை உதவியாளர். உங்கள் இடம், பங்கு, தற்போதைய வானிலை எனக்குத் தெரியும் — வானிலை, முன்னறிவிப்பு, அபாயங்கள் அல்லது நீங்கள் என்ன செய்ய வேண்டும், எதுவும் கேளுங்கள்.',
     chatSuggestLead: 'உங்களுக்கான சில பரிந்துரைகள்:',
     typeMessage: 'செய்தியைத் தட்டச்சு செய்யுங்கள்…',
@@ -2393,6 +2407,8 @@ const STRINGS = {
     },
   },
   kn: {
+    clickToStop: 'ನಿಲ್ಲಿಸಲು ಕ್ಲಿಕ್ ಮಾಡಿ',
+    voiceNoLanguage: 'ಈ ಸಾಧನದಲ್ಲಿ ಈ ಭಾಷೆಗೆ ಧ್ವನಿ ಲಭ್ಯವಿಲ್ಲ. ಪೂರ್ಣ ಪಠ್ಯ ಮೇಲಿದೆ.',
     chatGreeting: 'ನಾನು WeatherGPT, ನಿಮ್ಮ ವೈಯಕ್ತಿಕ ಹವಾಮಾನ ಸಹಾಯಕ. ನಿಮ್ಮ ಸ್ಥಳ, ಪಾತ್ರ ಮತ್ತು ಪ್ರಸ್ತುತ ಹವಾಮಾನ ನನಗೆ ಗೊತ್ತು — ಹವಾಮಾನ, ಮುನ್ಸೂಚನೆ, ಅಪಾಯ ಅಥವಾ ನೀವು ಏನು ಮಾಡಬೇಕು, ಏನನ್ನಾದರೂ ಕೇಳಿ.',
     chatSuggestLead: 'ನಿಮಗಾಗಿ ಕೆಲವು ಸಲಹೆಗಳು:',
     typeMessage: 'ಸಂದೇಶ ಟೈಪ್ ಮಾಡಿ…',
@@ -2733,6 +2749,8 @@ const STRINGS = {
     },
   },
   ml: {
+    clickToStop: 'നിർത്താൻ ക്ലിക്ക് ചെയ്യുക',
+    voiceNoLanguage: 'ഈ ഉപകരണത്തിൽ ഈ ഭാഷയ്ക്ക് ശബ്ദം ലഭ്യമല്ല. പൂർണ്ണ വാചകം മുകളിലുണ്ട്.',
     chatGreeting: 'ഞാൻ WeatherGPT, നിങ്ങളുടെ വ്യക്തിഗത കാലാവസ്ഥാ സഹായി. നിങ്ങളുടെ സ്ഥലം, റോൾ, നിലവിലെ കാലാവസ്ഥ എനിക്കറിയാം — കാലാവസ്ഥ, പ്രവചനം, അപകടസാധ്യത അല്ലെങ്കിൽ നിങ്ങൾ എന്തു ചെയ്യണം, എന്തും ചോദിക്കുക.',
     chatSuggestLead: 'നിങ്ങൾക്കായി ചില നിർദ്ദേശങ്ങൾ:',
     typeMessage: 'സന്ദേശം ടൈപ്പ് ചെയ്യുക…',
@@ -3073,6 +3091,8 @@ const STRINGS = {
     },
   },
   gu: {
+    clickToStop: 'રોકવા માટે ક્લિક કરો',
+    voiceNoLanguage: 'આ ઉપકરણ પર આ ભાષા માટે અવાજ ઉપલબ્ધ નથી. સંપૂર્ણ લખાણ ઉપર છે.',
     chatGreeting: 'હું WeatherGPT, તમારો વ્યક્તિગત હવામાન સહાયક. તમારું સ્થળ, ભૂમિકા અને વર્તમાન હવામાન મને ખબર છે — હવામાન, આગાહી, જોખમ કે તમારે શું કરવું, કંઈ પણ પૂછો.',
     chatSuggestLead: 'તમારા માટે કેટલાક સૂચનો:',
     typeMessage: 'સંદેશ લખો…',
@@ -3413,6 +3433,8 @@ const STRINGS = {
     },
   },
   pa: {
+    clickToStop: 'ਰੋਕਣ ਲਈ ਕਲਿੱਕ ਕਰੋ',
+    voiceNoLanguage: 'ਇਸ ਡਿਵਾਈਸ \'ਤੇ ਇਸ ਭਾਸ਼ਾ ਲਈ ਆਵਾਜ਼ ਉਪਲਬਧ ਨਹੀਂ ਹੈ। ਪੂਰਾ ਪਾਠ ਉੱਪਰ ਹੈ।',
     chatGreeting: 'ਮੈਂ WeatherGPT ਹਾਂ, ਤੁਹਾਡਾ ਨਿੱਜੀ ਮੌਸਮ ਸਹਾਇਕ। ਤੁਹਾਡੀ ਥਾਂ, ਭੂਮਿਕਾ ਅਤੇ ਮੌਜੂਦਾ ਮੌਸਮ ਮੈਨੂੰ ਪਤਾ ਹੈ — ਮੌਸਮ, ਭਵਿੱਖਬਾਣੀ, ਖ਼ਤਰੇ ਜਾਂ ਤੁਹਾਨੂੰ ਕੀ ਕਰਨਾ ਚਾਹੀਦਾ, ਕੁਝ ਵੀ ਪੁੱਛੋ।',
     chatSuggestLead: 'ਤੁਹਾਡੇ ਲਈ ਕੁਝ ਸੁਝਾਅ:',
     typeMessage: 'ਸੁਨੇਹਾ ਲਿਖੋ…',

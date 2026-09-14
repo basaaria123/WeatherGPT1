@@ -5,6 +5,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion'
 import { useStore } from '../store/useStore'
 import { severityOf } from './ui/severity'
 import Icon from './ui/Icon'
+import { browserSpeechSupported, utteranceFor } from '../audio/speech'
 
 /**
  * Emergency banner.
@@ -20,9 +21,9 @@ import Icon from './ui/Icon'
  *    a fast red flash in an emergency UI is a seizure risk.
  */
 
-const SPEECH_LOCALE = { en: 'en-IN', hi: 'hi-IN', te: 'te-IN', bn: 'bn-IN', mr: 'mr-IN', as: 'as-IN' }
-const speechSupported = () =>
-  typeof window !== 'undefined' && 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window
+// Locale and voice selection both live in audio/speech.js. This file used to
+// carry its own six-language table, which is how the emergency button came to
+// behave differently from every other Listen control in the app.
 
 function formatUntil(value, language) {
   if (!value) return null
@@ -53,6 +54,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
    */
   const [dismissed, setDismissed] = useState(emergency?.risk_level !== 'Severe')
   const [speaking, setSpeaking] = useState(false)
+  const [voiceNote, setVoiceNote] = useState(null)
   const audioRef = useRef(null)
 
   const active = Boolean(emergency?.active)
@@ -66,7 +68,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
   const stop = () => {
     audioRef.current?.pause()
     audioRef.current = null
-    if (speechSupported()) window.speechSynthesis.cancel()
+    if (browserSpeechSupported()) window.speechSynthesis.cancel()
     setSpeaking(false)
   }
 
@@ -83,8 +85,22 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
       stop()
       return
     }
-    const text = emergency.spoken_instructions || emergency.headline
+    // The complete message, exactly as the card states it. The server writes
+    // `spoken_instructions` as headline + what is happening + why it matters +
+    // the immediate actions; the headline alone is the fallback, and the rest
+    // of the card is assembled here so nothing visible goes unspoken.
+    const text =
+      emergency.spoken_instructions ||
+      [
+        emergency.headline,
+        emergency.what_is_happening,
+        emergency.why_it_matters,
+        ...(emergency.immediate_actions ?? []),
+      ]
+        .filter(Boolean)
+        .join(' ')
     if (!text) return
+    setVoiceNote(null)
 
     if (audioBase64) {
       const audio = new Audio(`data:${audioMime ?? 'audio/mpeg'};base64,${audioBase64}`)
@@ -94,24 +110,34 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
       audio.play().then(() => setSpeaking(true)).catch(() => setSpeaking(false))
       return
     }
-    if (!speechSupported()) return
-    try {
-      const utterance = new window.SpeechSynthesisUtterance(text)
-      utterance.lang = SPEECH_LOCALE[language] ?? SPEECH_LOCALE.en
-      utterance.rate = 0.98
-      utterance.onend = () => setSpeaking(false)
-      utterance.onerror = () => setSpeaking(false)
-      window.speechSynthesis.speak(utterance)
-      setSpeaking(true)
-    } catch {
-      setSpeaking(false)
-    }
+    if (!browserSpeechSupported()) return
+
+    // Through the shared helper, which picks a voice that can actually
+    // pronounce this language. Building an utterance here was how this button
+    // came to read an emergency as its numbers alone: `lang = 'hi-IN'` is a
+    // preference, not a voice, and an English voice handed Devanagari says the
+    // digits and nothing else.
+    utteranceFor(text, language)
+      .then((utterance) => {
+        if (!utterance) {
+          // No voice for this language on this device. The full message is on
+          // the card in front of the reader; say that rather than mis-reading it.
+          setSpeaking(false)
+          setVoiceNote(t(language, 'voiceNoLanguage'))
+          return
+        }
+        utterance.onend = () => setSpeaking(false)
+        utterance.onerror = () => setSpeaking(false)
+        window.speechSynthesis.speak(utterance)
+        setSpeaking(true)
+      })
+      .catch(() => setSpeaking(false))
   }
 
   // Settings decide whether a severe alert is allowed to have a voice at all.
   // It still never speaks on its own — this gates the control, not an autoplay
   // that does not exist.
-  const canSpeak = audibleAlerts && (Boolean(audioBase64) || speechSupported())
+  const canSpeak = audibleAlerts && (Boolean(audioBase64) || browserSpeechSupported())
 
   // Dismissed does not mean resolved: a compact indicator stays while the risk
   // does, so a cleared banner can never read as an all-clear.
@@ -251,6 +277,11 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
                   {speaking ? t(language, 'stopInstructions') : t(language, 'listenInstructions')}
                 </span>
               </button>
+            )}
+            {voiceNote && (
+              <span role="status" className="w-full text-[10.5px] leading-[1.4] text-muted">
+                {voiceNote}
+              </span>
             )}
             {until && (
               <span className="text-[10.5px] text-muted">

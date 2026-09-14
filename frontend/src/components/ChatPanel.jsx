@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
-import { SPEECH_LOCALE, browserSpeechSupported } from '../audio/speech'
+import { browserSpeechSupported, utteranceFor } from '../audio/speech'
 import { Chip, SeverityPill } from './ui/Primitives'
+import { api } from '../api/client'
+import { userMessage } from '../api/errors'
 import Icon from './ui/Icon'
 
 /**
@@ -27,6 +29,27 @@ const canSpeak = (message, audioAvailable) => {
  * with actions as a short list, because the same text is what TTS reads aloud.
  */
 
+/**
+ * A filename the server can believe.
+ *
+ * Not decoration: `speech.validate_audio` checks the extension, and every
+ * recording was called `.webm` regardless of what the browser actually
+ * produced — so a Safari recording, which is `audio/mp4`, arrived claiming to
+ * be webm and was rejected before any provider saw it.
+ */
+function extensionFor(mime) {
+  const type = (mime || '').split(';')[0].trim().toLowerCase()
+  return {
+    'audio/webm': 'webm',
+    'audio/ogg': 'ogg',
+    'audio/mp4': 'm4a',
+    'audio/aac': 'aac',
+    'audio/mpeg': 'mp3',
+    'audio/wav': 'wav',
+    'audio/x-wav': 'wav',
+  }[type] ?? 'webm'
+}
+
 export default function ChatPanel({
   insight,
   insightLoading,
@@ -47,6 +70,11 @@ export default function ChatPanel({
   const audioRef = useRef(null)
   const [playingId, setPlayingId] = useState(null)
   const [voiceNote, setVoiceNote] = useState(null)
+  // The server round trip, which is its own state: the microphone is already
+  // off by then, and a button still reading "Listening" would be a lie.
+  const [transcribing, setTranscribing] = useState(false)
+  const [voiceError, setVoiceError] = useState(null)
+  const inputRef = useRef(null)
 
   const recorder = useVoiceRecorder({ language })
   const quick = t(language, 'quick')
@@ -84,30 +112,76 @@ export default function ChatPanel({
   // a Python package the user cannot install from a browser.
   const transcriptIsRequired = serverTranscribes === false
 
+  /**
+   * The microphone, as one click-to-toggle control.
+   *
+   * OFF → click → ON → click → OFF. There is no hold-to-speak path; the button
+   * binds `onClick` and nothing else.
+   *
+   * On the second click the recording becomes *text in the input box*, not a
+   * sent message. A recogniser is never so good that a reader should not get to
+   * read what it heard before it goes anywhere — a misheard place name would
+   * otherwise be answered for the wrong city, and the reader would have no idea
+   * why. So: transcript in, cursor in, and they press send.
+   *
+   * Two transcribers, one recording. The browser's own recogniser has already
+   * run alongside the capture and costs nothing; the server has Deepgram in
+   * front of a chain of others. The server's answer wins when it arrives
+   * because it is the better one, and the browser's is what keeps the
+   * microphone working when the server has no provider configured at all.
+   */
   const toggleRecording = async () => {
+    // The hook guards its own device, but this stops a second click queueing a
+    // second `start()` behind the permission prompt.
     if (recorder.recording) {
       const result = await recorder.stop()
-      if (!result?.blob) return
-      const transcript = result.transcript?.trim() || ''
+      if (!result) return
 
-      if (transcriptIsRequired && !transcript) {
+      const browserHeard = result.transcript?.trim() || ''
+      const tooShortToSend = !result.blob || result.blob.size < MIN_AUDIO_BYTES
+
+      // Nothing was captured and nothing was heard: say so here rather than
+      // spending a round trip to be told the same.
+      if (tooShortToSend && !browserHeard) {
         setVoiceNote(
-          result.recognitionRan && !result.recognitionError
-            ? 'noSpeech'
-            : 'recognitionUnavailable',
+          result.recognitionRan && !result.recognitionError ? 'noSpeech' : 'recognitionUnavailable',
         )
         return
       }
-      if (!transcript && result.blob.size < MIN_AUDIO_BYTES) {
-        // Say so here rather than spending a round trip to be told the same.
-        setVoiceNote('noSpeech')
-        return
-      }
+
       setVoiceNote(null)
-      onVoice(result.blob, transcript)
+
+      // The browser's transcript goes in immediately, so there is something to
+      // read while the server answers. It is replaced, not appended to.
+      if (browserHeard) setDraft(browserHeard)
+
+      if (tooShortToSend) return
+
+      setTranscribing(true)
+      try {
+        const form = new FormData()
+        form.append('audio', result.blob, `question.${extensionFor(result.blob.type)}`)
+        form.append('lang', language)
+        const data = await api.transcribe(form)
+        const heard = data?.transcript?.trim()
+        // Never write an empty value over something the reader can see: an
+        // undefined transcript used to blank a draft the browser had filled in.
+        if (heard) setDraft(heard)
+        else if (!browserHeard) setVoiceNote('noSpeech')
+      } catch (err) {
+        // The server could not transcribe. If the browser did, that stands and
+        // the reader is not told about a failure that cost them nothing.
+        if (!browserHeard) setVoiceError(userMessage(err, language))
+      } finally {
+        setTranscribing(false)
+        // Focus the box: the next thing to happen is the reader reading it.
+        requestAnimationFrame(() => inputRef.current?.focus())
+      }
       return
     }
+
     setVoiceNote(null)
+    setVoiceError(null)
     await recorder.start()
   }
 
@@ -144,20 +218,33 @@ export default function ChatPanel({
     }
 
     if (!browserSpeechSupported() || !message.text?.trim()) return
-    try {
-      const utterance = new window.SpeechSynthesisUtterance(message.text)
-      utterance.lang = SPEECH_LOCALE[message.lang ?? language] ?? SPEECH_LOCALE.en
-      utterance.rate = 0.98
-      utterance.onend = () => setPlayingId(null)
-      utterance.onerror = () => setPlayingId(null)
-      window.speechSynthesis.speak(utterance)
-      setPlayingId(message.id)
-    } catch {
-      setPlayingId(null)
-    }
+
+    // Through the shared helper: it picks a voice that can pronounce the
+    // language the answer was written in, and returns null when the device has
+    // none — which is a reason to show a note, not to read Tamil with an
+    // English voice.
+    utteranceFor(message.text, message.lang ?? language)
+      .then((utterance) => {
+        if (!utterance) {
+          setVoiceNote('voiceNoLanguage')
+          setPlayingId(null)
+          return
+        }
+        utterance.onend = () => setPlayingId(null)
+        utterance.onerror = () => setPlayingId(null)
+        window.speechSynthesis.speak(utterance)
+        setPlayingId(message.id)
+      })
+      .catch(() => setPlayingId(null))
   }
 
   const greeting = messages.length === 0 && !pending && !voicePending
+
+  const micLabel = transcribing
+    ? t(language, 'transcribing')
+    : recorder.recording
+      ? t(language, 'stopRecording')
+      : t(language, 'voice')
 
   return (
     /* No card around the conversation. The reference puts the bubbles straight
@@ -225,14 +312,36 @@ export default function ChatPanel({
         )}
       </div>
 
-      {/* --- Recording state, said in words ------------------------------- */}
-      {(recorder.recording || (voicePending && !recorder.recording)) && (
-        <p className="mt-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold text-danger" role="status">
+      {/* --- Where the microphone is, said in words ------------------------
+          Three states, and the reader is never left guessing which: recording,
+          then the round trip, then back to idle. The strip says what to do
+          next as well as what is happening — "click to stop" is the whole
+          instruction for a toggle button. */}
+      {(recorder.recording || transcribing || voicePending) && (
+        <p
+          className={`mt-2 flex items-center gap-1.5 px-1 text-[11px] font-semibold ${
+            recorder.recording ? 'text-danger' : 'text-primary'
+          }`}
+          role="status"
+          aria-live="polite"
+        >
           <span className="h-1.5 w-1.5 rounded-full bg-current pulse-alert" />
-          {recorder.recording
-            ? `${t(language, 'listening')} ${recorder.seconds}s`
-            : t(language, 'transcribing')}
+          {recorder.recording ? (
+            <>
+              {t(language, 'listening')} {recorder.seconds}s
+              <span className="font-medium text-muted">· {t(language, 'clickToStop')}</span>
+            </>
+          ) : (
+            t(language, 'transcribing')
+          )}
         </p>
+      )}
+
+      {/* A transcription failure the reader can act on. The browser's own
+          transcript, when there was one, is already in the box — so this only
+          appears when there is genuinely nothing to show. */}
+      {voiceError && (
+        <p role="alert" className="mt-2 px-1 text-[11px] text-danger">{voiceError}</p>
       )}
 
       {voiceNote && !recorder.error && (
@@ -258,6 +367,7 @@ export default function ChatPanel({
       {/* --- Composer ----------------------------------------------------- */}
       <form onSubmit={submit} className="mt-3 flex min-w-0 items-end gap-1.5">
         <textarea
+          ref={inputRef}
           value={draft}
           onChange={(event) => setDraft(event.target.value)}
           onKeyDown={(event) => {
@@ -274,9 +384,13 @@ export default function ChatPanel({
           <button
             type="button"
             onClick={toggleRecording}
-            disabled={pending || voicePending}
-            aria-label={recorder.recording ? t(language, 'stopRecording') : t(language, 'voice')}
-            title={recorder.recording ? t(language, 'stopRecording') : t(language, 'voice')}
+            /* Disabled while the server is listening to the last recording, so
+               a second recording cannot start on top of one being transcribed.
+               NOT disabled while recording — that is the click that stops it. */
+            disabled={pending || voicePending || transcribing}
+            aria-pressed={recorder.recording}
+            aria-label={micLabel}
+            title={micLabel}
             className={`relative grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full border transition
                         disabled:opacity-45 ${
                           recorder.recording
@@ -291,7 +405,7 @@ export default function ChatPanel({
                 transition={{ duration: 1.6, repeat: Infinity }}
               />
             )}
-            <Icon name="mic" size={16} />
+            <Icon name={transcribing ? 'clock' : 'mic'} size={16} />
           </button>
         )}
 

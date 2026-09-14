@@ -13,7 +13,7 @@ import logging
 from fastapi import APIRouter, File, Form, HTTPException, UploadFile
 
 from ..config import get_settings
-from ..schemas import ChatRequest, ChatResponse, VoiceChatResponse
+from ..schemas import ChatRequest, ChatResponse, TranscriptionResponse, VoiceChatResponse
 from ..services import chat_engine, i18n, language, speech
 
 log = logging.getLogger("weathergpt.routes.chat")
@@ -175,4 +175,67 @@ async def voice_chat(
         **response.model_dump(),
         transcript=transcript_text,
         transcription_confidence=confidence,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Transcription on its own
+# ---------------------------------------------------------------------------
+@router.post("/transcribe", response_model=TranscriptionResponse)
+async def transcribe_only(
+    audio: UploadFile = File(..., description="Recorded speech"),
+    lang: str | None = Form(default=None, description="The language the reader is using"),
+) -> TranscriptionResponse:
+    """Turn a recording into text, and stop there.
+
+    `/voice-chat` transcribes *and* answers in one call, which is the right
+    shape when speaking is the whole interaction. It is the wrong shape for a
+    microphone beside a text box: there the reader expects their words to land
+    in the box so they can read them, fix a misheard name, and press send
+    themselves. Sending on their behalf takes that away, and a recogniser is
+    never so good that it should be trusted without a glance.
+
+    So this does one job. The audio never becomes a question here; it becomes
+    text, and what happens to the text is the reader's decision.
+
+    The provider key lives in server configuration and is never sent to the
+    browser — the whole reason this endpoint exists rather than the frontend
+    calling Deepgram directly.
+    """
+    try:
+        data = await audio.read()
+    except Exception as exc:  # noqa: BLE001
+        raise HTTPException(status_code=400, detail="The audio upload could not be read.") from exc
+
+    try:
+        result = speech.transcribe(
+            data,
+            filename=audio.filename,
+            content_type=audio.content_type,
+            # The interface already knows which language the reader picked;
+            # passing it stops the recogniser guessing between four Indic
+            # scripts that share glyphs.
+            language=i18n.normalise_lang(lang) if lang else None,
+        )
+    except speech.TranscriptionError as exc:
+        # Two audiences, two sentences: the operator gets the provider detail in
+        # the log, the reader gets a code the interface can say in their own
+        # language. Neither gets our configuration.
+        log.warning("Transcription failed: %s", exc)
+        raise HTTPException(
+            status_code=422,
+            detail={
+                "message": (
+                    "I could not make out any speech in that recording. "
+                    "Please try again, or type your question."
+                ),
+                "code": "stt_unavailable",
+            },
+        ) from exc
+
+    return TranscriptionResponse(
+        transcript=result.text,
+        language=result.language,
+        confidence=result.confidence,
+        engine=result.engine,
     )

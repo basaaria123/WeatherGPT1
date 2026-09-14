@@ -116,6 +116,13 @@ export const api = {
   voiceChat: (formData, options) =>
     request('/voice-chat', { method: 'POST', form: formData, timeout: 60000, ...options }),
 
+  // Transcription on its own — the audio becomes text and stops there, so the
+  // words can land in the input box for the reader to check before sending.
+  // The provider key stays on the server; this is why the browser never talks
+  // to a speech provider directly.
+  transcribe: (formData, options) =>
+    request('/transcribe', { method: 'POST', form: formData, timeout: 60000, ...options }),
+
   geocode: (q) => request(`/geocode${qs({ q })}`),
   reverseGeocode: (lat, lon) => request(`/geocode/reverse${qs({ lat, lon })}`),
   current: (params) => request(`/weather/current${qs(params)}`),

@@ -99,8 +99,12 @@ export default function SpokenAdvice({ location, userType, topic = 'advice', com
 
   /** Plays `script` through the browser when the server sent no audio. */
   const speakLocally = useCallback(
-    (script) => {
-      const utterance = utteranceFor(script, language)
+    async (script) => {
+      // Async because the device's voice list is. `utteranceFor` returns null
+      // when this device has no voice for this language — and null means do not
+      // speak, not speak it badly. An English voice handed Telugu reads the
+      // digits and skips the words.
+      const utterance = await utteranceFor(script, language)
       if (!utterance) return false
       utterance.onend = () => { setState('completed'); setProgress(1) }
       utterance.onerror = () => setState('error')
@@ -157,9 +161,14 @@ export default function SpokenAdvice({ location, userType, topic = 'advice', com
         if (await playServerAudio(data.audio_base64, data.audio_mime)) return
       }
 
-      // 3 — the browser's own voice. The script still exists either way, so
-      // there is something to say right up until there is no way to say it.
-      if (!speakLocally(data.text)) setState('error')
+      // 3 — the browser's own voice, if this device has one for this language.
+      // When it does not, that is not an error: the script is on screen and the
+      // reader is told the words cannot be spoken here rather than being read
+      // a string of numbers in the wrong accent.
+      if (!(await speakLocally(data.text))) {
+        setState('idle')
+        setNote(t(language, 'voiceNoLanguage'))
+      }
     } catch {
       setState('error')
     }
@@ -190,7 +199,10 @@ export default function SpokenAdvice({ location, userType, topic = 'advice', com
       audio.play().then(() => { setProgress(0); setState('playing') }).catch(() => setState('error'))
       return
     }
-    if (scriptRef.current && speakLocally(scriptRef.current)) return
+    if (scriptRef.current) {
+      speakLocally(scriptRef.current).then((spoke) => { if (!spoke) start() })
+      return
+    }
     start()
   }, [speakLocally, start])
 

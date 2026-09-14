@@ -183,6 +183,41 @@ class Settings:
         default_factory=lambda: _env_float("SARVAM_TIMEOUT_SECONDS", 30.0)
     )
 
+    # --- Deepgram: speech-to-text -----------------------------------------
+    #
+    # Tried first when a key is configured. The contract is Deepgram's
+    # documented REST shape: POST /v1/listen with an `Authorization: Token …`
+    # header, the raw audio as the body under its own Content-Type, and a reply
+    # at results.channels[0].alternatives[0].transcript.
+    #
+    # NOT verified against a live endpoint from this environment — api.deepgram
+    # .com is unreachable from here — so every coordinate is an environment
+    # variable rather than a literal. An operator who finds the model name or
+    # the host has moved can correct it without a code change, and the provider
+    # below falls through to the next one on any failure rather than losing the
+    # turn.
+    deepgram_api_key: str = field(default_factory=lambda: os.getenv("DEEPGRAM_API_KEY", "").strip())
+    deepgram_api_base: str = field(
+        default_factory=lambda: os.getenv("DEEPGRAM_API_BASE", "https://api.deepgram.com").strip().rstrip("/")
+    )
+    deepgram_model: str = field(
+        default_factory=lambda: os.getenv("DEEPGRAM_STT_MODEL", "nova-2").strip()
+    )
+    # Which of the app's eleven languages this account's model can be *told* to
+    # expect. Anything outside the list is sent with `detect_language=true`
+    # instead, which is slower but cannot fail on an unrecognised code — and is
+    # the honest default for a language nobody has confirmed is supported.
+    #
+    # Deliberately configurable: Deepgram's language coverage moves with the
+    # model, and hardcoding a list here is how a build comes to claim support it
+    # does not have.
+    deepgram_languages: str = field(
+        default_factory=lambda: os.getenv("DEEPGRAM_LANGUAGES", "en,hi").strip()
+    )
+    deepgram_timeout_seconds: float = field(
+        default_factory=lambda: _env_float("DEEPGRAM_TIMEOUT_SECONDS", 30.0)
+    )
+
     # --- Puter speech-to-text ----------------------------------------------
     # Puter's own SDK is a browser library: `puter.ai.speech2txt` runs in the
     # page and authenticates the visitor. This app calls it from the server
