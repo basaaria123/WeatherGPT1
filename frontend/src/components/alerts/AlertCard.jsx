@@ -57,7 +57,7 @@ export default function AlertCard({
       className="wx-note relative min-w-0 overflow-hidden p-3.5"
       style={{
         '--wx-note-line': `color-mix(in srgb, ${tone.color} 34%, transparent)`,
-        '--wx-note-fill': `color-mix(in srgb, ${tone.color} 5%, #fff)`,
+        '--wx-note-fill': `color-mix(in srgb, ${tone.color} 5%, var(--wx-surface))`,
       }}
     >
       {/* A single wash that fades once, when a warning first arrives. It is not

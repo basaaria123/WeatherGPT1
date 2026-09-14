@@ -14,6 +14,7 @@ from fastapi import APIRouter, HTTPException, Query
 from ..config import get_settings
 from ..db import fetch_alerts
 from ..schemas import (
+    ClimateHistoryResponse,
     ClimateTrendResponse,
     CurrentWeatherResponse,
     AdvisoryOut,
@@ -422,4 +423,32 @@ def climate_trend(
         summary=summary,
         metrics=metrics.to_dict(),
         llm_used=llm_used,
+    )
+
+
+@router.get("/climate/history", response_model=ClimateHistoryResponse)
+def climate_history(
+    location: str | None = None,
+    latitude: float | None = None,
+    longitude: float | None = None,
+    parameter: str = Query("temperature", description="temperature | rainfall | humidity"),
+    years: int = Query(5, ge=2, le=climate.MAX_YEARS),
+) -> ClimateHistoryResponse:
+    """One measured value per calendar year, for the climate-insights screen.
+
+    Reads the same Open-Meteo archive the monthly anomaly already uses, so this
+    introduces no new provider and no new claim — only a different arrangement
+    of numbers that were already being fetched.
+
+    Never 500s on missing history: an archive that cannot be reached comes back
+    as `available: false` with a reason, because "we could not get the data" is
+    a state this screen is built to show and an error page is not.
+    """
+    resolved = _resolve(location, latitude, longitude)
+    series = climate.history_series(resolved, parameter=parameter, years=years)
+    return ClimateHistoryResponse(
+        location=_location_out(resolved),
+        generated_at=_now(),
+        data_source=get_settings().weather_data_mode,
+        **series.to_dict(),
     )

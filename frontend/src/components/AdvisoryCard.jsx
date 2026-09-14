@@ -104,10 +104,10 @@ function WeatherImpact({ impacts, language, location, userType }) {
  * renders exactly the reference's green.
  */
 const ADVICE_TINT = {
-  Low: { line: 'color-mix(in srgb, var(--color-safe) 26%, transparent)', fill: 'color-mix(in srgb, var(--color-safe) 7%, #fff)', ink: 'var(--color-safe)' },
-  Moderate: { line: 'color-mix(in srgb, var(--color-safe) 26%, transparent)', fill: 'color-mix(in srgb, var(--color-safe) 7%, #fff)', ink: 'var(--color-safe)' },
-  High: { line: 'color-mix(in srgb, var(--color-warning) 30%, transparent)', fill: 'color-mix(in srgb, var(--color-warning) 8%, #fff)', ink: 'var(--color-warning)' },
-  Severe: { line: 'color-mix(in srgb, var(--color-danger) 32%, transparent)', fill: 'color-mix(in srgb, var(--color-danger) 8%, #fff)', ink: 'var(--color-danger)' },
+  Low: { line: 'color-mix(in srgb, var(--color-safe) 26%, transparent)', fill: 'color-mix(in srgb, var(--color-safe) 7%, var(--wx-surface))', ink: 'var(--color-safe)' },
+  Moderate: { line: 'color-mix(in srgb, var(--color-safe) 26%, transparent)', fill: 'color-mix(in srgb, var(--color-safe) 7%, var(--wx-surface))', ink: 'var(--color-safe)' },
+  High: { line: 'color-mix(in srgb, var(--color-warning) 30%, transparent)', fill: 'color-mix(in srgb, var(--color-warning) 8%, var(--wx-surface))', ink: 'var(--color-warning)' },
+  Severe: { line: 'color-mix(in srgb, var(--color-danger) 32%, transparent)', fill: 'color-mix(in srgb, var(--color-danger) 8%, var(--wx-surface))', ink: 'var(--color-danger)' },
 }
 
 export default function AdvisoryCard({ advisory, impacts, onCompare }) {

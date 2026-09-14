@@ -150,7 +150,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
         className="wx-note flex w-full min-w-0 items-center gap-2.5 p-3 text-left transition hover:brightness-[0.99]"
         style={{
           '--wx-note-line': `color-mix(in srgb, ${tone.color} 34%, transparent)`,
-          '--wx-note-fill': `color-mix(in srgb, ${tone.color} 6%, #fff)`,
+          '--wx-note-fill': `color-mix(in srgb, ${tone.color} 6%, var(--wx-surface))`,
         }}
       >
         <span
@@ -192,7 +192,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
         className="min-w-0 overflow-hidden rounded-[var(--radius-card)]"
         style={{
           border: `1px solid ${tone.color}`,
-          background: `color-mix(in srgb, ${tone.color} 6%, #fff)`,
+          background: `color-mix(in srgb, ${tone.color} 6%, var(--wx-surface))`,
           boxShadow: 'var(--shadow-glass)',
         }}
       >

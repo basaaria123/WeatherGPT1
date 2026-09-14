@@ -18,9 +18,9 @@ export function Panel({ title, action, children, className = '', delay = 0, id }
       className={`glass min-w-0 scroll-mt-24 p-4 ${className}`}
     >
       {(title || action) && (
-        <header className="mb-3 flex items-center justify-between gap-3">
+        <header className="mb-3 flex items-start justify-between gap-3">
           {title && (
-            <h2 className="wx-eyebrow min-w-0 truncate">{title}</h2>
+            <h2 className="wx-eyebrow min-w-0">{title}</h2>
           )}
           {action}
         </header>

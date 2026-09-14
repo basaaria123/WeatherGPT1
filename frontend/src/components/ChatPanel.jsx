@@ -615,7 +615,7 @@ function InsightBanner({ insight, loading, language }) {
           ? 'color-mix(in srgb, var(--color-warning) 34%, transparent)'
           : 'var(--wx-border)',
         '--wx-note-fill': urgent
-          ? 'color-mix(in srgb, var(--color-warning) 6%, #fff)'
+          ? 'color-mix(in srgb, var(--color-warning) 6%, var(--wx-surface))'
           : 'var(--wx-surface)',
       }}
     >

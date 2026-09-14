@@ -272,3 +272,269 @@ def summarise(metrics: TrendMetrics, location_label: str, lang: str = "en") -> t
         if text:
             return text, True
     return templated_summary(metrics, location_label, lang), False
+
+
+# ---------------------------------------------------------------------------
+# Year-by-year history, for the Historical & Climate Insights screen
+# ---------------------------------------------------------------------------
+#
+# WHAT IS REAL HERE, AND WHAT IS NOT
+#
+# These numbers are measured. `weather.fetch_archive` reads Open-Meteo's
+# historical archive — the same provider the dashboard uses for the forecast —
+# and everything below is arithmetic over what it returns. Nothing is modelled,
+# interpolated or invented, and a year the archive has no data for is absent
+# from the series rather than filled in.
+#
+# The one exception is loudly labelled elsewhere: in fixture mode the archive is
+# `weather._fixture_archive`, a deterministic synthetic series. Every response
+# carries `data_source`, and the interface already says "SIMULATED DATA — not
+# live observations" whenever that is "fixture".
+#
+# WHAT THE DAILY ARCHIVE DOES NOT CARRY
+#
+# Humidity. Open-Meteo's *daily* archive block has temperature and
+# precipitation and no relative humidity — that exists only in the hourly
+# block, and averaging ten years of hourly values to draw one line is a
+# different and much heavier feature. So humidity is offered, and answers
+# honestly that the series is not available, rather than being quietly computed
+# from something else.
+
+PARAMETERS: dict[str, dict[str, Any]] = {
+    # key: which archive field, what unit, and how a year is summarised.
+    "temperature": {"unit": "°C", "aggregate": "mean", "decimals": 1},
+    # Rainfall and precipitation are one measurement in this archive
+    # (`precipitation_sum`), so there is one option rather than two identical
+    # ones under different names.
+    "rainfall": {"unit": "mm", "aggregate": "sum", "decimals": 0},
+    # Present, and honest about itself. See the note above.
+    "humidity": {"unit": "%", "aggregate": None, "decimals": 0},
+}
+
+# A trend smaller than this over the whole window is reported as steady rather
+# than as a direction. Reading a slope out of noise is the main way a chart like
+# this tells a lie.
+TREND_EPSILON = {"temperature": 0.3, "rainfall": 25.0}
+
+MAX_YEARS = 30
+
+
+@dataclass
+class HistorySeries:
+    """A year-by-year series, and what can honestly be said about it."""
+
+    parameter: str
+    unit: str
+    start_year: int
+    end_year: int
+    points: list[dict[str, Any]]
+    average: float | None
+    highest: float | None
+    highest_year: int | None
+    lowest: float | None
+    lowest_year: int | None
+    direction: str            # rising | falling | steady | unknown
+    change: float | None      # first year to last, in `unit`
+    available: bool
+    note: str | None
+
+    def summary_average(self) -> float:
+        return self.average if self.average is not None else 0.0
+
+    def to_dict(self) -> dict[str, Any]:
+        return {
+            "parameter": self.parameter,
+            "unit": self.unit,
+            "start_year": self.start_year,
+            "end_year": self.end_year,
+            "points": self.points,
+            "summary": {
+                "average": self.average,
+                "highest": self.highest,
+                "highest_year": self.highest_year,
+                "lowest": self.lowest,
+                "lowest_year": self.lowest_year,
+            },
+            "trend": {"direction": self.direction, "change": self.change},
+            "available": self.available,
+            "note": self.note,
+        }
+
+
+def _unavailable(parameter: str, start: int, end: int, note: str) -> HistorySeries:
+    """A series that cannot be built, said plainly.
+
+    Every field a caller would read is present and empty, so the interface
+    renders its own "no data" state rather than crashing on a missing key or —
+    worse — showing a zero that looks like a measurement.
+    """
+    spec = PARAMETERS.get(parameter, PARAMETERS["temperature"])
+    return HistorySeries(
+        parameter=parameter, unit=spec["unit"], start_year=start, end_year=end,
+        points=[], average=None, highest=None, highest_year=None,
+        lowest=None, lowest_year=None, direction="unknown", change=None,
+        available=False, note=note,
+    )
+
+
+def history_series(
+    location: Location,
+    *,
+    parameter: str = "temperature",
+    years: int = 5,
+    today: date | None = None,
+) -> HistorySeries:
+    """One value per calendar year, measured from the archive.
+
+    A single archive request spans the whole window and the years are separated
+    here. Asking per year would be ten requests for one chart, and the provider
+    is the same either way.
+
+    The most recent complete year is the end of the window: the current year is
+    part-way through, and a January-to-September mean plotted beside ten full
+    years is a dip that is an artefact of the calendar rather than the climate.
+    """
+    parameter = (parameter or "temperature").strip().lower()
+    if parameter not in PARAMETERS:
+        parameter = "temperature"
+    spec = PARAMETERS[parameter]
+
+    reference = today or date.today()
+    end_year = reference.year - 1
+    years = max(2, min(int(years), MAX_YEARS))
+    start_year = end_year - years + 1
+
+    if spec["aggregate"] is None:
+        return _unavailable(
+            parameter, start_year, end_year,
+            "no_daily_series",
+        )
+
+    try:
+        payload = weather.fetch_archive(location, date(start_year, 1, 1), date(end_year, 12, 31))
+    except WeatherError as exc:
+        log.warning("archive unavailable for %s: %s", location.name, exc)
+        return _unavailable(parameter, start_year, end_year, "archive_unavailable")
+
+    times, precip, temps = _daily(payload)
+    values = precip if parameter == "rainfall" else temps
+
+    # Group by calendar year, keeping only the days the archive actually
+    # measured. A year with no usable days is dropped, never zero-filled.
+    buckets: dict[int, list[float]] = {}
+    for stamp, value in zip(times, values):
+        if not isinstance(value, (int, float)):
+            continue
+        try:
+            year = int(str(stamp)[:4])
+        except (TypeError, ValueError):
+            continue
+        buckets.setdefault(year, []).append(float(value))
+
+    points: list[dict[str, Any]] = []
+    for year in sorted(buckets):
+        days = buckets[year]
+        # A year missing most of its days cannot carry an annual total, and a
+        # partial sum plotted as one would read as a drought that never
+        # happened.
+        if len(days) < 300:
+            continue
+        total = sum(days)
+        value = total if spec["aggregate"] == "sum" else total / len(days)
+        points.append({
+            "year": year,
+            "label": str(year),
+            "value": round(value, spec["decimals"]),
+            "days": len(days),
+        })
+
+    if len(points) < 2:
+        return _unavailable(parameter, start_year, end_year, "not_enough_years")
+
+    readings = [point["value"] for point in points]
+    highest = max(points, key=lambda p: p["value"])
+    lowest = min(points, key=lambda p: p["value"])
+    change = round(readings[-1] - readings[0], spec["decimals"])
+
+    epsilon = TREND_EPSILON.get(parameter, 0.0)
+    if abs(change) < epsilon:
+        direction = "steady"
+    else:
+        direction = "rising" if change > 0 else "falling"
+
+    return HistorySeries(
+        parameter=parameter,
+        unit=spec["unit"],
+        start_year=points[0]["year"],
+        end_year=points[-1]["year"],
+        points=points,
+        average=round(sum(readings) / len(readings), spec["decimals"]),
+        highest=highest["value"],
+        highest_year=highest["year"],
+        lowest=lowest["value"],
+        lowest_year=lowest["year"],
+        direction=direction,
+        change=change,
+        available=True,
+        note=None,
+    )
+
+
+# ---------------------------------------------------------------------------
+# Answers for the assistant
+# ---------------------------------------------------------------------------
+def nwp_answer(lang: str = "en") -> str:
+    """What this product does and does not do with numerical models.
+
+    A fixed sentence, not a generated one, and deliberately so: this is a claim
+    about the build, and a claim about the build is the last thing that should
+    be phrased freshly each time. There is no GFS output to report because there
+    is no GFS integration, and an assistant that improvised here would invent
+    one.
+    """
+    return i18n.sentence("nwp_answer", i18n.normalise_lang(lang))
+
+
+def history_answer(location: Location, text: str, lang: str = "en") -> str:
+    """A climate-history question, answered from the archive or refused.
+
+    Reads which measurement was asked about, fetches the real series, and states
+    what it found. When the archive has nothing it says that instead — the one
+    thing it will not do is describe a trend it did not measure.
+    """
+    lang = i18n.normalise_lang(lang)
+    lowered = (text or "").lower()
+    parameter = "rainfall" if any(
+        word in lowered for word in ("rain", "rainfall", "precipitation", "monsoon", "बारिश", "वर्षा")
+    ) else "humidity" if any(
+        word in lowered for word in ("humid", "humidity", "नमी")
+    ) else "temperature"
+
+    years = 10
+    for count, words in ((5, ("five", "5 year", "5-year", "पाँच")), (20, ("twenty", "20 year", "बीस")),
+                         (3, ("three", "3 year", "तीन")), (1, ("last year", "one year"))):
+        if any(word in lowered for word in words):
+            years = max(2, count)
+            break
+
+    series = history_series(location, parameter=parameter, years=years)
+    label = i18n.sentence(f"clim_param_{parameter}", lang)
+
+    if not series.available:
+        key = {
+            "no_daily_series": "clim_no_series",
+            "not_enough_years": "clim_too_few",
+        }.get(series.note, "clim_no_archive")
+        return i18n.sentence(key, lang, param=label, loc=location.label)
+
+    decimals = 0 if series.unit == "mm" else 1
+    return i18n.sentence(
+        f"clim_says_{series.direction}",
+        lang,
+        param=label,
+        loc=location.label,
+        start=series.start_year,
+        end=series.end_year,
+        change=f"{abs(series.change or 0):.{decimals}f}{series.unit}",
+        average=f"{series.summary_average():.{decimals}f}{series.unit}",
+    )

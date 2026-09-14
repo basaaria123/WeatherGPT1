@@ -37,14 +37,18 @@ from ..schemas import (
     VerificationInfo,
 )
 from . import (
-    advisory, history, i18n, language, llm, memory, nlp_fallback, risk_engine, roles,
+    advisory, climate, history, i18n, language, llm, memory, nlp_fallback, risk_engine,
+    roles,
     verification, weather,
 )
 from .weather import Location, WeatherError
 
 log = logging.getLogger("weathergpt.chat")
 
-VALID_INTENTS = {"current_weather", "forecast", "alert_check", "climate_trend", "out_of_scope"}
+VALID_INTENTS = {
+    "current_weather", "forecast", "alert_check", "climate_trend",
+    "nwp_models", "out_of_scope",
+}
 VALID_MODES = {"normal", "simple", "emergency"}
 
 
@@ -297,6 +301,21 @@ def handle_chat(
         extraction.get("advice_question") or nlp_fallback.is_advice_question(text)
     )
 
+    # "Can WeatherGPT use GFS?" is a question about this product, and the model
+    # reads it as off-topic because it contains no weather noun. The rules see
+    # the acronym, so they have the final say here for the same reason they do
+    # above: a question the reader is entitled to an answer to must not be
+    # turned away because a classifier did not recognise it.
+    if nlp_fallback.mentions_models(text):
+        extraction["in_scope"] = True
+        extraction["intent"] = "nwp_models"
+    # And the same for the past. The extractor reads "how has temperature
+    # changed over five years" as a question about temperature — which it is,
+    # but about the wrong five minutes. The rules see the span of years.
+    elif nlp_fallback.asks_about_history(text):
+        extraction["in_scope"] = True
+        extraction["intent"] = "climate_trend"
+
     if user_type:
         extraction["user_type"] = (
             roles.get(user_type).key if roles.known(user_type) else extraction["user_type"]
@@ -391,14 +410,36 @@ def handle_chat(
     day_offset = extraction["day_offset"]
     payload = build_weather_payload(bundle, risk, day_offset=day_offset)
 
-    # --- 9. Generate -------------------------------------------------------
     answer = ""
     explanation: str | None = None
     actions: list[str] = []
     action_mode = False
     verification_info = VerificationInfo()
 
-    if llm.available():
+    # --- 9a. The two answers the model must not improvise -------------------
+    #
+    # Both are settled before generation, so the model is never asked. That is
+    # the point of them:
+    #
+    #   nwp_models     a claim about what this build integrates. The model has
+    #                  no way to know, and asked anyway it apologises or — worse
+    #                  — obliges with a GFS figure that does not exist.
+    #   climate_trend  a measured series the model does not have. Left to it,
+    #                  "how has temperature changed over five years" came back
+    #                  as "I do not have historical data", while the archive
+    #                  behind the Historical & Climate Insights screen had it
+    #                  all along.
+    if extraction["intent"] == "nwp_models":
+        answer = climate.nwp_answer(out_lang)
+    elif extraction["intent"] == "climate_trend":
+        answer = climate.history_answer(bundle.location, text, out_lang)
+
+    # --- 9. Generate -------------------------------------------------------
+    # `not answer` because 9a may already have settled it. Without that guard
+    # the model ran anyway and overwrote a measured answer with an apology for
+    # not having the data — which was the bug: the archive had the series, and
+    # the reader was told it did not exist.
+    if not answer and llm.available():
         extra = _extra_context(bundle, risk, mode, extraction["user_type"], out_lang)
         try:
             composed = llm.compose_answer(

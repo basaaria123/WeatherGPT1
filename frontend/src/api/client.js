@@ -131,6 +131,10 @@ export const api = {
   // Synthesis costs a round trip to the voice provider, so this is only ever
   // called by a reader pressing play — never as part of a dashboard load.
   spokenAdvice: (params) => request(`/weather/spoken-advice${qs(params)}`, { timeout: 45000 }),
+  // Year-by-year history from the Open-Meteo archive. Slower than the rest —
+  // a ten-year window is ten years of daily rows — so its own timeout.
+  climateHistory: (params) => request(`/climate/history${qs(params)}`, { timeout: 45000 }),
+
   climateTrend: (params) => request(`/climate-trend${qs(params)}`, { timeout: 45000 }),
 
   alerts: (params) => request(`/alerts${qs(params)}`),

@@ -58,8 +58,29 @@ ALERT_TERMS: tuple[str, ...] = (
 TREND_TERMS: tuple[str, ...] = (
     "trend", "trends", "average", "normal", "anomaly", "climate", "compared to last",
     "this year", "wetter", "drier", "warmer", "historically", "past years",
+    # A question about a span of years is a question about history, however it
+    # is phrased. Without these, "how has temperature changed over the last five
+    # years" was classified as a question about today and answered with today.
+    "last five years", "last ten years", "last 5 years", "last 10 years",
+    "over the years", "past decade", "last decade", "decade", "past few years",
+    "historical", "history", "long term", "long-term", "year on year",
+    "since 19", "since 20", "changed over", "changing over",
+    "पिछले साल", "पिछले वर्षों", "इतिहास", "दशक",
+    "गेल्या वर्षांत", "इतिहास",
+    "గత సంవత్సరాల", "చరిత్ర", "దశాబ్దం",
+    "গত বছরগুলিতে", "ইতিহাস", "দশক", "বিগত বছৰ", "ইতিহাস",
     "औसत", "जलवायु", "रुझान", "सरासरी", "हवामान बदल",
     "సగటు", "ధోరణి", "వాతావరణ మార్పు", "প্রবণতা", "জলবায়ু", "গড়ে", "ধাৰা",
+)
+
+# Questions about the models themselves. These are questions about what
+# WeatherGPT *is*, not about the weather, and they need answering rather than
+# turning away as off-topic — "can you use GFS?" is a reasonable thing to ask a
+# forecasting product.
+NWP_TERMS: tuple[str, ...] = (
+    "gfs", "wrf", "numerical weather prediction", "nwp", "global forecast system",
+    "weather research and forecasting", "which model", "what model", "model do you use",
+    "ecmwf", "icon model",
 )
 
 FORECAST_TERMS: tuple[str, ...] = (
@@ -239,6 +260,11 @@ def detect_user_type(text: str) -> str | None:
 
 
 def detect_intent(text: str, day_offset: int) -> str:
+    # Before everything else: a question about the models is not a question
+    # about today, and answering it with today's weather is the non-answer this
+    # ordering exists to prevent.
+    if _contains(text, NWP_TERMS):
+        return "nwp_models"
     if _contains(text, ALERT_TERMS):
         return "alert_check"
     if _contains(text, TREND_TERMS):
@@ -294,6 +320,7 @@ def extract(query: str, *, language: str = "en", known_location: str | None = No
         or _contains(text, ALERT_TERMS)
         or _contains(text, TREND_TERMS)
         or _contains(text, FORECAST_TERMS)
+        or _contains(text, NWP_TERMS)
     )
     if not in_scope and location is not None and (day_offset > 0 or user_type is not None):
         # "I'm a farmer near Warangal, should I harvest tomorrow?"
@@ -390,6 +417,26 @@ def detect_focus(text: str) -> tuple[str, ...]:
     """
     lowered = (text or "").lower()
     return tuple(name for name, terms in FOCUS_TERMS.items() if _contains(lowered, terms))
+
+
+def asks_about_history(query: str) -> bool:
+    """Is this a question about the past rather than about now?
+
+    Its own function for the same reason as `mentions_models`: `chat_engine`
+    needs the answer before it trusts the extractor, which reads "how has
+    temperature changed over five years" as a question about today's
+    temperature and answers it with today's temperature.
+    """
+    return _contains((query or "").strip(), TREND_TERMS)
+
+
+def mentions_models(query: str) -> bool:
+    """Is this asking which forecast models the product uses?
+
+    Its own function because `chat_engine` needs the answer *before* it trusts
+    the extractor's classification — see the note at the call site.
+    """
+    return _contains((query or "").strip(), NWP_TERMS)
 
 
 def is_advice_question(query: str) -> bool:

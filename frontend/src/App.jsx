@@ -35,6 +35,8 @@ import SplashScreen from './components/SplashScreen'
 import Timeline from './components/Timeline'
 import WeatherIntro from './components/WeatherIntro'
 import Icon from './components/ui/Icon'
+import ClimateInsights from './components/climate/ClimateInsights'
+import ForecastIntelligence from './components/climate/ForecastIntelligence'
 import { Tabs } from './components/ui/Primitives'
 
 /**
@@ -110,6 +112,10 @@ export default function App() {
   // Which horizon the forecast destination is showing. Local to the
   // screen: it is a view of one dataset, not a navigation state.
   const [forecastTab, setForecastTab] = useState('24h')
+  // Which of the Forecast destination's three views is showing: the forecast
+  // itself, or one of the two it opens. A view rather than a screen — the
+  // bottom bar still reads Forecast, because that is still where the reader is.
+  const [forecastView, setForecastView] = useState('forecast')
 
   const language = useStore((s) => s.language)
   const appearance = useStore((s) => s.appearance)
@@ -728,8 +734,26 @@ export default function App() {
                   Three tabs, as the reference draws them. The first shows both
                   horizons together, which is what the reference's own forecast
                   screen shows; the other two are that screen's remaining
-                  questions given a tab of their own rather than a scroll. */}
-              {screen === 'forecast' && (
+                  questions given a tab of their own rather than a scroll.
+
+                  Below them, two doors: history, and the models. Both are
+                  *inside* Forecast rather than new destinations — "what has
+                  happened here before" and "what is coming" are the same
+                  question at different ranges, and the bottom bar has five
+                  slots for five questions. */}
+              {screen === 'forecast' && forecastView === 'climate' && (
+                <ClimateInsights
+                  onBack={() => setForecastView('forecast')}
+                  onOpenLocation={() => setLocationOpen(true)}
+                  onAsk={(query) => { setForecastView('forecast'); setScreen('ai'); send(query) }}
+                />
+              )}
+
+              {screen === 'forecast' && forecastView === 'models' && (
+                <ForecastIntelligence onBack={() => setForecastView('forecast')} />
+              )}
+
+              {screen === 'forecast' && forecastView === 'forecast' && (
                 <>
                   <Tabs
                     idPrefix="forecast-tab"
@@ -779,6 +803,23 @@ export default function App() {
                       </>
                     )}
                   </div>
+
+                  {/* The two doors. After the forecast content, never instead
+                      of it. */}
+                  <FeatureDoor
+                    icon="trend"
+                    title={t(language, 'climateEntryTitle')}
+                    body={t(language, 'climateEntryBody')}
+                    cta={t(language, 'climateEntryCta')}
+                    onOpen={() => setForecastView('climate')}
+                  />
+                  <FeatureDoor
+                    icon="globe"
+                    title={t(language, 'nwpEntryTitle')}
+                    body={t(language, 'nwpEntryBody')}
+                    cta={t(language, 'nwpEntryCta')}
+                    onOpen={() => setForecastView('models')}
+                  />
                 </>
               )}
 
@@ -795,7 +836,10 @@ export default function App() {
               </footer>
             </main>
 
-            <BottomNav screen={screen} onNavigate={setScreen} />
+            <BottomNav
+              screen={screen}
+              onNavigate={(next) => { setForecastView('forecast'); setScreen(next) }}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -814,6 +858,39 @@ export default function App() {
     </>
   )
 }
+
+/**
+ * A door to a feature that lives inside this page.
+ *
+ * Deliberately the same shape as `MapLauncher` on Home: two doors on one
+ * product that behaved differently would read as two products. It states what
+ * is behind it in a sentence, because "Explore Insights" on its own tells a
+ * reader nothing about whether it is worth the tap.
+ */
+function FeatureDoor({ icon, title, body, cta, onOpen }) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="glass flex w-full min-w-0 items-start gap-3 p-3.5 text-left transition
+                 hover:border-primary/40"
+    >
+      <span className="mt-px grid h-9 w-9 shrink-0 place-items-center rounded-full
+                       bg-[rgb(var(--wx-tint)/0.09)] text-primary">
+        <Icon name={icon} size={18} />
+      </span>
+      <span className="min-w-0 flex-1">
+        <span className="block text-[13.5px] font-bold leading-tight text-ink">{title}</span>
+        <span className="mt-0.5 block text-[11.5px] leading-[1.45] text-muted">{body}</span>
+        <span className="mt-1.5 inline-flex items-center gap-1 text-[11.5px] font-semibold text-primary">
+          {cta}
+          <Icon name="chevronRight" size={11} />
+        </span>
+      </span>
+    </button>
+  )
+}
+
 
 /**
  * The Home doorway into the assistant.

@@ -36,7 +36,13 @@ UserType = Literal[
 ]
 ResponseMode = Literal["normal", "simple", "emergency"]
 RiskLevel = Literal["Low", "Moderate", "High", "Severe"]
-Intent = Literal["current_weather", "forecast", "alert_check", "climate_trend", "out_of_scope"]
+# "nwp_models" is a question about the product rather than about the sky —
+# which forecast models it uses. It is an intent of its own because it is
+# answered from a fixed sentence and never from the weather.
+Intent = Literal[
+    "current_weather", "forecast", "alert_check", "climate_trend",
+    "nwp_models", "out_of_scope",
+]
 
 SUPPORTED_LANGUAGES: dict[str, str] = {
     "en": "English",
@@ -557,6 +563,33 @@ class RiskMapResponse(BaseModel):
     data_source: str
     locations: list[RiskMapEntry]
     errors: list[str] = Field(default_factory=list)
+
+
+class ClimateHistoryResponse(BaseModel):
+    """A year-by-year series from the historical archive.
+
+    `available` is the field a client must read first. False means there is no
+    series to draw — the archive was unreachable, the window held too few
+    complete years, or the parameter is not in the daily archive at all — and
+    `note` says which. Every other field is then empty rather than zero, because
+    a zero on a chart reads as a measurement.
+    """
+
+    location: LocationOut
+    generated_at: str
+    # "live" or "fixture". The interface already labels the second, and this is
+    # what lets it label this screen too rather than presenting a synthetic
+    # series as observations.
+    data_source: str
+    parameter: str
+    unit: str
+    start_year: int
+    end_year: int
+    points: list[dict[str, Any]]
+    summary: dict[str, Any]
+    trend: dict[str, Any]
+    available: bool
+    note: str | None = None
 
 
 class ClimateTrendResponse(BaseModel):

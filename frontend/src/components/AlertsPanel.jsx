@@ -42,7 +42,7 @@ export default function AlertsPanel({ onViewArea }) {
           className="wx-note flex min-w-0 items-center gap-3 p-3.5"
           style={{
             '--wx-note-line': 'color-mix(in srgb, var(--color-safe) 26%, transparent)',
-            '--wx-note-fill': 'color-mix(in srgb, var(--color-safe) 6%, #fff)',
+            '--wx-note-fill': 'color-mix(in srgb, var(--color-safe) 6%, var(--wx-surface))',
           }}
         >
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-safe text-white">
