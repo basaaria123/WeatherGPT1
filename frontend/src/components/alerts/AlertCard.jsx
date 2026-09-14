@@ -80,7 +80,7 @@ export default function AlertCard({
                       text-[9.5px] font-bold uppercase tracking-[0.07em] ${urgent ? 'pulse-alert' : ''}`}
           style={
             solid
-              ? { background: tone.color, color: '#fff' }
+              ? { background: tone.color, color: 'var(--color-on-solid)' }
               : { background: tone.tint, color: tone.ink }
           }
         >

@@ -45,7 +45,7 @@ export default function AlertsPanel({ onViewArea }) {
             '--wx-note-fill': 'color-mix(in srgb, var(--color-safe) 6%, var(--wx-surface))',
           }}
         >
-          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-safe text-white">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-safe text-on-solid">
             <Icon name="check" size={18} stroke={2.1} />
           </span>
           <span className="min-w-0">

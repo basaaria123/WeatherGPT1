@@ -92,7 +92,7 @@ export default function ForecastIntelligence({ onBack }) {
         }}
       >
         <div className="flex min-w-0 items-start gap-2.5">
-          <span className="mt-px grid h-8 w-8 shrink-0 place-items-center rounded-full bg-safe text-white">
+          <span className="mt-px grid h-8 w-8 shrink-0 place-items-center rounded-full bg-safe text-on-solid">
             <Icon name="check" size={17} stroke={2.1} />
           </span>
           <div className="min-w-0 flex-1">

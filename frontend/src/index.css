@@ -22,6 +22,12 @@
 
   /* Brand */
   --color-primary: #1668d6;
+  /* The ink that sits ON a saturated fill — a solid pill, a primary button, a
+     severity badge, the reader's own chat bubble. Declared here so Tailwind
+     generates `text-on-solid`; `weatherTheme.js` re-points it per theme, which
+     is what makes a solid control readable in both appearances instead of
+     white-on-cyan in one of them. */
+  --color-on-solid: #ffffff;
   --color-primary-dim: #1f78e6;
   --color-secondary: #2b7fe0;
   --color-accent: #0f9d6b;
@@ -95,6 +101,11 @@
        interface the reference's pale blue rather than a neutral grey. */
     --wx-tint: 22 104 214;
     --wx-scrim: 255 255 255;
+    /* The ground OUTSIDE the application column on a wide screen. */
+    --wx-desk: #dbe8f6;
+    /* The Listen button's own pair — see `.wx-btn-deep`. */
+    --wx-deep: #143761;
+    --wx-on-deep: #ffffff;
     --wx-overlay: rgb(16 42 74 / 0.44);
     --wx-vignette: none;
     /* The one surface the weather still tints — the conditions card. */
@@ -182,7 +193,7 @@
 
   ::selection {
     background: var(--color-primary-dim);
-    color: #fff;
+    color: var(--color-on-solid);
   }
 }
 
@@ -205,6 +216,22 @@
     background: var(--wx-raised);
     border-color: color-mix(in srgb, var(--wx-primary) 22%, var(--wx-border));
     box-shadow: var(--shadow-lift);
+  }
+
+  /* A popover that blurs what is behind it — the language sheet, the profile
+     menu, the map's risk detail.
+
+     It exists because those three carried a `bg-[rgb(var(--wx-scrim)/0.985)]`
+     utility instead, which is a *scrim* colour: white on a light theme, which
+     happened to look right, and near-black on a dark one, which made a menu
+     DARKER than the card it had just opened over. A utility also outranks
+     `.glass-raised` in Tailwind's layer order, so the raised surface those
+     elements asked for was never being painted at all.
+
+     Declared after `.glass-raised` so it wins between the two, and translucent
+     so the blur behind it has something to do. */
+  .wx-veil {
+    background: color-mix(in srgb, var(--wx-raised) 96%, transparent);
   }
 
   /* Level 1 of the hierarchy: the one card that should read first.
@@ -262,7 +289,7 @@
   .wx-pill-on {
     background: var(--wx-primary);
     border-color: var(--wx-primary);
-    color: #fff;
+    color: var(--color-on-solid);
   }
 
   .wx-pill-on:hover {
@@ -295,18 +322,24 @@
 
   .wx-btn-primary {
     background: var(--wx-primary);
-    color: #fff;
+    color: var(--color-on-solid);
     border: 1px solid var(--wx-primary);
   }
 
   .wx-btn-primary:hover { filter: brightness(1.08); }
 
   /* The Listen button. Deep navy in the reference, so it reads as a second
-     action rather than a second primary. */
+     action rather than a second primary.
+
+     The navy was written out, and on a dark ground a #143761 button on a
+     #132a44 card is a rectangle you cannot see. The theme owns the pair now:
+     the reference's navy on a light ground, and on a dark one a slate
+     raised above the card rather than sunk below it — still the quieter of the
+     two actions, still not the accent. */
   .wx-btn-deep {
-    background: #143761;
-    color: #fff;
-    border: 1px solid #143761;
+    background: var(--wx-deep);
+    color: var(--wx-on-deep);
+    border: 1px solid var(--wx-deep);
   }
 
   .wx-btn-deep:hover { filter: brightness(1.25); }
@@ -404,7 +437,10 @@
 
   @media (min-width: 640px) {
     body {
-      background-color: color-mix(in srgb, var(--wx-bg) 62%, #b9d0ea);
+      /* Was a mix toward a fixed pale blue, which on a dark theme surrounded a
+         near-black phone with a mid grey-blue desk. The deeper ground is the
+         theme's own now. */
+      background-color: var(--wx-desk);
     }
 
     .wx-shell {
@@ -531,9 +567,10 @@
 }
 
 .leaflet-control-attribution {
-  /* Was a hardcoded near-black wash, left over from the dark basemap. Taken
-     from the surface token so it reads on the light cartography. */
-  background: rgb(255 255 255 / 0.82) !important;
+  /* Taken from the scrim so it reads on whichever cartography is underneath —
+     a pale wash over the light basemap, a dark one over the dark basemap. A
+     literal white here was a lit rectangle in the corner of a dark map. */
+  background: rgb(var(--wx-scrim) / 0.82) !important;
   color: var(--color-muted) !important;
   font-size: 10px !important;
 }

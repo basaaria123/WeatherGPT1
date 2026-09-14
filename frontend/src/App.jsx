@@ -920,7 +920,7 @@ function AskLauncher({ onOpen, suggestions, onAsk }) {
       }}
     >
       <div className="flex min-w-0 items-start gap-2.5">
-        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-white">
+        <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-on-solid">
           <Icon name="cloud" size={17} stroke={1.9} />
         </span>
         <div className="min-w-0">
@@ -984,7 +984,7 @@ function AskLauncher({ onOpen, suggestions, onAsk }) {
           disabled={!draft.trim()}
           aria-label={t(language, 'send')}
           title={t(language, 'send')}
-          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-white
+          className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary text-on-solid
                      transition hover:brightness-110 disabled:opacity-40"
         >
           <Icon name="send" size={16} />

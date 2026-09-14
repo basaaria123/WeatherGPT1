@@ -118,7 +118,7 @@ export default function ProfileMenu({ onSignIn }) {
             exit={reduced ? { opacity: 0 } : { opacity: 0, y: -6, scale: 0.98 }}
             transition={{ duration: reduced ? 0.01 : 0.16 }}
             className="glass glass-raised fixed right-3 top-14 z-50 w-[min(19rem,calc(100vw-1.5rem))] overflow-hidden
-                       bg-[rgb(var(--wx-scrim)/0.985)] p-0 backdrop-blur-2xl sm:absolute sm:right-0 sm:top-full sm:mt-1.5"
+                       wx-veil p-0 backdrop-blur-2xl sm:absolute sm:right-0 sm:top-full sm:mt-1.5"
           >
             <div className="border-b border-[rgb(var(--wx-tint)/0.08)] px-3.5 py-3">
               <div className="text-[10px] uppercase tracking-[0.14em] text-faint">

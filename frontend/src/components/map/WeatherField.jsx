@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { useMap, useMapEvents } from 'react-leaflet'
+import { useStore } from '../../store/useStore'
 
 /**
  * The weather layer drawn as a surface rather than as sixteen dots.
@@ -32,6 +33,7 @@ const MAX_ALPHA = 0.62
 
 export default function WeatherField({ entries, layer, step, valueAt }) {
   const map = useMap()
+  const appearance = useStore((s) => s.appearance)
   const canvasRef = useRef(null)
   const frameRef = useRef(0)
 
@@ -106,7 +108,12 @@ export default function WeatherField({ entries, layer, step, valueAt }) {
       }
     }
     ctx.globalAlpha = 1
-  }, [map, entries, layer, step, valueAt])
+    // `appearance` is not read in this function — the ramp resolves the theme's
+    // own tokens from the document at paint time. It is in the dependency list
+    // because those tokens CHANGE with it, and without a redraw the surface
+    // kept the light palette's greens and ambers over the dark basemap until
+    // the reader happened to pan.
+  }, [map, entries, layer, step, valueAt, appearance])
 
   // One redraw per animation frame however many events arrive.
   const schedule = useCallback(() => {

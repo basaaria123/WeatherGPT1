@@ -133,7 +133,7 @@ export default function AdvisoryCard({ advisory, impacts, onCompare }) {
       {/* --- Heading row ------------------------------------------------- */}
       <div className="flex min-w-0 items-start gap-2.5">
         <span
-          className="mt-px grid h-8 w-8 shrink-0 place-items-center rounded-full text-white"
+          className="mt-px grid h-8 w-8 shrink-0 place-items-center rounded-full text-on-solid"
           style={{ background: tint.ink }}
         >
           <Icon name="shield" size={17} stroke={1.9} />

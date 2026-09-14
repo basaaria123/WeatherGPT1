@@ -413,7 +413,7 @@ export default function ChatPanel({
           type="submit"
           disabled={pending || !draft.trim()}
           aria-label={t(language, 'send')}
-          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-primary text-white
+          className="grid h-[38px] w-[38px] shrink-0 place-items-center rounded-full bg-primary text-on-solid
                      transition hover:brightness-110 disabled:opacity-40"
         >
           <Icon name="send" size={16} />
@@ -432,7 +432,7 @@ function Bubble({ children, className = '' }) {
     <div className="flex min-w-0 gap-2">
       <span
         aria-hidden="true"
-        className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-white"
+        className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-on-solid"
       >
         <Icon name="cloud" size={15} stroke={1.9} />
       </span>
@@ -465,12 +465,12 @@ function Message({ message, onPlay, playing, audioAvailable, language }) {
       >
         <div className="min-w-0 max-w-[82%] rounded-[var(--radius-card)] rounded-br-md bg-primary px-3 py-2">
           {message.transcript && (
-            <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-white/75">
+            <p className="mb-1 flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.07em] text-on-solid/75">
               <Icon name="mic" size={10} />
               {t(language, 'voice')}
             </p>
           )}
-          <p className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.5] text-white">
+          <p className="whitespace-pre-wrap break-words text-[12.5px] leading-[1.5] text-on-solid">
             {message.text}
           </p>
         </div>
@@ -570,7 +570,7 @@ function TypingIndicator({ label }) {
     <div className="flex items-center gap-2" role="status">
       <span
         aria-hidden="true"
-        className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-white"
+        className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-primary text-on-solid"
       >
         <Icon name="cloud" size={15} stroke={1.9} />
       </span>

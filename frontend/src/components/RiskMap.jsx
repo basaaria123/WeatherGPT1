@@ -37,13 +37,6 @@ import { EmptyState, Panel, SeverityPill, Skeleton } from './ui/Primitives'
 const INDIA_CENTER = [22.6, 79.5]
 const DEFAULT_ZOOM = 4
 
-// Carto Voyager: light cartography with state and district boundaries, place
-// names and roads — the geography a weather map is read against. Keyless, so
-// nothing here can fail for want of a credential.
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-
 // How much bigger the previewed marker is drawn than an unselected one.
 const SELECTED_BUMP = 5
 
@@ -178,7 +171,7 @@ export default function RiskMap({ data, loading, error, onRetry, onCommit, onAsk
                 zoomControl={false}
               >
                 <ZoomControl position="topright" />
-                <TileStatus url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+                <TileStatus />
                 <FocusController focus={mapFocus} />
                 <DismissOnMapClick onDismiss={dismiss} />
                 <KeepSelectionVisible entry={preview} />
@@ -199,6 +192,10 @@ export default function RiskMap({ data, loading, error, onRetry, onCommit, onAsk
                       bubblingMouseEvents={false}
                       eventHandlers={{ click: () => setPreviewName(entry.location) }}
                       pathOptions={{
+                        // A literal white on purpose: this ring is drawn on the
+                        // cartography, not on the app's surface, and it reads
+                        // on both Carto sheets. Taking it from a theme token
+                        // would sink the selected marker into the dark basemap.
                         color: isPreview ? '#ffffff' : tone.color,
                         fillColor: tone.color,
                         fillOpacity: isPreview ? 0.78 : isActive ? 0.52 : 0.36,

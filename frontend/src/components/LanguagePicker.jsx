@@ -175,7 +175,7 @@ export default function LanguagePicker({ className = '' }) {
                making the text opaque, in the light weather themes as well as
                the dark ones. */
             className="glass glass-raised fixed z-50 flex flex-col overflow-hidden
-                       bg-[rgb(var(--wx-scrim)/0.985)] p-0 backdrop-blur-2xl"
+                       wx-veil p-0 backdrop-blur-2xl"
           >
             <div className="flex items-center gap-1.5 border-b border-[rgb(var(--wx-tint)/0.08)] px-3 py-2">
               <span aria-hidden="true" className="text-[13px]">🌐</span>

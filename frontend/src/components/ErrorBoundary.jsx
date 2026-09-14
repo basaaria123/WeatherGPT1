@@ -35,7 +35,7 @@ export default class ErrorBoundary extends Component {
           <button
             type="button"
             onClick={() => window.location.reload()}
-            className="mt-5 rounded-[var(--radius-pill)] bg-primary px-5 py-2.5 text-sm font-semibold text-[#04121d]"
+            className="mt-5 rounded-[var(--radius-pill)] bg-primary px-5 py-2.5 text-sm font-semibold text-on-solid"
           >
             Reload
           </button>

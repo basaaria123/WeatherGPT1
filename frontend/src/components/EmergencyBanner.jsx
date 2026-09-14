@@ -154,7 +154,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
         }}
       >
         <span
-          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-white ${reduced ? '' : 'pulse-emergency'}`}
+          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-on-solid ${reduced ? '' : 'pulse-emergency'}`}
           style={{ background: tone.color }}
         >
           <Icon name="warning" size={15} stroke={2.1} />
@@ -208,7 +208,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
             </span>
             <span
               className="rounded-[var(--radius-pill)] px-2 py-[3px] text-[9.5px] font-bold uppercase tracking-[0.07em]"
-              style={{ background: tone.color, color: '#fff' }}
+              style={{ background: tone.color, color: 'var(--color-on-solid)' }}
             >
               {t(language, 'emergencyNow')} · {levelLabel(language, emergency.risk_level)}
             </span>
@@ -253,7 +253,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
                     <span
                       aria-hidden="true"
                       className="mt-[3px] grid h-[15px] w-[15px] shrink-0 place-items-center rounded-full text-[9px] font-bold"
-                      style={{ background: tone.color, color: '#fff' }}
+                      style={{ background: tone.color, color: 'var(--color-on-solid)' }}
                     >
                       {index + 1}
                     </span>
@@ -269,7 +269,7 @@ export default function EmergencyBanner({ emergency, audioBase64, audioMime }) {
               <button
                 type="button"
                 onClick={speak}
-                className="wx-btn min-w-0 flex-1 text-white transition hover:brightness-110"
+                className="wx-btn min-w-0 flex-1 text-on-solid transition hover:brightness-110"
                 style={{ background: tone.color, borderColor: tone.color }}
               >
                 <Icon name={speaking ? 'pause' : 'speaker'} size={14} />

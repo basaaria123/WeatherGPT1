@@ -119,6 +119,18 @@ const REFERENCE_LIGHT = {
   ink: '#143761', inkSoft: '#284f7c', muted: '#6a83a3', faint: '#93a7c0',
   safe: '#0f9d6b', caution: '#e29316', cautionInk: '#9a6206',
   warning: '#dd7a1b', danger: '#dc3b3b',
+  secondary: '#2b7fe0', primaryDim: '#1f78e6', borderSoft: '#e8f1fb',
+  // Ink for anything drawn ON a saturated fill — a solid pill, a primary
+  // button, a severity badge, the reader's own chat bubble. See the note beside
+  // `onSolid` in VAR_MAP for why this cannot be the literal white it looks like.
+  onSolid: '#ffffff',
+  // The surface OUTSIDE the application column on a wide screen. Deeper than
+  // the page in light, deeper again in dark — never a mix toward a fixed blue.
+  desk: '#dbe8f6',
+  // The Listen button: the reference's deep navy. A dark theme has no room
+  // below its own card, so there it is a raised slate instead — still the
+  // quieter of the two actions, still not the accent.
+  deep: '#143761', onDeep: '#ffffff',
   // No vignette and no atmospheric wash: the reference page is a flat, even
   // light blue from top to bottom.
   vignette: 'none',
@@ -134,10 +146,13 @@ export const THEMES = {
   base: {
     scheme: 'dark',
     scrim: '3 8 20', overlay: 'rgb(2 6 14 / 0.72)',
-    bg: '#050d1a', bgDeep: '#030814', raised: '#0a172b', surface: '#0e1c33',
+    bg: '#050d1a', bgDeep: '#030814', raised: '#16294a', surface: '#0e1c33',
     primary: '#22d3ee', accent: '#60a5fa', border: '#1e3050',
     tint: '255 255 255',
-    ink: '#f1f5f9', inkSoft: '#cbd5e1', muted: '#94a3b8', faint: '#64748b',
+    secondary: '#7dd3fc', primaryDim: '#67e8f9', borderSoft: '#16253f',
+    onSolid: '#041018', desk: '#02060e',
+    deep: '#1b3050', onDeep: '#f1f5f9',
+    ink: '#f1f5f9', inkSoft: '#cbd5e1', muted: '#94a3b8', faint: '#8695ad',
     safe: '#34d399', caution: '#fbbf24', cautionInk: '#fbbf24', warning: '#fb923c', danger: '#f43f5e',
     vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(3 8 20 / 0.55) 78%, rgb(3 8 20 / 0.85) 100%)',
     shadowGlass: '0 6px 20px rgb(2 8 20 / 0.38)',
@@ -155,6 +170,9 @@ export const THEMES = {
     bg: '#f8fbff', bgDeep: '#eaf7ff', raised: '#ffffff', surface: '#ffffff',
     primary: '#e0952a', accent: '#2f7fc4', border: '#cfe3f5',
     tint: '16 42 67',
+    secondary: '#2f7fc4', primaryDim: '#c97f14', borderSoft: '#dcecf9',
+    onSolid: '#201604', desk: '#e4f0fa',
+    deep: '#123a5c', onDeep: '#ffffff',
     ink: '#102a43', inkSoft: '#24405c', muted: '#4a6785', faint: '#71889f',
     safe: '#0f7f57', caution: '#a16207', cautionInk: '#a16207', warning: '#c2410c', danger: '#be123c',
     vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 34%, rgb(214 233 249 / 0.42) 80%, rgb(200 226 247 / 0.62) 100%)',
@@ -169,6 +187,9 @@ export const THEMES = {
     bg: '#eef3f7', bgDeep: '#e2e8f0', raised: '#ffffff', surface: '#ffffff',
     primary: '#2f7f9c', accent: '#546b82', border: '#cbd8e3',
     tint: '23 43 58',
+    secondary: '#546b82', primaryDim: '#2b7490', borderSoft: '#dbe4ee',
+    onSolid: '#ffffff', desk: '#dfe8f1',
+    deep: '#1c3242', onDeep: '#ffffff',
     ink: '#172b3a', inkSoft: '#2c4356', muted: '#4f6579', faint: '#78899b',
     safe: '#0f7f57', caution: '#a16207', cautionInk: '#a16207', warning: '#c2410c', danger: '#be123c',
     vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 34%, rgb(203 216 227 / 0.45) 80%, rgb(190 205 218 / 0.65) 100%)',
@@ -185,6 +206,9 @@ export const THEMES = {
     bg: '#e9eef2', bgDeep: '#dce5ea', raised: '#ffffff', surface: '#ffffff',
     primary: '#4d6b7a', accent: '#657f8c', border: '#c7d3da',
     tint: '38 50 56',
+    secondary: '#657f8c', primaryDim: '#456070', borderSoft: '#d6e0e6',
+    onSolid: '#ffffff', desk: '#dde5ea',
+    deep: '#22333c', onDeep: '#ffffff',
     ink: '#263238', inkSoft: '#3b4a52', muted: '#5b6d76', faint: '#84939b',
     safe: '#0f7f57', caution: '#a16207', cautionInk: '#a16207', warning: '#c2410c', danger: '#be123c',
     vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(214 224 230 / 0.55) 74%, rgb(202 214 222 / 0.75) 100%)',
@@ -197,13 +221,24 @@ export const THEMES = {
   },
 
   // --- Dark themes -------------------------------------------------------
+  //
+  // ON THE CARD SURFACES. `rain` and `night` each sat a shade brighter than
+  // their siblings (#153b56 and #132a44 against base's #0e1c33), and because
+  // both carry a bright accent — #38bdf8 and #60a5fa — everything drawn on
+  // them landed just under 4.5:1: the Listen control, the quiet labels, the
+  // units. They are now in family with base and storm, which is a change of a
+  // few percent in the card and the difference between a label that passes and
+  // one that does not.
   rain: {
     scheme: 'dark',
     scrim: '7 23 38', overlay: 'rgb(3 12 22 / 0.72)',
-    bg: '#0b1f33', bgDeep: '#071726', raised: '#102a43', surface: '#153b56',
+    bg: '#0b1f33', bgDeep: '#071726', raised: '#1c4a6c', surface: '#12354e',
     primary: '#38bdf8', accent: '#22d3ee', border: '#1f4a6b',
     tint: '255 255 255',
-    ink: '#f8fafc', inkSoft: '#dce7f2', muted: '#b8c7d9', faint: '#8aa0b8',
+    secondary: '#7dd3fc', primaryDim: '#60c8fa', borderSoft: '#17364f',
+    onSolid: '#04121d', desk: '#04101c',
+    deep: '#1d4763', onDeep: '#f8fafc',
+    ink: '#f8fafc', inkSoft: '#dce7f2', muted: '#b8c7d9', faint: '#99afc6',
     safe: '#34d399', caution: '#fbbf24', cautionInk: '#fbbf24', warning: '#fb923c', danger: '#fb7185',
     vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(4 14 26 / 0.52) 78%, rgb(4 14 26 / 0.82) 100%)',
     shadowGlass: '0 6px 20px rgb(2 12 24 / 0.40)',
@@ -216,10 +251,13 @@ export const THEMES = {
   storm: {
     scheme: 'dark',
     scrim: '4 13 27', overlay: 'rgb(2 8 18 / 0.75)',
-    bg: '#071426', bgDeep: '#040d1b', raised: '#0b1f3a', surface: '#12294a',
+    bg: '#071426', bgDeep: '#040d1b', raised: '#1a3760', surface: '#12294a',
     primary: '#38bdf8', accent: '#fbbf24', border: '#1c3357',
     tint: '255 255 255',
-    ink: '#f8fafc', inkSoft: '#dbe6f5', muted: '#a8bcd6', faint: '#7c93b0',
+    secondary: '#7dd3fc', primaryDim: '#60c8fa', borderSoft: '#152a48',
+    onSolid: '#04101c', desk: '#020913',
+    deep: '#1a3557', onDeep: '#f8fafc',
+    ink: '#f8fafc', inkSoft: '#dbe6f5', muted: '#a8bcd6', faint: '#8ba1bd',
     safe: '#34d399', caution: '#fbbf24', cautionInk: '#fbbf24', warning: '#fb923c', danger: '#fb7185',
     vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 28%, rgb(2 8 18 / 0.58) 76%, rgb(2 8 18 / 0.88) 100%)',
     shadowGlass: '0 6px 20px rgb(1 6 16 / 0.46)',
@@ -232,10 +270,13 @@ export const THEMES = {
   night: {
     scheme: 'dark',
     scrim: '4 10 20', overlay: 'rgb(2 7 15 / 0.74)',
-    bg: '#07111f', bgDeep: '#040a14', raised: '#0e2035', surface: '#132a44',
+    bg: '#07111f', bgDeep: '#040a14', raised: '#1b3856', surface: '#11263d',
     primary: '#60a5fa', accent: '#fbbf77', border: '#1d3350',
     tint: '255 255 255',
-    ink: '#f8fafc', inkSoft: '#dce6f3', muted: '#a9bbd2', faint: '#7d91ac',
+    secondary: '#93c5fd', primaryDim: '#7cb6fb', borderSoft: '#17283f',
+    onSolid: '#06121f', desk: '#020610',
+    deep: '#1f3859', onDeep: '#f8fafc',
+    ink: '#f8fafc', inkSoft: '#dce6f3', muted: '#a9bbd2', faint: '#8c9fba',
     safe: '#34d399', caution: '#fbbf24', cautionInk: '#fbbf24', warning: '#fb923c', danger: '#fb7185',
     vignette: 'radial-gradient(115% 78% at 50% 0%, transparent 30%, rgb(2 7 15 / 0.55) 78%, rgb(2 7 15 / 0.85) 100%)',
     shadowGlass: '0 6px 20px rgb(1 5 12 / 0.44)',
@@ -350,6 +391,11 @@ export function resolveTheme({ weatherCode, isDay = true, riskLevel, hazard, app
 const VAR_MAP = {
   '--wx-bg': 'bg',
   '--wx-bg-deep': 'bgDeep',
+  // `raised` is the surface a dialog, a popover or a menu sits on — one step
+  // ABOVE a card. Every dark theme had it a shade *darker* than `surface`,
+  // which is elevation read off a light theme: on a dark ground a raised
+  // surface is lighter, not shadowed, so a menu over a card was sinking into
+  // the page instead of lifting off it.
   '--wx-raised': 'raised',
   '--wx-surface': 'surface',
   '--wx-primary': 'primary',
@@ -374,10 +420,35 @@ const VAR_MAP = {
   '--color-surface': 'surface',
   '--color-border': 'border',
   '--color-primary': 'primary',
+  '--color-primary-dim': 'primaryDim',
+  '--color-secondary': 'secondary',
+  '--color-border-soft': 'borderSoft',
   '--color-accent': 'accent',
+  // The ink that goes ON a saturated fill.
+  //
+  // This is the token the dark audit turned up as a root cause. Fifteen places
+  // wrote `text-white` over a solid primary, a severity badge or the reader's
+  // own chat bubble, and three more wrote a near-black over the same fill. Both
+  // are right in exactly one appearance: the light themes' primary is a deep
+  // blue that needs white on it, and every dark theme's primary is a bright
+  // cyan that needs near-black. White on #22d3ee is 1.7:1 — unreadable, and it
+  // was unreadable on every solid control in the app.
+  //
+  // Naming it makes the decision the theme's rather than the component's, which
+  // is why the fix is here and not eighteen overrides.
+  '--color-on-solid': 'onSolid',
+  '--wx-desk': 'desk',
+  '--wx-deep': 'deep',
+  '--wx-on-deep': 'onDeep',
   '--color-ink': 'ink',
   '--color-ink-soft': 'inkSoft',
   '--color-muted': 'muted',
+  // `faint` is the quiet tier — small labels, placeholders, units. Every dark
+  // theme's value sat between 3.6:1 and 4.5:1 against its own card, so the one
+  // tier meant to be read *last* was the one tier that could not be read at
+  // all. Each is now above 4.5:1 on the card and above 4.1:1 on a raised
+  // surface, which is a few percent lighter — enough to pass, not enough to
+  // stop being quiet.
   '--color-faint': 'faint',
   '--color-safe': 'safe',
   '--color-caution': 'caution',

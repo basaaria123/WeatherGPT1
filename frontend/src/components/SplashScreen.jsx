@@ -92,6 +92,14 @@ export default function SplashScreen({ onDone }) {
       className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden"
       style={{
         // Light, weather-inspired ground: white lifting into a soft sky blue.
+        //
+        // DELIBERATELY NOT THEMED, and the one surface in the app that isn't.
+        // The official mark in `public/weathergpt-logo.png` is two-tone — about
+        // a third of its opaque pixels are the navy wordmark — so painting this
+        // ground from `--wx-bg` would erase that third of the artwork for every
+        // reader in dark appearance. A brand surface follows the brand, not the
+        // theme. The wordmark fallback below is coloured to match this ground
+        // for the same reason.
         background: 'linear-gradient(180deg, #ffffff 0%, #f5fbff 46%, #e6f3fd 100%)',
       }}
     >

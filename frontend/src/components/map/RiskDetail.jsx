@@ -82,7 +82,7 @@ export default function RiskDetail({ entry, isActive, activeName, onCommit, onAs
          so the map stays visible above the sheet and the marker stays findable. */
       className="pointer-events-auto absolute inset-x-2 bottom-2 z-[900] flex max-h-[66%] flex-col
                  overflow-hidden rounded-[var(--radius-card)] border border-[rgb(var(--wx-tint)/0.14)]
-                 bg-[rgb(var(--wx-scrim)/0.96)] shadow-2xl backdrop-blur-md
+                 wx-veil shadow-2xl backdrop-blur-md
                  sm:inset-x-auto sm:bottom-auto sm:left-3 sm:top-3 sm:max-h-[calc(100%-1.5rem)] sm:w-[19.5rem]"
     >
       {/* The reading scrolls; the control that acts on it never does. A longer

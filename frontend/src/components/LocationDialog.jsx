@@ -131,7 +131,7 @@ export default function LocationDialog({ open, onClose, prefill = '' }) {
               <button
                 type="submit"
                 disabled={status === 'loading' || !query.trim()}
-                className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-[#04121d]
+                className="shrink-0 rounded-xl bg-primary px-4 py-2.5 text-sm font-semibold text-on-solid
                            transition hover:brightness-110 disabled:opacity-40"
               >
                 {status === 'loading' ? '…' : '→'}

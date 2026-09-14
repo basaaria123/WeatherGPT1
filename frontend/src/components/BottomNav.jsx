@@ -106,7 +106,7 @@ export default function BottomNav({ screen, onNavigate }) {
                   {badge > 0 && (
                     <span
                       className="absolute -right-2 -top-1.5 min-w-[15px] rounded-full bg-danger px-[3px]
-                                 text-center text-[9px] font-bold leading-[15px] text-white"
+                                 text-center text-[9px] font-bold leading-[15px] text-on-solid"
                     >
                       {badge > 9 ? '9+' : badge}
                     </span>

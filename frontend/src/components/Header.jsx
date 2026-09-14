@@ -272,7 +272,7 @@ function IconButton({ label, onClick, disabled, pressed, badge = 0, children }) 
       {badge > 0 && (
         <span
           className="absolute right-0 top-0 min-w-[15px] rounded-full bg-danger px-[3px] text-center
-                     text-[9px] font-bold leading-[15px] text-white"
+                     text-[9px] font-bold leading-[15px] text-on-solid"
         >
           {badge > 9 ? '9+' : badge}
         </span>

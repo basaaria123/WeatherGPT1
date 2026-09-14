@@ -95,8 +95,8 @@ export default function Landing({ onEnter, onDemo }) {
           <button
             type="button"
             onClick={onEnter}
-            className="rounded-[var(--radius-pill)] bg-primary px-6 py-3 text-sm font-semibold text-[#04121d]
-                       shadow-[0_8px_28px_rgb(34_211_238/0.32)] transition hover:brightness-110
+            className="rounded-[var(--radius-pill)] bg-primary px-6 py-3 text-sm font-semibold text-on-solid
+                       shadow-[var(--shadow-lift)] transition hover:brightness-110
                        focus-visible:outline-offset-4 active:scale-[0.98]"
           >
             {t(language, 'heroCta')} →

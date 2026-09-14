@@ -42,6 +42,11 @@ export function sceneForCode(code) {
 function Moon({ id, cx = 32, cy = 30, r = 11, opacity = 0.95 }) {
   return (
     <>
+      {/* The two literals here are mask LUMINANCE, not colour: white keeps the
+          pixel, black cuts it. They are the only hard-coded values left in the
+          app's drawing code, and they must stay literal — resolving them
+          through a theme token would make the crescent appear and disappear
+          with the palette. What is actually painted is the accent, below. */}
       <mask id={id}>
         <circle cx={cx} cy={cy} r={r} fill="#fff" />
         <circle cx={cx + r * 0.62} cy={cy - r * 0.42} r={r * 0.92} fill="#000" />

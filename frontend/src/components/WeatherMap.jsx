@@ -37,10 +37,6 @@ const DEFAULT_ZOOM = 6
 const INDIA_CENTER = [22.6, 79.5]
 const INDIA_ZOOM = 4
 
-const TILE_URL = 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'
-const TILE_ATTRIBUTION =
-  '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-
 const clock = (stamp) => String(stamp ?? '').split('T')[1]?.slice(0, 5) ?? ''
 
 /** Keeps the map on the selected place, and gives the recentre button a target. */
@@ -193,7 +189,7 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
             style={{ height: mapHeight, width: '100%', background: 'var(--wx-bg-deep)' }}
             aria-label={t(language, 'weatherMap')}
           >
-            <TileStatus url={TILE_URL} attribution={TILE_ATTRIBUTION} />
+            <TileStatus />
 
             {/* The layer as a surface, under the markers. Interpolated from the
                 same measured values they show, and transparent wherever no
@@ -252,7 +248,7 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
               disabled={!canPlay}
               data-map-play
               aria-label={playing ? t(language, 'mapPause') : t(language, 'mapPlay')}
-              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-white
+              className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-primary text-on-solid
                          transition hover:brightness-110 disabled:opacity-40"
             >
               <Icon name={playing ? 'pause' : 'play'} size={14} />
@@ -288,7 +284,7 @@ export default function WeatherMap({ data, hours, insights, loading, error, tall
                      24px, which is under any touch-target guidance. */
                   className={`min-h-[32px] shrink-0 rounded-[var(--radius-pill)] px-2.5 text-[10.5px]
                               font-semibold tabular-nums transition ${
-                                active ? 'bg-primary text-white' : 'text-muted hover:bg-[rgb(var(--wx-tint)/0.07)]'
+                                active ? 'bg-primary text-on-solid' : 'text-muted hover:bg-[rgb(var(--wx-tint)/0.07)]'
                               } disabled:opacity-30`}
                 >
                   {index === 0 ? t(language, 'mapNow') : clock(hour?.time)}

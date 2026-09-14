@@ -43,7 +43,7 @@ function PrimaryButton({ children, ...props }) {
   return (
     <button
       type="button"
-      className="rounded-[var(--radius-pill)] bg-primary px-5 py-2.5 text-[13px] font-semibold text-[rgb(var(--wx-scrim))]
+      className="rounded-[var(--radius-pill)] bg-primary px-5 py-2.5 text-[13px] font-semibold text-on-solid
                  transition hover:opacity-90 active:scale-[0.99] disabled:opacity-45"
       {...props}
     >
