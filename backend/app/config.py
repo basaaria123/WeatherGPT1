@@ -120,6 +120,24 @@ class Settings:
     weather_timeout_seconds: float = field(default_factory=lambda: _env_float("WEATHER_TIMEOUT_SECONDS", 12.0))
     weather_cache_seconds: int = field(default_factory=lambda: _env_int("WEATHER_CACHE_SECONDS", 600))
 
+    # The archive gets its own budget, and it is deliberately *small*.
+    #
+    # The obvious fix for "the historical archive could not be reached" was a
+    # longer timeout, and it would not have worked. The backend runs as a
+    # serverless function with a hard wall-clock ceiling — ten seconds on the
+    # plan this is deployed on — so a client timeout above the ceiling is never
+    # reached: the platform kills the invocation first and the browser gets
+    # nothing. The fix is to make each request small enough to finish (one
+    # calendar year, one daily variable, several at a time) and to give up on a
+    # slow year early enough to return the years that did answer.
+    #
+    # Raise it only alongside the platform's own function limit.
+    archive_timeout_seconds: float = field(default_factory=lambda: _env_float("ARCHIVE_TIMEOUT_SECONDS", 6.0))
+    # A finished calendar year cannot change, so the only reason to re-fetch it
+    # is that the process restarted. Ten minutes put every reload back on the
+    # slow path; a day keeps the chart instant and still expires.
+    archive_cache_seconds: int = field(default_factory=lambda: _env_int("ARCHIVE_CACHE_SECONDS", 86400))
+
     # --- Persistence -------------------------------------------------------
     # On a serverless host the project directory is read-only, so fall back to
     # /tmp. That storage is per-instance and short-lived — see docs/DEPLOYMENT.md.

@@ -105,13 +105,16 @@ def test_an_unreachable_archive_is_said_plainly_not_improvised(scenario, monkeyp
     assert "°c" not in answer.lower()
 
 
-def test_humidity_history_says_the_archive_has_no_series(scenario):
+def test_humidity_history_is_answered_from_the_archive(scenario):
+    """Humidity used to be refused here because the series was wired to
+    nothing. It is a measured daily variable, so the assistant answers it the
+    same way it answers temperature — with the archive's own numbers."""
     scenario("rain")
     answer = climate.history_answer(
         weather.gazetteer_lookup("Chennai"), "show me humidity over the years", "en"
     )
     assert "humidity" in answer.lower()
-    assert "not" in answer.lower()
+    assert "%" in answer
 
 
 def test_every_language_has_both_answers():

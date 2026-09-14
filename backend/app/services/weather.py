@@ -41,6 +41,16 @@ class WeatherError(RuntimeError):
     """Raised when weather data cannot be obtained. Message is user-safe."""
 
 
+class WeatherTimeout(WeatherError):
+    """The provider did not answer in time.
+
+    Its own type because it is the one failure not worth retrying inside a
+    request budget: a provider that is slow will still be slow a second later,
+    and the retry spends the budget that the rest of the work needed. A refused
+    or reset connection fails in milliseconds and is worth another go.
+    """
+
+
 @dataclass(frozen=True)
 class Location:
     name: str
@@ -237,8 +247,8 @@ _cache: dict[str, tuple[float, Any]] = {}
 _cache_lock = threading.Lock()
 
 
-def _cache_get(key: str) -> Any | None:
-    ttl = get_settings().weather_cache_seconds
+def _cache_get(key: str, ttl: int | None = None) -> Any | None:
+    ttl = get_settings().weather_cache_seconds if ttl is None else ttl
     with _cache_lock:
         hit = _cache.get(key)
         if hit and (time.time() - hit[0]) < ttl:
@@ -278,15 +288,16 @@ DAILY_FIELDS = (
 )
 
 
-def _http_get(url: str, params: dict[str, Any]) -> dict[str, Any]:
+def _http_get(url: str, params: dict[str, Any], *, timeout: float | None = None) -> dict[str, Any]:
     settings = get_settings()
+    budget = settings.weather_timeout_seconds if timeout is None else timeout
     try:
-        with httpx.Client(timeout=settings.weather_timeout_seconds, follow_redirects=True) as client:
+        with httpx.Client(timeout=budget, follow_redirects=True) as client:
             resp = client.get(url, params=params)
             resp.raise_for_status()
             return resp.json()
     except httpx.TimeoutException as exc:
-        raise WeatherError("The weather service is taking too long to respond. Please try again.") from exc
+        raise WeatherTimeout("The weather service is taking too long to respond. Please try again.") from exc
     except httpx.HTTPStatusError as exc:
         raise WeatherError(f"The weather service returned an error ({exc.response.status_code}).") from exc
     except httpx.HTTPError as exc:
@@ -674,28 +685,69 @@ def fetch_weather(location: Location) -> WeatherBundle:
     return bundle
 
 
-def fetch_archive(location: Location, start: date, end: date) -> dict[str, Any]:
-    """Daily historical archive for climate-trend analysis."""
+ARCHIVE_DAILY_DEFAULT = "temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum"
+
+
+def fetch_archive(
+    location: Location,
+    start: date,
+    end: date,
+    *,
+    daily: str | None = None,
+) -> dict[str, Any]:
+    """Daily historical archive for climate-trend analysis.
+
+    `daily` names the variables to ask for. The climate screen plots one
+    measurement at a time, and asking for four when the chart draws one doubled
+    a payload that was already the thing running out of time.
+
+    Retried once. The failure this recovers from is a slow aggregation rather
+    than a broken provider — a second attempt usually lands on a range Open-Meteo
+    has just finished computing — so the retry is cheap and the alternative is a
+    screen that says the archive could not be reached when it could.
+    """
     settings = get_settings()
-    key = f"arch:{settings.weather_data_mode}:{location.latitude}:{location.longitude}:{start}:{end}"
-    cached = _cache_get(key)
+    fields = daily or ARCHIVE_DAILY_DEFAULT
+    key = f"arch:{settings.weather_data_mode}:{location.latitude}:{location.longitude}:{start}:{end}:{fields}"
+    # Settled history, so it is cached for a day rather than for ten minutes.
+    cached = _cache_get(key, ttl=settings.archive_cache_seconds)
     if cached is not None:
         return cached
 
     if settings.use_fixtures:
         payload = _fixture_archive(location, start, end)
     else:
-        payload = _http_get(
-            settings.open_meteo_archive_url,
-            {
-                "latitude": location.latitude,
-                "longitude": location.longitude,
-                "start_date": start.isoformat(),
-                "end_date": end.isoformat(),
-                "daily": "temperature_2m_max,temperature_2m_min,temperature_2m_mean,precipitation_sum",
-                "timezone": location.timezone or "auto",
-            },
-        )
+        params = {
+            "latitude": location.latitude,
+            "longitude": location.longitude,
+            "start_date": start.isoformat(),
+            "end_date": end.isoformat(),
+            "daily": fields,
+            "timezone": location.timezone or "auto",
+        }
+        last: WeatherError | None = None
+        for attempt in range(2):
+            try:
+                payload = _http_get(
+                    settings.open_meteo_archive_url, params,
+                    timeout=settings.archive_timeout_seconds,
+                )
+                break
+            except WeatherTimeout as exc:
+                # Not retried. See `WeatherTimeout`: the caller is inside a
+                # wall-clock ceiling it does not control, and a second attempt
+                # at a provider that is already slow spends the budget the
+                # other years of the chart need.
+                log.warning("archive timed out for %s %s..%s", location.name, start, end)
+                raise exc
+            except WeatherError as exc:
+                last = exc
+                log.warning(
+                    "archive attempt %d/2 failed for %s %s..%s: %s",
+                    attempt + 1, location.name, start, end, exc,
+                )
+        else:
+            raise last or WeatherError("The historical archive is unreachable right now.")
     _cache_put(key, payload)
     return payload
 
@@ -707,6 +759,7 @@ def _fixture_archive(location: Location, start: date, end: date) -> dict[str, An
     tmin: list[float] = []
     tmean: list[float] = []
     precip: list[float] = []
+    humid: list[float] = []
     cursor = start
     seed = int(hashlib.sha256(f"{location.name}".encode()).hexdigest()[:8], 16)
     while cursor <= end:
@@ -720,6 +773,9 @@ def _fixture_archive(location: Location, start: date, end: date) -> dict[str, An
         tmin.append(round(base - 5.0 + warming + wiggle, 1))
         tmean.append(round(base + warming + wiggle, 1))
         precip.append(round(monsoon * 16.0 * wiggle * (1 + (cursor.year - 2015) * 0.01), 1))
+        # Wet in the monsoon, dry in the pre-monsoon, in the range the live
+        # archive reports for the Indian plains.
+        humid.append(round(min(97.0, 45.0 + 40.0 * monsoon + wiggle * 10.0 + (cursor.year - 2015) * 0.15), 1))
         cursor += timedelta(days=1)
     return {
         "latitude": location.latitude,
@@ -730,6 +786,7 @@ def _fixture_archive(location: Location, start: date, end: date) -> dict[str, An
             "temperature_2m_min": tmin,
             "temperature_2m_mean": tmean,
             "precipitation_sum": precip,
+            "relative_humidity_2m_mean": humid,
         },
         "fixture": True,
     }

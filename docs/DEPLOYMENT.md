@@ -59,6 +59,7 @@ Project → Settings → Environment Variables:
 | `ANTHROPIC_API_KEY` | optional | The alternative provider |
 | `WEATHER_DATA_MODE` | `live` | The default; set explicitly so it is visible |
 | `TWILIO_ACCOUNT_SID` / `_AUTH_TOKEN` / `_FROM_NUMBER` | optional | Omit and alerts log instead of texting |
+| `ARCHIVE_TIMEOUT_SECONDS` | optional, default `6` | See below. Raise only alongside the platform's function limit |
 
 You do **not** need to set `SCHEDULER_ENABLED`, `WEATHERGPT_DB` or
 `API_MOUNT_PREFIX` — the app detects the serverless runtime and adjusts:
@@ -67,6 +68,29 @@ is served at both `/chat` and `/api/chat` so it works whether or not the
 platform strips the prefix.
 
 `CORS_*` is irrelevant here: the rewrite makes both services same-origin.
+
+#### The function time limit, and why Historical & Climate Insights respects it
+
+A serverless function has a hard wall-clock ceiling — ten seconds by default on
+Hobby. Anything the request has not finished by then is killed, and the browser
+gets nothing back, whatever the HTTP client's own timeout says.
+
+This is not theoretical: Historical & Climate Insights asked Open-Meteo to
+aggregate a whole five- or ten-year span in one request, which on a cold range
+takes longer than the ceiling. The function was killed, the fetch failed, and
+the screen reported "the historical archive could not be reached for this
+place" about an archive that was answering perfectly well.
+
+So the climate screen now fetches **one calendar year per request, several at
+once, asking only for the one daily variable the chart plots**. Five small
+requests in parallel finish in about as long as the slowest one, each year
+caches under its own key (moving the selector from five years to ten re-fetches
+five), and a year that fails costs that year rather than the chart.
+
+`ARCHIVE_TIMEOUT_SECONDS` is deliberately *below* the platform ceiling so a slow
+year is abandoned early enough for the years that did answer to be returned. If
+you raise the function limit (`maxDuration` on Pro, or a host without one),
+raise this with it — not before.
 
 ### 3. Deploy, then verify
 

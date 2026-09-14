@@ -10,6 +10,7 @@ like climate change — so each of those is a test.
 
 from __future__ import annotations
 
+import dataclasses
 from datetime import date
 
 import pytest
@@ -132,14 +133,39 @@ def test_an_unreachable_archive_is_a_state_not_a_crash(chennai, monkeypatch):
     assert series.average is None and series.highest is None and series.lowest is None
 
 
-def test_humidity_says_it_has_no_daily_series_rather_than_inventing_one(chennai):
-    """Open-Meteo's daily archive carries temperature and precipitation and no
-    relative humidity. Deriving one from something else would be a number
-    nobody measured."""
+def test_humidity_is_measured_rather_than_refused(chennai):
+    """The selector offers humidity, so it has to draw something.
+
+    It was wired to `aggregate: None`, which meant the option could be pressed
+    and could never plot anything — an honest answer to a question nobody had
+    asked, since the daily archive does carry `relative_humidity_2m_mean`. It
+    is still requested on its own, so an archive range that does not carry it
+    fails the humidity chart and leaves temperature and rainfall alone.
+    """
     series = climate.history_series(chennai, parameter="humidity", years=5)
-    assert series.available is False
-    assert series.note == "no_daily_series"
+    assert series.available is True
     assert series.unit == "%"
+    assert len(series.points) >= 2
+    # Measured, not derived from temperature: every value is a percentage.
+    assert all(0 <= point["value"] <= 100 for point in series.points)
+
+
+def test_humidity_is_asked_for_on_its_own(chennai, monkeypatch):
+    """One measurement per request. Four variables for a one-line chart is most
+    of the payload that was timing out."""
+    asked: list[str | None] = []
+
+    def spy(location, start, end, *, daily=None):
+        asked.append(daily)
+        return full_years({2023: (2.0, 28.0), 2024: (2.0, 29.0)})
+
+    monkeypatch.setattr(weather, "fetch_archive", spy)
+    climate.history_series(chennai, parameter="humidity", years=5)
+    assert set(asked) == {"relative_humidity_2m_mean"}
+
+    asked.clear()
+    climate.history_series(chennai, parameter="rainfall", years=5)
+    assert set(asked) == {"precipitation_sum"}
 
 
 def test_one_year_is_not_a_trend(chennai, monkeypatch):
@@ -210,3 +236,142 @@ def test_an_unknown_parameter_falls_back_rather_than_erroring(scenario):
     )
     assert response.status_code == 200
     assert response.json()["parameter"] == "temperature"
+
+
+# --- Why the screen said the archive could not be reached ------------------
+#
+# It was reported from production: Chennai, five years, "The historical archive
+# could not be reached for this place." The archive was reachable. The request
+# was being held to the same twelve-second budget as a current observation,
+# and Open-Meteo aggregating five years of daily ERA5 values does not finish in
+# twelve seconds on a cold range.
+def test_the_archive_gives_up_inside_the_platform_ceiling():
+    """The obvious fix was a longer timeout, and it would not have worked.
+
+    The backend runs as a serverless function with a hard wall-clock ceiling,
+    so a client timeout above that ceiling is never reached — the platform
+    kills the invocation and the browser gets nothing. The archive budget has
+    to stay well under it, so a slow year is abandoned early enough for the
+    years that did answer to be returned.
+    """
+    from app.config import get_settings
+
+    settings = get_settings()
+    assert 0 < settings.archive_timeout_seconds <= 10
+
+
+def test_settled_history_is_cached_for_longer_than_an_observation():
+    """A finished calendar year cannot change, so the only reason to re-fetch
+    it is that the process restarted."""
+    from app.config import get_settings
+
+    settings = get_settings()
+    assert settings.archive_cache_seconds > settings.weather_cache_seconds
+
+
+def _live(monkeypatch, responder):
+    """Run `fetch_archive` against a stand-in provider instead of the fixture."""
+    live = dataclasses.replace(weather.get_settings(), weather_data_mode="live")
+    weather.clear_cache()
+    monkeypatch.setattr(weather, "_http_get", responder)
+    monkeypatch.setattr(weather, "get_settings", lambda: live)
+
+
+def test_a_refused_archive_request_is_retried(chennai, monkeypatch):
+    """A reset or a 502 fails in milliseconds, so another go is nearly free."""
+    calls = {"n": 0}
+
+    def flaky(url, params, *, timeout=None):
+        calls["n"] += 1
+        if calls["n"] == 1:
+            raise WeatherError("The weather service is unreachable right now.")
+        return full_years({2023: (2.0, 28.0)})
+
+    _live(monkeypatch, flaky)
+    payload = weather.fetch_archive(
+        chennai, date(2023, 1, 1), date(2023, 12, 31), daily="temperature_2m_mean",
+    )
+    assert calls["n"] == 2
+    assert payload["daily"]["time"]
+
+
+def test_a_timed_out_archive_request_is_not_retried(chennai, monkeypatch):
+    """A provider that is already slow will still be slow a second later, and
+    the retry spends the budget the other years of the chart need."""
+    calls = {"n": 0}
+
+    def slow(url, params, *, timeout=None):
+        calls["n"] += 1
+        raise weather.WeatherTimeout("too slow")
+
+    _live(monkeypatch, slow)
+    with pytest.raises(WeatherError):
+        weather.fetch_archive(
+            chennai, date(2023, 1, 1), date(2023, 12, 31), daily="temperature_2m_mean",
+        )
+    assert calls["n"] == 1
+
+
+def test_the_archive_request_carries_the_archive_budget(chennai, monkeypatch):
+    """Not the observation budget, and not httpx's default."""
+    seen: list[float | None] = []
+
+    def spy(url, params, *, timeout=None):
+        seen.append(timeout)
+        return full_years({2023: (2.0, 28.0)})
+
+    _live(monkeypatch, spy)
+    weather.fetch_archive(chennai, date(2023, 1, 1), date(2023, 12, 31), daily="temperature_2m_mean")
+    assert seen == [weather.get_settings().archive_timeout_seconds]
+
+
+def test_the_window_is_fetched_a_year_at_a_time(chennai, monkeypatch):
+    """One request spanning five years is one request the platform can kill.
+
+    Five small ones finish inside the ceiling, cache under their own keys so
+    moving the selector from five years to ten re-fetches five, and fail
+    independently.
+    """
+    spans: list[tuple[date, date]] = []
+
+    def per_year(location, start, end, *, daily=None):
+        spans.append((start, end))
+        return full_years({start.year: (2.0, 27.0)})
+
+    monkeypatch.setattr(weather, "fetch_archive", per_year)
+    climate.history_series(chennai, parameter="temperature", years=5, today=date(2026, 9, 14))
+    assert sorted(spans) == [
+        (date(year, 1, 1), date(year, 12, 31)) for year in range(2021, 2026)
+    ]
+
+
+def test_a_year_that_fails_costs_that_year_and_not_the_chart(chennai, monkeypatch):
+    """Four good years out of five is a real chart. "Could not be reached" is
+    not, and that is what one failed request used to produce."""
+    def per_year(location, start, end, *, daily=None):
+        if start.year == 2021:
+            raise WeatherError("this one year is missing")
+        return full_years({start.year: (2.0, 27.0 + (start.year - 2021) * 0.5)})
+
+    monkeypatch.setattr(weather, "fetch_archive", per_year)
+    series = climate.history_series(
+        chennai, parameter="temperature", years=5, today=date(2026, 9, 14),
+    )
+    assert series.available is True
+    # The year that could not be fetched is absent, not zero-filled, and the
+    # window reports the years actually plotted rather than the ones asked for.
+    assert [p["year"] for p in series.points] == [2022, 2023, 2024, 2025]
+    assert series.start_year == 2022
+
+
+def test_a_window_that_fails_entirely_still_says_which_absence_it_is(chennai, monkeypatch):
+    """"The archive does not go back far enough here" is a fact about the
+    place; "we could not reach it" is a fact about this request. Saying the
+    first when the second happened sends somebody looking for another city."""
+    def down(*args, **kwargs):
+        raise WeatherError("unreachable")
+
+    monkeypatch.setattr(weather, "fetch_archive", down)
+    series = climate.history_series(chennai, parameter="temperature", years=5)
+    assert series.available is False
+    assert series.note == "archive_unavailable"

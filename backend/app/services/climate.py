@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import calendar
 import logging
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Any
@@ -73,6 +74,29 @@ def _daily(payload: dict[str, Any]) -> tuple[list[str], list[Any], list[Any]]:
     return times, precip, temps
 
 
+def _series(payload: dict[str, Any], field: str) -> tuple[list[str], list[Any]]:
+    """One named daily variable, with the dates it was measured on.
+
+    `_daily` above reads the two variables the monthly anomaly needs; this
+    reads whichever one the chart asked for, so a parameter can be added to
+    `PARAMETERS` without a second extraction path being written for it.
+    """
+    block = payload.get("daily") or {}
+    times = list(block.get("time") or [])
+    values = list(block.get(field) or [])
+    if not values and field == "temperature_2m_mean":
+        # Some archive responses omit the mean; derive it from max/min rather
+        # than reporting a year as missing when both halves of it are present.
+        highs = list(block.get("temperature_2m_max") or [])
+        lows = list(block.get("temperature_2m_min") or [])
+        values = [
+            (h + l) / 2 if isinstance(h, (int, float)) and isinstance(l, (int, float)) else None
+            for h, l in zip(highs, lows)
+        ]
+    values += [None] * max(0, len(times) - len(values))
+    return times, values
+
+
 def _mean(values: list[float]) -> float | None:
     return round(sum(values) / len(values), 1) if values else None
 
@@ -94,16 +118,30 @@ def compute_trend(location: Location, *, years: int = DEFAULT_YEARS, today: date
     totals: list[float] = []
     means: list[float] = []
     baseline_days = 0
+    # Fetched together rather than one after another. Ten baseline years in
+    # sequence is ten round trips inside one serverless invocation, which is
+    # the same wall-clock ceiling that broke the history chart.
+    windows = {}
     for offset in range(1, years + 1):
         past_year = year - offset
-        try:
-            last_day = min(day_of_month, calendar.monthrange(past_year, month)[1])
-            payload = weather.fetch_archive(
-                location, date(past_year, month, 1), date(past_year, month, last_day)
-            )
-        except WeatherError as exc:
-            log.warning("archive year %s unavailable: %s", past_year, exc)
-            continue
+        last_day = min(day_of_month, calendar.monthrange(past_year, month)[1])
+        windows[past_year] = (date(past_year, month, 1), date(past_year, month, last_day))
+
+    payloads: dict[int, dict[str, Any]] = {}
+    with ThreadPoolExecutor(max_workers=min(ARCHIVE_WORKERS, max(1, len(windows)))) as pool:
+        futures = {
+            pool.submit(weather.fetch_archive, location, start, end): past
+            for past, (start, end) in windows.items()
+        }
+        for future in as_completed(futures):
+            past = futures[future]
+            try:
+                payloads[past] = future.result()
+            except WeatherError as exc:
+                log.warning("archive year %s unavailable: %s", past, exc)
+
+    for past_year in sorted(payloads):
+        payload = payloads[past_year]
         _, precip, temp = _daily(payload)
         precip_values = [float(v) for v in precip if isinstance(v, (int, float))]
         temp_values = [float(v) for v in temp if isinstance(v, (int, float))]
@@ -301,20 +339,45 @@ def summarise(metrics: TrendMetrics, location_label: str, lang: str = "en") -> t
 # from something else.
 
 PARAMETERS: dict[str, dict[str, Any]] = {
-    # key: which archive field, what unit, and how a year is summarised.
-    "temperature": {"unit": "°C", "aggregate": "mean", "decimals": 1},
+    # key: what to ask the archive for, which field carries it, what unit, and
+    # how a year is summarised.
+    #
+    # `daily` is per parameter because the chart draws one measurement and the
+    # request used to carry four. On a five- or ten-year range that is most of
+    # a megabyte of numbers nothing plots, inside the one request that was
+    # already running out of time.
+    "temperature": {
+        # The mean, with max/min as the fallback `_series` derives it from —
+        # some archive responses omit the mean for older ranges.
+        "daily": "temperature_2m_mean,temperature_2m_max,temperature_2m_min",
+        "field": "temperature_2m_mean",
+        "unit": "°C", "aggregate": "mean", "decimals": 1,
+    },
     # Rainfall and precipitation are one measurement in this archive
     # (`precipitation_sum`), so there is one option rather than two identical
     # ones under different names.
-    "rainfall": {"unit": "mm", "aggregate": "sum", "decimals": 0},
-    # Present, and honest about itself. See the note above.
-    "humidity": {"unit": "%", "aggregate": None, "decimals": 0},
+    "rainfall": {
+        "daily": "precipitation_sum",
+        "field": "precipitation_sum",
+        "unit": "mm", "aggregate": "sum", "decimals": 0,
+    },
+    # Offered on the screen, so it has to measure something. It was wired to
+    # `aggregate: None`, which meant the selector could be pressed and could
+    # never draw anything — the honest answer to a question nobody had asked,
+    # since the archive does carry a daily mean. Requested on its own, so that
+    # if a given archive range does not carry it the temperature and rainfall
+    # charts are unaffected.
+    "humidity": {
+        "daily": "relative_humidity_2m_mean",
+        "field": "relative_humidity_2m_mean",
+        "unit": "%", "aggregate": "mean", "decimals": 0,
+    },
 }
 
 # A trend smaller than this over the whole window is reported as steady rather
 # than as a direction. Reading a slope out of noise is the main way a chart like
 # this tells a lie.
-TREND_EPSILON = {"temperature": 0.3, "rainfall": 25.0}
+TREND_EPSILON = {"temperature": 0.3, "rainfall": 25.0, "humidity": 1.0}
 
 MAX_YEARS = 30
 
@@ -377,6 +440,82 @@ def _unavailable(parameter: str, start: int, end: int, note: str) -> HistorySeri
     )
 
 
+# How many archive requests to have in flight at once. Six is enough to make a
+# ten-year window feel instant and small enough not to look like a scrape.
+ARCHIVE_WORKERS = 6
+
+
+def _fetch_years(
+    location: Location,
+    daily: str,
+    years: list[int],
+) -> tuple[dict[int, dict[str, Any]], bool]:
+    """One archive request per calendar year, in parallel.
+
+    A year at a time rather than one request spanning the window, which is what
+    this used to do and is why the screen said "the historical archive could
+    not be reached for this place" about an archive that was answering fine.
+    Three reasons, and the first is the one that broke production:
+
+    * The backend runs as a serverless function with a hard wall-clock ceiling
+      measured in seconds. One request asking Open-Meteo to aggregate five
+      years of daily ERA5 values regularly takes longer than that, so the
+      platform killed the function and the client never saw a reply. Raising
+      the HTTP timeout cannot fix that — the limit is not ours. Five small
+      requests running at once finish in about as long as the slowest one.
+    * A year that fails costs that year, not the chart. Four years out of five
+      is a real chart and an honest one; "could not be reached" is not.
+    * Each year caches under its own key, so moving the selector from five
+      years to ten re-fetches five years rather than all ten.
+
+    Returns what came back and whether every year did.
+    """
+    payloads: dict[int, dict[str, Any]] = {}
+    complete = True
+    workers = min(ARCHIVE_WORKERS, max(1, len(years)))
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {
+            pool.submit(
+                weather.fetch_archive,
+                location, date(year, 1, 1), date(year, 12, 31), daily=daily,
+            ): year
+            for year in years
+        }
+        for future in as_completed(futures):
+            year = futures[future]
+            try:
+                payloads[year] = future.result()
+            except WeatherError as exc:
+                log.warning("archive year %s unavailable for %s: %s", year, location.name, exc)
+                complete = False
+    return payloads, complete
+
+
+def _archive_days(
+    location: Location,
+    spec: dict[str, Any],
+    start_year: int,
+    end_year: int,
+) -> tuple[list[str], list[Any], bool]:
+    """Every measured day in the window, and whether all of it was reached."""
+    payloads, complete = _fetch_years(
+        location, spec["daily"], list(range(start_year, end_year + 1)),
+    )
+    times: list[str] = []
+    values: list[Any] = []
+    for year in sorted(payloads):
+        stamp_year = str(year)
+        for stamp, value in zip(*_series(payloads[year], spec["field"])):
+            # Keep only the year this request asked for. With one request per
+            # year the windows sit end to end, and `timezone=auto` can shift a
+            # boundary day across the join — counted twice, a year's rainfall
+            # total gains a day it did not have.
+            if str(stamp).startswith(stamp_year):
+                times.append(stamp)
+                values.append(value)
+    return times, values, complete
+
+
 def history_series(
     location: Location,
     *,
@@ -385,10 +524,6 @@ def history_series(
     today: date | None = None,
 ) -> HistorySeries:
     """One value per calendar year, measured from the archive.
-
-    A single archive request spans the whole window and the years are separated
-    here. Asking per year would be ten requests for one chart, and the provider
-    is the same either way.
 
     The most recent complete year is the end of the window: the current year is
     part-way through, and a January-to-September mean plotted beside ten full
@@ -404,20 +539,9 @@ def history_series(
     years = max(2, min(int(years), MAX_YEARS))
     start_year = end_year - years + 1
 
-    if spec["aggregate"] is None:
-        return _unavailable(
-            parameter, start_year, end_year,
-            "no_daily_series",
-        )
-
-    try:
-        payload = weather.fetch_archive(location, date(start_year, 1, 1), date(end_year, 12, 31))
-    except WeatherError as exc:
-        log.warning("archive unavailable for %s: %s", location.name, exc)
+    times, values, complete = _archive_days(location, spec, start_year, end_year)
+    if not times:
         return _unavailable(parameter, start_year, end_year, "archive_unavailable")
-
-    times, precip, temps = _daily(payload)
-    values = precip if parameter == "rainfall" else temps
 
     # Group by calendar year, keeping only the days the archive actually
     # measured. A year with no usable days is dropped, never zero-filled.
@@ -449,7 +573,14 @@ def history_series(
         })
 
     if len(points) < 2:
-        return _unavailable(parameter, start_year, end_year, "not_enough_years")
+        # Which absence this is matters to the reader: "the archive does not go
+        # back far enough here" is a fact about the place, and "we could not
+        # reach it" is a fact about this request. Saying the first when the
+        # second happened sends somebody looking for a different city.
+        return _unavailable(
+            parameter, start_year, end_year,
+            "not_enough_years" if complete else "archive_unavailable",
+        )
 
     readings = [point["value"] for point in points]
     highest = max(points, key=lambda p: p["value"])
