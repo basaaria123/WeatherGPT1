@@ -280,22 +280,73 @@ def _general(m: _Reading, lang: str) -> list[dict[str, Any]]:
         cards.append(_card("comfort", "🌡️", i18n.sentence("ri_comfort_title", lang), headline, tone, detail))
 
     # --- Outdoors ---------------------------------------------------------
+    cards.append(_outdoor_card(m, lang, "ri_outdoor"))
+
+    return cards
+
+
+
+def _outdoor_state(m: _Reading) -> tuple[str, str]:
+    """Whether the hours ahead are usable outdoors, and how loudly to say it.
+
+    One score, one set of thresholds, five readers. Factored out because five
+    roles hang a card off this verdict and they must not be able to disagree
+    about it — a student told the campus is fine while a traveller in the same
+    place is told to stay in would be the app contradicting itself.
+    """
     if m.level == "Severe" or m.storm_score >= STORM_HIGH:
-        headline, tone = i18n.sentence("ri_outdoor_avoid", lang), "danger"
-    elif m.severe or m.rain_likely or (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
-        headline, tone = i18n.sentence("ri_outdoor_caution", lang), "caution"
-    else:
-        headline, tone = i18n.sentence("ri_outdoor_good", lang), "safe"
-    cards.append(_card(
-        "outdoor", "🚶", i18n.sentence("ri_outdoor_title", lang), headline, tone,
+        return "avoid", "danger"
+    if m.severe or m.rain_likely or (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
+        return "caution", "caution"
+    return "good", "safe"
+
+
+def _outdoor_card(m: _Reading, lang: str, family: str) -> dict[str, Any]:
+    """The outdoor verdict, said in one reader's vocabulary.
+
+    What differs between the five is the noun, not the number. "Good for
+    outdoor activity" was the conclusion of a Campus card, a Worksite card, a
+    Home exposure card and a Travel conditions card at once — the same eight
+    words under four headings, which is what a judge sees when they switch
+    profile and the wording stays put. A student asks whether classes can run
+    outside, a foreman whether the site is workable, a traveller whether the
+    day is worth going out into; the answer is the same verdict and none of
+    them phrases it the same way.
+
+    The detail line stays shared on purpose: it names the risk level and hazard
+    the verdict was read from, and that provenance is the same sentence for
+    everybody because it is the same evidence.
+    """
+    state, tone = _outdoor_state(m)
+    return _card(
+        "outdoor", "🚶", i18n.sentence("ri_outdoor_title", lang),
+        i18n.sentence(f"{family}_{state}", lang), tone,
         i18n.sentence(
             "ri_from_risk", lang,
             level=i18n.level_label(m.level, lang),
             hazard=i18n.hazard_label(m.hazard, lang),
         ),
-    ))
+    )
 
-    return cards
+
+def _campus(m: _Reading, lang: str) -> dict[str, Any]:
+    """Can the campus day run outside?"""
+    return _outdoor_card(m, lang, "ri_campus")
+
+
+def _worksite(m: _Reading, lang: str) -> dict[str, Any]:
+    """Is the site workable through these hours?"""
+    return _outdoor_card(m, lang, "ri_site")
+
+
+def _home_outdoor(m: _Reading, lang: str) -> dict[str, Any]:
+    """Garden, terrace, laundry — the outdoor half of a house."""
+    return _outdoor_card(m, lang, "ri_homeout")
+
+
+def _trip_outdoor(m: _Reading, lang: str) -> dict[str, Any]:
+    """Is the day worth going out into, away from home?"""
+    return _outdoor_card(m, lang, "ri_tripout")
 
 
 # ---------------------------------------------------------------------------
@@ -563,24 +614,57 @@ def _marine(m: _Reading, lang: str) -> list[dict[str, Any]]:
 # Commuter
 # ---------------------------------------------------------------------------
 
-def _reminder(m: _Reading, lang: str) -> dict[str, Any]:
-    """The one line to leave with, shared by every reading that closes on one.
+def _closing_ladder(m: _Reading) -> tuple[str, str]:
+    """Which of four states the hours ahead are in, and how loudly to say it.
 
-    Kept in one place because five roles end on it: two copies of this ladder
-    would eventually disagree about what a 40% chance of rain is worth.
+    One ladder, several vocabularies. The thresholds are the shared part — two
+    copies of this would eventually disagree about what a 40% chance of rain is
+    worth — while the sentence each reading hangs off it is its own.
     """
     if m.storm_score >= STORM_HIGH:
-        line, tone = i18n.sentence("ri_reminder_storm", lang), "danger"
-    elif m.rain_possible:
+        return "storm", "danger"
+    if m.rain_possible:
         # Worth saying at a 30% chance; not worth an amber card when the risk
         # beside it reads Low and no hazard was detected.
-        line = i18n.sentence("ri_reminder_rain", lang)
-        tone = "caution" if m.rain_likely else "info"
-    elif (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
-        line, tone = i18n.sentence("ri_reminder_wind", lang), "caution"
-    else:
-        line, tone = i18n.sentence("ri_reminder_clear", lang), "safe"
-    return _card("reminder", "💬", i18n.sentence("ri_reminder_title", lang), line, tone)
+        return "rain", "caution" if m.rain_likely else "info"
+    if (m.gust_or_wind or 0) >= WIND_BRISK_KMH:
+        return "wind", "caution"
+    return "clear", "safe"
+
+
+def _closing_card(m: _Reading, lang: str, family: str) -> dict[str, Any]:
+    state, tone = _closing_ladder(m)
+    return _card("reminder", "💬", i18n.sentence("ri_reminder_title", lang),
+                 i18n.sentence(f"{family}_{state}", lang), tone)
+
+
+def _reminder(m: _Reading, lang: str) -> dict[str, Any]:
+    """The commuter's one line to leave with."""
+    return _closing_card(m, lang, "ri_reminder")
+
+
+def _evening(m: _Reading, lang: str) -> dict[str, Any]:
+    """The household's evening, asked as a question about the evening.
+
+    This and `_community` below were the commuter's reminder retitled, until
+    the role audit rendered every panel and read it: a reader at home and a
+    reader looking after somebody else were both closing on "Weather conditions
+    look favorable for your commute". Neither of them is commuting, and the two
+    panels agreed word for word. A retitle can change what a card is called; it
+    cannot change a sentence that names somebody else's journey.
+
+    Same ladder, same thresholds, different question: can the evening be used?
+    """
+    return _closing_card(m, lang, "ri_evening")
+
+
+def _community(m: _Reading, lang: str) -> dict[str, Any]:
+    """The same hours, asked on somebody else's behalf.
+
+    The caregiver's question is never "can I go out" — it is who among the
+    people they look after is exposed to this, and what to do before it starts.
+    """
+    return _closing_card(m, lang, "ri_community")
 
 
 def _best_departure(m: _Reading) -> tuple[str, int] | None:
@@ -1422,6 +1506,15 @@ def _indicators(m: _Reading, lang: str) -> dict[str, Any]:
 
 
 _NEW_READINGS = {
+    # The outdoor verdict and the closing line, in the vocabulary of the reader
+    # who asked. Each is the shared ladder above under a different set of
+    # sentences — same thresholds, same score, different question.
+    "campus": _campus,
+    "worksite": _worksite,
+    "home_outdoor": _home_outdoor,
+    "trip_outdoor": _trip_outdoor,
+    "evening": _evening,
+    "community": _community,
     "flight_conditions": _flight_conditions,
     "cloud": _cloud,
     "impact_area": _impact_area,

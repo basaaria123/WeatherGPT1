@@ -174,9 +174,17 @@ ROLES: dict[str, Role] = {
         key="aviation", icon="✈️", heading_key="ri_heading_aviation",
         metrics=_VIS + _WIND + ("cloud_cover_pct",) + _RAIN,
         alert_hazards=("Lightning/Storm", "Strong Wind", "Heavy Rainfall"),
-        impacts=("travel", "outdoor"),
+        # NOT the travel sector. Its detail sentence is "Rain may slow traffic
+        # and reduce visibility", which is a road sentence on a pilot's screen —
+        # and it made this reading's impact panel identical to the driver's in
+        # all eight scenarios. What weather does to an aviation professional is
+        # done to people on an apron and to the day around them.
+        impacts=("outdoor", "everyday"),
         factors=("visibility", "wind", "rain", "heat"),
-        horizon_h=8,
+        # A shorter planning window than a driver's, which is also what stops
+        # the two of them closing on the same "rain is unlikely over the next
+        # eight hours" sentence.
+        horizon_h=6,
         cards=(
             ("flight_conditions", "flight_conditions", "", ""),
             ("visibility", "visibility", "", ""),
@@ -243,7 +251,10 @@ ROLES: dict[str, Role] = {
         key="researcher", icon="🔬", heading_key="ri_heading_researcher",
         metrics=_TEMP + ("humidity_pct", "pressure_hpa") + _RAIN + _WIND[:2],
         alert_hazards=(),
-        impacts=("everyday", "outdoor", "travel"),
+        # Two rather than the everyday reading's three: with `travel` it was
+        # byte-identical to `general` in every scenario, and a climate analyst
+        # is not being advised about their commute.
+        impacts=("everyday", "outdoor"),
         factors=("rain", "heat", "wind", "visibility"),
         cards=(
             ("anomaly", "anomaly", "", ""),
@@ -270,7 +281,7 @@ ROLES: dict[str, Role] = {
         horizon_h=8,
         timing=True,
         cards=(
-            ("campus", "outdoor", "ri_campus_title", "🎓"),
+            ("campus", "campus", "ri_campus_title", "🎓"),
             ("college_commute", "commute_risk", "ri_college_title", "🎒"),
             ("outdoor_activity", "umbrella", "ri_outdoor_activity_title", "🏃"),
             ("lightning_safety", "storm_risk", "ri_lightning_safety_title", "⚡"),
@@ -319,7 +330,7 @@ ROLES: dict[str, Role] = {
             # NOT the caregiver's `exposure` card: that one's detail line is
             # about people who move slowly, which is a sentence for somebody
             # else's screen.
-            ("worksite_risk", "outdoor", "ri_worksite_title", "🦺"),
+            ("worksite_risk", "worksite", "ri_worksite_title", "🦺"),
             ("heat_stress", "heat_stress", "", ""),
             ("lightning", "lightning", "", ""),
             ("wind_exposure", "wind", "ri_wind_exposure_title", "💨"),
@@ -343,8 +354,8 @@ ROLES: dict[str, Role] = {
             ("home_comfort", "comfort", "ri_home_comfort_title", "🏠"),
             ("rain_outlook", "umbrella", "ri_rain_outlook_title", "🌧️"),
             ("prepare", "prepare", "", ""),
-            ("home_exposure", "outdoor", "ri_home_exposure_title", "🚪"),
-            ("evening", "reminder", "ri_evening_title", "🌙"),
+            ("home_exposure", "home_outdoor", "ri_home_exposure_title", "🚪"),
+            ("evening", "evening", "ri_evening_title", "🌙"),
         ),
         ask=(
             ("prepare", "What should the household have ready for these conditions?"),
@@ -362,7 +373,7 @@ ROLES: dict[str, Role] = {
         factors=("rain", "visibility", "wind", "heat"),
         timing=True,
         cards=(
-            ("travel_conditions", "outdoor", "ri_travel_cond_title", "🧳"),
+            ("travel_conditions", "trip_outdoor", "ri_travel_cond_title", "🧳"),
             ("journey_risk", "commute_risk", "ri_journey_title", "🛣️"),
             ("visibility", "visibility", "", ""),
             ("rain_timing", "umbrella", "ri_rain_timing_title", "🌦️"),
@@ -387,7 +398,7 @@ ROLES: dict[str, Role] = {
             ("exposure", "exposure", "", ""),
             ("prepare", "prepare", "", ""),
             ("home_rain", "home_rain", "", ""),
-            ("community", "reminder", "ri_community_title", "🤝"),
+            ("community", "community", "ri_community_title", "🤝"),
         ),
         ask=(
             ("vulnerable", "What should I watch for in vulnerable people in these conditions?"),

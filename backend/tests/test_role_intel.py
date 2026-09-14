@@ -343,7 +343,16 @@ def test_student_reuses_the_shared_readings_rather_than_a_second_opinion():
     # Retitled for the reader, but the same verdict on the same measurement.
     for field in ("headline", "detail", "tone"):
         assert student["college_commute"][field] == driver["commute_risk"][field]
-        assert student["campus"][field] == general["outdoor"][field]
+
+    # The outdoor verdict is shared the same way, with one difference the role
+    # audit forced: the sentence. "Good for outdoor activity" was the
+    # conclusion of a Campus card, a Worksite card, a Home exposure card and a
+    # Travel conditions card at once, so switching profile changed the heading
+    # and nothing under it. What has to stay shared is the verdict and the
+    # evidence it was read from — not the noun the reader uses for it.
+    assert student["campus"]["tone"] == general["outdoor"]["tone"]
+    assert student["campus"]["detail"] == general["outdoor"]["detail"]
+    assert student["campus"]["headline"] != general["outdoor"]["headline"]
 
 
 def test_caregiver_reads_heat_earlier_than_the_general_panel():

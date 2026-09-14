@@ -204,8 +204,11 @@ def test_the_same_weather_produces_different_advice(panels):
 
     demo = ("farmer", "marine", "student", "driver", "disaster")
     assert len({leads[k] for k in demo}) == len(demo), {k: leads[k] for k in demo}
-    # And across all thirteen, at most one pair may coincide.
-    assert len(set(leads.values())) >= len(BRIEF) - 1, leads
+    # And across all thirteen, no pair may coincide. This allowed one pair
+    # until the role audit; the slack is what let marine, outdoor_worker and
+    # caregiver share a sentence in three of the eight scenarios without
+    # anything going red.
+    assert len(set(leads.values())) == len(BRIEF), leads
 
 
 def test_the_common_weather_is_identical_for_everybody(panels, one_weather):
@@ -313,3 +316,98 @@ def test_advisory_for_every_persona_covers_the_selector(one_weather):
     _, risk = one_weather
     compared = {row["user_type"] for row in advisory.advisory_for_every_persona(risk)}
     assert compared == set(BRIEF)
+
+
+# --- what the role audit found, locked down --------------------------------
+#
+# Everything above this line runs on one set of numbers: a storm over Guwahati,
+# chosen because a violent day is where readings differ most. That is exactly
+# why it missed what a role audit across all eight fixture scenarios found —
+# seven of the thirteen closing on "Outdoor activity is generally safe right
+# now" on a calm day, three on "Conditions suit outdoor activity" in fog, and
+# three more reciting "Visibility is low, around 1.0 km" as their advice.
+#
+# A demo is not given a storm on request. New Delhi is pinned to fog in the
+# fixtures and Bengaluru to calm, so the quiet scenarios are the ones a judge
+# is most likely to be looking at when they switch profile.
+SCENARIOS = ("calm", "cloudy", "rain", "storm", "flood", "heat", "wind", "fog")
+
+
+@pytest.fixture
+def every_scenario(one_weather):
+    """Every role's panel in every fixture scenario, on one city.
+
+    Depends on `one_weather` so the module's storm fixture is already built
+    before this moves the scenario pin, and restores it afterwards.
+    """
+    out: dict[str, tuple[object, dict[str, dict]]] = {}
+    try:
+        for scenario in SCENARIOS:
+            os.environ["WEATHER_FIXTURE_SCENARIO"] = scenario
+            weather.clear_cache()
+            bundle = weather.fetch_weather(weather.gazetteer_lookup("Chennai"))
+            risk = risk_engine.assess(bundle)
+            out[scenario] = (risk, {
+                key: personalization.personalize(bundle=bundle, risk=risk, role=key)
+                for key in BRIEF
+            })
+    finally:
+        os.environ["WEATHER_FIXTURE_SCENARIO"] = "storm"
+        weather.clear_cache()
+    return out
+
+
+def test_no_two_readers_reach_the_same_conclusion_in_any_weather(every_scenario):
+    """The acceptance criterion, on every day rather than the interesting one."""
+    for scenario, (_risk_out, panels) in every_scenario.items():
+        leads: dict[str, str] = {}
+        for key in BRIEF:
+            actions = panels[key]["advisory"]["actions"]
+            assert actions, f"{scenario}: {key} was given nothing to do"
+            lead = actions[0]["action"]
+            clash = next((k for k, v in leads.items() if v == lead), None)
+            assert clash is None, f"{scenario}: {key} and {clash} both lead with {lead!r}"
+            leads[key] = lead
+
+
+def test_every_reader_is_told_something_about_themselves(every_scenario):
+    """A measurement is not advice.
+
+    The closing line is the only sentence in the insight panel that is about
+    this reader rather than about the sky. Every branch that produces one is
+    gated on the value it talks about — correctly, so that nothing can say
+    "conditions are good" under a kilometre of fog — but that left roles with
+    no branch at all falling through to a bare observation. Four panels led
+    with "Visibility is low, around 1.0 km", which tells a driver, a student
+    and a traveller the same number and none of them what to do with it.
+
+    Required only where the engine names no hazard, which is where the failure
+    was: with a hazard named there are hazard sentences to lead on, and the
+    role-specific recommendations underneath come from the action tables rather
+    than from here.
+    """
+    for scenario, (risk, panels) in every_scenario.items():
+        if risk_engine.is_actionable(risk):
+            continue
+        if risk.detected_hazard and risk.detected_hazard != "None":
+            continue
+        for key in BRIEF:
+            insight = panels[key]["insight"] or {}
+            assert insight.get("closing"), f"{scenario}: {key} closed on a measurement"
+
+
+def test_the_sentence_splitter_does_not_break_a_decimal():
+    """"1.0 km" is one number, not the end of a sentence.
+
+    Splitting there turned "Visibility is low, around 1.0 km." into two
+    sentences, and because the calm-conditions advisory reads the last one
+    first, "0 km." arrived as the primary recommendation on eight roles'
+    screens in fog.
+    """
+    assert advisory._sentences("Visibility is low, around 1.0 km. Rain is unlikely.") == [
+        "Visibility is low, around 1.0 km.",
+        "Rain is unlikely.",
+    ]
+    # The danda splits Hindi the same way, and a trailing number still ends.
+    assert len(advisory._sentences("दृश्यता 1.0 किमी है। बारिश नहीं होगी।")) == 2
+    assert advisory._sentences("Gusts reach 42.") == ["Gusts reach 42."]

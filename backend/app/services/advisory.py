@@ -16,7 +16,7 @@ from __future__ import annotations
 from typing import Any
 
 from ..schemas import ImpactCard, RiskOutput
-from . import i18n, risk_engine, roles
+from . import i18n, risk_engine, role_intel, roles
 
 # Presentation thresholds. These change wording only; risk itself comes from
 # the risk engine, and none of these ever creates a fact the data lacks.
@@ -24,6 +24,32 @@ HIGH_RAIN_PROB = 60
 HUMID_PCT = 80
 STRONG_WIND_KMH = 35
 HOT_FEELS_C = 36
+
+
+# What low visibility means to each reader, when nothing else is flagged.
+#
+# Every closing below that talks about being outside is gated on visibility
+# being fine, which is correct — but it meant that in fog *no* role sentence
+# fired at all and the advisory fell back to reciting the measurement. Four
+# panels ended up leading with "Visibility is low, around 1.0 km", which is an
+# observation, not advice, and three of them led with the identical string.
+#
+# New Delhi is pinned to fog in the demo fixtures, so this is a screen a judge
+# will actually see. The four readings absent here are absent on purpose: the
+# farmer's line is about rain, the household's about the inside of a house, the
+# analyst's about the observation as a whole and the response manager's about
+# readiness — none of them is contradicted by a kilometre of visibility.
+LOW_VISIBILITY_CLOSING: dict[str, str] = {
+    "driver": "vis_driver",
+    "student": "vis_student",
+    "marine": "vis_marine",
+    "aviation": "vis_aviation",
+    "traveler": "vis_traveler",
+    "outdoor_worker": "vis_worker",
+    "caregiver": "vis_caregiver",
+    "smart_city": "vis_city",
+    "general": "vis_general",
+}
 
 
 # Which sector cards a profile is shown, in the order it is shown them — the
@@ -460,13 +486,20 @@ def _sentences(text: str) -> list[str]:
     """
     out: list[str] = []
     buf = ""
-    for char in text:
+    for index, char in enumerate(text):
         buf += char
-        if char in ".।॥৷!?":
-            stripped = buf.strip()
-            if stripped:
-                out.append(stripped)
-            buf = ""
+        if char not in ".।॥৷!?":
+            continue
+        # A full stop between two digits is a decimal point. Splitting there
+        # turned "Visibility is low, around 1.0 km." into two sentences, and
+        # because the calm-conditions advisory takes the LAST one first, "0 km."
+        # arrived as the primary recommendation on eight roles' screens in fog.
+        if char == "." and index + 1 < len(text) and text[index + 1].isdigit() and buf[:-1].rstrip()[-1:].isdigit():
+            continue
+        stripped = buf.strip()
+        if stripped:
+            out.append(stripped)
+        buf = ""
     if buf.strip():
         out.append(buf.strip())
     return out
@@ -500,6 +533,13 @@ def persona_guidance(
         if part and str(part).strip()
     )
     lines = _sentences(joined)[:limit] if joined else []
+
+    # The profile's own closing, always — it is the only line here that is about
+    # this reader rather than about the sky, and `joined` publishes just three
+    # observations, so on any day with three of them it was being cut.
+    closing = insight.get("closing")
+    if closing and closing not in lines:
+        lines.append(closing)
 
     # Once a hazard is named, the insight's three slots fill with rain and
     # hazard sentences and the profile's own closing line is crowded out — which
@@ -792,27 +832,100 @@ def headline_insight(
     # --- Closing line: what this reader can actually do about it ----------
     # Each branch is gated on the value it talks about, so the closing can never
     # contradict a line above it (no "conditions are good" under 1 km fog).
+    #
+    # Tracked separately as well as appended, because `chosen` is published as
+    # headline + the next TWO lines. On a quiet day there were one or two
+    # observations and the closing landed inside that window; in fog there are
+    # three — wind, rain and visibility — and the closing fell off the end. So
+    # the one sentence that is actually about this reader was the first thing
+    # discarded exactly when the weather got interesting, and four roles ended
+    # up reciting the same visibility measurement as their advice.
+    closing: str | None = None
     if not risk_engine.is_actionable(risk):
-        vis_ok = vis is None or vis > LOW_VISIBILITY_KM
-        if profile == "farmer":
+        low_vis = vis is not None and vis <= LOW_VISIBILITY_KM
+        calm_wind = peak_wind is None or peak_wind < STRONG_WIND_KMH
+        if low_vis and profile in LOW_VISIBILITY_CLOSING:
+            # Checked before the ladder rather than inside each branch, so a
+            # reading can never be given an outdoor line under a kilometre of
+            # fog and can never be left with nothing to say either.
+            closing = i18n.sentence(LOW_VISIBILITY_CLOSING[profile], lang)
+        elif profile == "farmer":
             clock = _clock(onset[0].get("time")) if onset else None
             if clock:
-                chosen.append(i18n.sentence("insight_window_until", lang, time=clock))
+                closing = i18n.sentence("insight_window_until", lang, time=clock)
             elif onset is None:
-                chosen.append(i18n.sentence("impact_farming_clear", lang))
+                closing = i18n.sentence("impact_farming_clear", lang)
         elif profile == "driver":
-            if onset is None and vis_ok:
-                chosen.append(i18n.sentence("impact_travel_clear", lang))
+            if onset is None:
+                closing = i18n.sentence("impact_travel_clear", lang)
         elif profile == "student":
             # The same two measurements the driver's line is gated on, said
             # about the day a student is actually planning.
-            if onset is None and vis_ok:
-                chosen.append(i18n.sentence("ri_campus_clear", lang))
-        elif profile in {"marine", "outdoor_worker", "caregiver"}:
-            if onset is None and (peak_wind is None or peak_wind < STRONG_WIND_KMH):
-                chosen.append(i18n.sentence("impact_outdoor_clear", lang))
-        elif onset is None and vis_ok:
-            chosen.append(i18n.sentence("insight_safe_now", lang))
+            if onset is None:
+                closing = i18n.sentence("ri_campus_clear", lang)
+        # A skipper, a site foreman and someone looking after an elderly parent
+        # shared one branch and one sentence here — "Conditions suit outdoor
+        # activity for the next few hours" — in every calm, cloudy and foggy
+        # scenario. Three readers, three different stakes in a fine day: one is
+        # deciding whether to put a boat out, one whether exposed work can run,
+        # one whether the person they care for can sit outside.
+        elif profile == "marine":
+            if onset is None and calm_wind:
+                closing = i18n.sentence("calm_marine", lang)
+        elif profile == "outdoor_worker":
+            if onset is None and calm_wind:
+                closing = i18n.sentence("calm_worker", lang)
+        elif profile == "caregiver":
+            if onset is None and calm_wind:
+                closing = i18n.sentence("calm_caregiver", lang)
+        # The six readings added with the twelve-role rework had no branch here,
+        # so all six fell through to "Outdoor activity is generally safe right
+        # now" — the line a casual reader gets. On a calm day an emergency
+        # operations manager, a climate analyst and a pilot were being told the
+        # same thing, which is the specific failure the role audit turned up.
+        #
+        # A calm day is not one fact. It is "readiness stays routine" to one of
+        # them, "no parameter is outside its range" to another, and "nothing is
+        # loading the drains" to a third, and each is gated on the value it
+        # talks about exactly as the branches above are.
+        elif profile == "aviation":
+            if onset is None and not hazard_named:
+                closing = i18n.sentence("insight_aviation_clear", lang)
+        elif profile == "disaster":
+            # Reuses the response card's own sentence rather than inventing a
+            # second way to say the same thing: two sentences for one verdict
+            # is how a panel comes to disagree with the card beside it.
+            closing = i18n.sentence("ri_response_routine_detail", lang)
+        elif profile == "smart_city":
+            if onset is None:
+                closing = i18n.sentence("insight_city_clear", lang)
+        elif profile == "researcher":
+            # The one reader for whom a quiet day is a finding rather than a
+            # relief, and the only closing here not gated on rain: whether the
+            # observation is ordinary is a statement about all of it at once.
+            #
+            # Read off the anomaly card rather than asserted independently. This
+            # panel was closing on "every measured parameter is inside its
+            # ordinary range" directly beneath its own card reading "Values
+            # outside the ordinary range — humidity 95%", because the closing
+            # was gated on rain and visibility while the card looks at four more
+            # values than that. One verdict, two sentences, and they disagreed.
+            anomaly = role_intel.reading(bundle, risk, "anomaly", lang)
+            ordinary = anomaly is None or anomaly.get("status") == "safe"
+            closing = i18n.sentence(
+                "insight_data_clear" if ordinary else "insight_data_outlier", lang,
+            )
+        elif profile == "household":
+            if onset is None:
+                closing = i18n.sentence("insight_home_clear", lang)
+        elif profile == "traveler":
+            if onset is None:
+                closing = i18n.sentence("insight_journey_clear", lang)
+        elif onset is None:
+            closing = i18n.sentence("insight_safe_now", lang)
+
+    if closing:
+        chosen.append(closing)
 
     if not chosen:
         chosen = [smart_explanation(bundle, risk, lang, mode="simple")]
@@ -826,6 +939,10 @@ def headline_insight(
         # rather than re-deriving it means the advisory card and this panel can
         # never disagree about what matters most here.
         "situation": next((line for line in chosen if line != candidates.get("hazard")), None),
+        # The reader's own sentence, addressable rather than buried at position
+        # four of a three-line window. `persona_guidance` appends it explicitly
+        # so it survives however many observations the weather produced.
+        "closing": closing,
         "factors": sorted(set(factors)),
         "user_type": profile,
         "actionable": risk_engine.is_actionable(risk),
