@@ -12,10 +12,18 @@
 export const ROLES = [
   { id: 'farmer', icon: '🌾' },
   { id: 'marine', icon: '🎣' },
+  { id: 'aviation', icon: '✈️' },
+  { id: 'disaster', icon: '🚨' },
+  { id: 'smart_city', icon: '🏙️' },
+  { id: 'researcher', icon: '🔬' },
   { id: 'student', icon: '🎓' },
   { id: 'driver', icon: '🚗' },
   { id: 'outdoor_worker', icon: '🦺' },
+  { id: 'household', icon: '🏠' },
+  { id: 'traveler', icon: '🧳' },
   { id: 'caregiver', icon: '👨‍👩‍👧' },
+  // Last, and deliberately: it is the default rather than a profession, and
+  // putting it first implies the twelve above are variations on it.
   { id: 'general', icon: '🌤️' },
 ]
 

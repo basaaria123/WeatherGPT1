@@ -1,5 +1,5 @@
 import { AnimatePresence, motion } from 'framer-motion'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { t } from '../i18n/ui'
 import { useStore } from '../store/useStore'
 import { useVoiceRecorder } from '../hooks/useVoiceRecorder'
@@ -99,7 +99,33 @@ export default function ChatPanel({
   const serverStt = serverAdvertisesStt !== false && !sttServerDown
 
   const recorder = useVoiceRecorder({ language, recordAudio: serverStt })
-  const quick = t(language, 'quick')
+
+  /**
+   * The chip row above the composer, which now follows the profile.
+   *
+   * It used to be a fixed list of six, two of which were "Weather for farming"
+   * and "Weather for fishing" — offered to a pilot, to a disaster manager, and
+   * to a reader who had stated no occupation at all. The role's own questions
+   * lead now, and the universal openers fill the rest of the row.
+   *
+   * `suggestions` are the server's: one per card the reader is actually
+   * looking at, labelled with that card's translated title. So the row changes
+   * the moment the profile does, in the reader's own language, with no new
+   * string to translate and no second role table in the client.
+   */
+  const quick = useMemo(() => {
+    const mine = (suggestions ?? []).map((item) => ({
+      key: `role:${item.id}`,
+      label: item.label,
+      query: item.query,
+    }))
+    const universal = t(language, 'quick').map((label) => ({
+      key: `all:${label}`,
+      label,
+      query: label,
+    }))
+    return [...mine, ...universal]
+  }, [suggestions, language])
 
   useEffect(() => {
     // Keep the newest message in view without yanking the whole page.
@@ -383,13 +409,13 @@ export default function ChatPanel({
         <p role="alert" className="mt-2 px-1 text-[11px] text-caution-ink">{recorder.error}</p>
       )}
 
-      {/* The stock openers, kept below the thread where they do not compete
-          with the reader's own suggested questions above it. */}
+      {/* This reader's own questions first, then the ones anybody asks. Below
+          the thread so they do not compete with the greeting's list. */}
       {greeting && (
         <div className="scroll-x mt-3 flex min-w-0 gap-1.5 pb-1">
-          {quick.map((label) => (
-            <span key={label} className="shrink-0">
-              <Chip onClick={() => onSend(label)} disabled={pending}>{label}</Chip>
+          {quick.map((item) => (
+            <span key={item.key} className="shrink-0">
+              <Chip onClick={() => onSend(item.query)} disabled={pending}>{item.label}</Chip>
             </span>
           ))}
         </div>

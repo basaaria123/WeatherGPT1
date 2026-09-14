@@ -14,7 +14,7 @@ import pytest
 
 os.environ.setdefault("WEATHER_DATA_MODE", "fixture")
 
-from app.services import advisory, i18n, risk_engine, weather  # noqa: E402
+from app.services import advisory, i18n, risk_engine, roles, weather  # noqa: E402
 
 LANGS = ("en", "hi", "te", "bn", "mr", "as")
 
@@ -120,33 +120,62 @@ def test_impact_cards_do_not_repeat_one_sentence_across_sectors():
 def test_profile_selects_impact_cards_without_changing_their_verdicts():
     """A profile decides which sectors it is shown, never what they say.
 
-    "general" is the everything view, so every card another profile shows must
-    appear there with exactly the same verdict — otherwise the panel would be
-    telling two readers different things about the same weather.
+    There is no "everything" view any more — the general reading used to be it,
+    which is exactly how a reader who had stated no occupation came to be shown
+    a farming verdict. So the invariant is stated directly instead: across every
+    role, a sector that appears at all appears with one verdict.
     """
     b = bundle_for("Chennai", "rain")
     risk = risk_engine.assess(b)
-    general = {c.category: c for c in advisory.impact_cards(b, risk, "en", "general")}
 
-    for profile in ("farmer", "marine", "driver", "outdoor_worker",
-                    "student", "caregiver"):
+    seen: dict[str, set[tuple[str, str]]] = {}
+    for profile in roles.keys():
         cards = advisory.impact_cards(b, risk, "en", profile)
         assert cards, profile
         # The reader's own sector leads.
-        lead = advisory.PROFILE_IMPACT_CATEGORIES[profile][0]
+        lead = advisory.profile_impacts(profile)[0]
         assert cards[0].category == i18n.category_label(lead, "en"), profile
-        # Fewer cards than the everything view, and no sector invented for it.
-        assert len(cards) < len(general), profile
+        assert len(cards) <= 3, profile
         for card in cards:
-            assert card.category in general, (profile, card.category)
-            assert card.status == general[card.category].status, (profile, card.category)
-            assert card.detail == general[card.category].detail, (profile, card.category)
+            seen.setdefault(card.category, set()).add((card.status, card.detail))
+
+    for category, verdicts in seen.items():
+        assert len(verdicts) == 1, (category, verdicts)
 
 
-def test_general_still_sees_every_sector():
+def test_no_reader_is_shown_a_sector_that_is_not_theirs():
+    """The farming verdict is for people who farm.
+
+    This is the regression the general reading shipped with: the sector table
+    gave it farming and fishing, so "Farming — Caution" appeared for a reader
+    who had never said they were a farmer.
+    """
+    farming = i18n.category_label("farming", "en")
+    fishing = i18n.category_label("fishing", "en")
+    b = bundle_for("Chennai", "rain")
+    risk = risk_engine.assess(b)
+
+    for profile in roles.keys():
+        labels = {c.category for c in advisory.impact_cards(b, risk, "en", profile)}
+        if profile != "farmer":
+            assert farming not in labels, profile
+        if profile != "marine":
+            assert fishing not in labels, profile
+
+def test_general_gets_an_everyday_reading_rather_than_everybody_else_s():
+    """The general reading is not "all the sectors" — it is its own sector.
+
+    It used to be the everything view, which is how somebody who had stated no
+    occupation was shown a farming verdict and a fishing one. What a reader with
+    no stated role wants is the everyday reading, and that is now a sector of
+    its own rather than four other people's.
+    """
     b = bundle_for("Chennai", "rain")
     cards = advisory.impact_cards(b, risk_engine.assess(b), "en", "general")
-    assert len(cards) == 5
+    labels = [card.category for card in cards]
+    assert labels[0] == i18n.category_label("everyday", "en")
+    assert i18n.category_label("farming", "en") not in labels
+    assert i18n.category_label("fishing", "en") not in labels
 
 
 def test_avoid_status_requires_a_genuinely_high_sub_score():

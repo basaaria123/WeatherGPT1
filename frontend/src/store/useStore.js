@@ -42,16 +42,17 @@ const RETIRED_PROFILES = {
   // Renamed rather than retired: the backend answers to both and the reading is
   // the same one.
   fisherman: 'marine',
-  // Dropped from the selector. Each lands on the nearest reading that is still
-  // offered, and the list matches the server's own aliases — two tables that
-  // disagreed would put a reader on one screen and their advice on another.
-  household: 'caregiver',
-  government: 'caregiver',
-  disaster_manager: 'caregiver',
-  traveler: 'general',
-  researcher: 'general',
-  aviation: 'general',
-  event_planner: 'general',
+  government: 'smart_city',
+  disaster_manager: 'disaster',
+  climate_analyst: 'researcher',
+  // Never had a reading of its own: an event planner is deciding whether an
+  // outdoor event can go ahead, which is the traveller's question about a
+  // fixed place.
+  event_planner: 'traveler',
+  // `household`, `traveler`, `researcher` and `aviation` used to be mapped away
+  // here. They are readings of their own again, so they are gone from this
+  // table — a reader who picked one of them before gets it back rather than
+  // being kept on the substitute they were moved to.
 }
 
 function migrateUserType(stored) {

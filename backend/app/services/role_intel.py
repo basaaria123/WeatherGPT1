@@ -48,6 +48,20 @@ WARM_C = 30
 HOT_C = 35
 COOL_C = 16
 
+# Cloud, for the one role that reads it as a condition rather than as decoration.
+CLOUD_OVERCAST_PCT = 80
+CLOUD_BROKEN_PCT = 40
+
+# How far ahead an escalation verdict looks, and how much movement in the
+# engine's own hourly score counts as a direction rather than as noise.
+ESCALATION_WINDOW_H = 12
+ESCALATION_RISING = 15
+
+# Temperature trend: the window, and the change below which "steady" is the
+# honest word. 1.5 °C over six hours is weather; 0.4 °C is rounding.
+TREND_WINDOW_H = 12
+TREND_EPSILON_C = 1.5
+
 WIND_BRISK_KMH = 30           # uncomfortable in the open
 WIND_STRONG_KMH = 45          # unsafe for a small boat
 VIS_POOR_KM = 2.0
@@ -129,6 +143,7 @@ class _Reading:
         self.gust = _num(cur.get("wind_gust_kmh"))
         self.direction = _num(cur.get("wind_direction_deg"))
         self.visibility = _num(cur.get("visibility_km"))
+        self.cloud = _num(cur.get("cloud_cover_pct"))
         self.code = cur.get("weather_code")
 
         # Forward-looking totals, only when there are hours to total.
@@ -888,7 +903,10 @@ def _retitle(card: dict[str, Any] | None, card_id: str, title_key: str, lang: st
         return None
     renamed = dict(card)
     renamed["id"] = card_id
-    renamed["title"] = i18n.sentence(title_key, lang)
+    # An empty key is a role that calls the thing by its ordinary name — it
+    # still wants its own card id, so the chip and the tests can address it.
+    if title_key:
+        renamed["title"] = i18n.sentence(title_key, lang)
     if icon:
         renamed["icon"] = icon
     return renamed
@@ -1001,35 +1019,469 @@ def _caregiver(m: _Reading, lang: str) -> list[dict[str, Any]]:
 
 # ---------------------------------------------------------------------------
 
-_BUILDERS = {
-    "general": _general_full,
+# ---------------------------------------------------------------------------
+# The readings the twelve professions are composed from
+#
+# Everything above this line produces cards in groups, because that is how the
+# seven original readings were written: one function per role, each returning
+# its whole panel. That shape could not survive twelve roles — an aviation
+# visibility card and a driver visibility card would have been two copies of one
+# threshold, and the second copy is where they drift apart.
+#
+# So a *reading* is now the unit: one measurement, one verdict, one card. A role
+# is a list of readings with its own names for them (see `roles.py`). Nothing
+# below recomputes anything the groups above already decide; the groups are the
+# implementation, and this is the index into them.
+# ---------------------------------------------------------------------------
+
+_GROUPS = {
+    "general": _general,
     "farmer": _farmer,
     "marine": _marine,
-    "student": _student,
-    "driver": _driver_full,
-    "outdoor_worker": _outdoor_worker_full,
-    "caregiver": _caregiver,
+    "commuter": _commuter,
+    "driver": _driver,
+    "worker": _outdoor_worker,
+    "care": _caregiver,
 }
 
-# Icon, heading, note and the rest of what makes a role a role now live in
-# `roles.py`, so adding one is a single edit there plus a builder here. What
-# stays in this module is the only thing that is genuinely card logic: which
-# cards a reader gets, and what each of them says.
+
+class _Library:
+    """Every reading available for one request, each computed at most once.
+
+    Twelve roles share nine or ten readings between them, and a role's panel
+    asks for four or five. Without the cache, composing one panel would run the
+    driver group three times over.
+    """
+
+    def __init__(self, m: _Reading, lang: str) -> None:
+        self._m = m
+        self._lang = lang
+        self._cards: dict[str, dict[str, Any]] = {}
+        self._done: set[str] = set()
+
+    def _load(self, group: str) -> None:
+        if group in self._done:
+            return
+        self._done.add(group)
+        for card in _GROUPS[group](self._m, self._lang):
+            # First writer wins. Two groups that both produce `reminder` produce
+            # the same reminder — they call the same function — so this is a
+            # guard against waste, not against disagreement.
+            self._cards.setdefault(card["id"], card)
+
+    def get(self, reading: str) -> dict[str, Any] | None:
+        builder = _NEW_READINGS.get(reading)
+        if builder is not None:
+            if reading not in self._cards:
+                card = builder(self._m, self._lang)
+                if card is None:
+                    return None
+                self._cards[reading] = card
+            return self._cards.get(reading)
+
+        group = _READING_GROUP.get(reading)
+        if group is None:
+            return None
+        self._load(group)
+        return self._cards.get(reading)
+
+
+# Which group produces which reading. Written out rather than discovered, so a
+# reading named in `roles.py` that nothing produces fails a test rather than
+# silently leaving a hole in somebody's panel.
+_READING_GROUP: dict[str, str] = {
+    "umbrella": "general", "comfort": "general", "outdoor": "general",
+    "rain_impact": "farmer", "irrigation": "farmer", "crop_risk": "farmer",
+    "field_advisory": "farmer",
+    "fishing_conditions": "marine", "wind": "marine", "storm_risk": "marine",
+    "visibility": "marine", "pressure": "marine",
+    "commute_risk": "commuter", "hazards": "commuter", "departure": "commuter",
+    "reminder": "commuter",
+    "road_visibility": "driver", "road_surface": "driver", "crosswind": "driver",
+    "heat_stress": "worker", "lightning": "worker", "work_window": "worker",
+    "vulnerable": "care", "prepare": "care", "home_rain": "care",
+    # Produced by the caregiver group, and deliberately only offered to it: its
+    # detail line is about people who move slowly, which is that reader's
+    # sentence and nobody else's.
+    "exposure": "care",
+}
+
+
+# ---------------------------------------------------------------------------
+# Readings the six new professions needed, and nobody had yet
+#
+# Each is built from a value the app already has. None of them fetches, none
+# scores, and where the honest answer is "this application cannot measure that",
+# the card says so instead of estimating it.
+# ---------------------------------------------------------------------------
+
+def _flight_conditions(m: _Reading, lang: str) -> dict[str, Any]:
+    """Visibility, gusts and convection, read together.
+
+    Deliberately a *summary of three measurements*, not an assessment of
+    flyability. The wording stays in the register the rest of the app uses —
+    "warrants caution", never "do not fly" — because the difference between an
+    interpretation of a public forecast and aviation weather information is the
+    whole reason this role carries a note.
+    """
+    vis, gust = m.visibility, m.gust_or_wind
+    if vis is None and gust is None and not m.has_hourly:
+        return _card("flight_conditions", "\u2708\ufe0f", i18n.sentence("ri_flight_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+
+    poor_vis = vis is not None and vis <= VIS_POOR_KM
+    strong = gust is not None and gust >= WIND_STRONG_KMH
+    if m.storm_score >= STORM_HIGH or poor_vis or strong:
+        headline, tone = i18n.sentence("ri_flight_poor", lang), "danger"
+    elif m.storm_score >= STORM_CAUTION or (vis is not None and vis <= VIS_LOW_KM) or (
+        gust is not None and gust >= WIND_BRISK_KMH
+    ):
+        headline, tone = i18n.sentence("ri_flight_marginal", lang), "caution"
+    else:
+        headline, tone = i18n.sentence("ri_flight_good", lang), "safe"
+
+    if vis is not None and gust is not None:
+        detail = i18n.sentence("ri_flight_detail", lang, vis=_r(vis, 1), gust=_r(gust))
+    elif vis is not None:
+        detail = i18n.sentence("ri_flight_detail_vis", lang, vis=_r(vis, 1))
+    elif gust is not None:
+        detail = i18n.sentence("ri_flight_detail_wind", lang, gust=_r(gust))
+    else:
+        detail = ""
+    return _card("flight_conditions", "\u2708\ufe0f", i18n.sentence("ri_flight_title", lang),
+                 headline, tone, detail)
+
+
+def _cloud(m: _Reading, lang: str) -> dict[str, Any]:
+    if m.cloud is None:
+        return _card("cloud", "\u2601\ufe0f", i18n.sentence("ri_cloud_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+    if m.cloud >= CLOUD_OVERCAST_PCT:
+        headline, tone = i18n.sentence("ri_cloud_overcast", lang), "caution"
+    elif m.cloud >= CLOUD_BROKEN_PCT:
+        headline, tone = i18n.sentence("ri_cloud_broken", lang), "info"
+    else:
+        headline, tone = i18n.sentence("ri_cloud_clear", lang), "safe"
+    return _card("cloud", "\u2601\ufe0f", i18n.sentence("ri_cloud_title", lang), headline, tone,
+                 i18n.sentence("ri_cloud_detail", lang, pct=_r(m.cloud)))
+
+
+# The exposures a hazard puts in play. Named from the hazard sub-scores the
+# engine already produced — this is a restatement of those scores in the
+# language of what is exposed, not a new judgement about where.
+def _exposures(m: _Reading, lang: str) -> list[str]:
+    out: list[str] = []
+    if m.flood_score >= 31 or m.rain_score >= 40:
+        out.append(i18n.sentence("ri_exposure_lowlying", lang))
+    if m.wind_score >= 31 or m.storm_score >= STORM_CAUTION:
+        out.append(i18n.sentence("ri_exposure_open", lang))
+    if m.rain_score >= 31 or m.storm_score >= STORM_CAUTION or m.flood_score >= 31:
+        out.append(i18n.sentence("ri_exposure_transport", lang))
+    if m.heat_score >= 31:
+        out.append(i18n.sentence("ri_exposure_outdoor", lang))
+    return out
+
+
+def _impact_area(m: _Reading, lang: str) -> dict[str, Any]:
+    """What is exposed, from the hazard scores.
+
+    NOT a geographic extent. This application scores one point at a time and
+    has no polygon for an affected area; naming streets or wards from a single
+    reading would be the exact kind of invention the product must not do. What
+    it can say is which *kinds* of place a scored hazard bears on.
+    """
+    items = _exposures(m, lang)
+    if not items:
+        return _card("impact_area", "\U0001f5fa\ufe0f", i18n.sentence("ri_impact_area_title", lang),
+                     i18n.sentence("ri_impact_area_none", lang), "safe")
+    return _card("impact_area", "\U0001f5fa\ufe0f", i18n.sentence("ri_impact_area_title", lang),
+                 " \u00b7 ".join(items), "caution" if len(items) < 3 else "warn",
+                 i18n.sentence("ri_impact_area_detail", lang))
+
+
+def _risk_path(m: _Reading) -> tuple[int, int, int] | None:
+    """Now, the worst hour ahead, and how many hours until it.
+
+    The engine's own hourly score, read rather than recomputed. ``None`` when
+    the provider sent no hourly series — an escalation verdict on no series is
+    a guess dressed as a trend.
+    """
+    if not m.has_hourly:
+        return None
+    scores = [m.hourly_risk(h) for h in m.hourly[:ESCALATION_WINDOW_H]]
+    if not scores:
+        return None
+    peak = max(scores)
+    return scores[0], peak, scores.index(peak)
+
+
+def _escalation(m: _Reading, lang: str) -> dict[str, Any]:
+    path = _risk_path(m)
+    if path is None:
+        return _card("escalation", "\U0001f4c8", i18n.sentence("ri_escalation_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+    now, peak, when = path
+    if peak - now >= ESCALATION_RISING:
+        headline, tone = i18n.sentence("ri_escalation_rising", lang), "warn"
+    elif now - peak >= ESCALATION_RISING:
+        headline, tone = i18n.sentence("ri_escalation_easing", lang), "safe"
+    else:
+        headline, tone = i18n.sentence("ri_escalation_steady", lang), "info"
+    return _card("escalation", "\U0001f4c8", i18n.sentence("ri_escalation_title", lang), headline, tone,
+                 i18n.sentence("ri_escalation_detail", lang, now=now, peak=peak, hours=max(when, 1)))
+
+
+def _response_priority(m: _Reading, lang: str) -> dict[str, Any]:
+    """Readiness, from the risk level and where it is heading.
+
+    Three states, and the top one is "prepare to activate" rather than
+    "activate": whether resources move is a decision for the person holding the
+    roster, and a weather application is not in that chain of command.
+    """
+    path = _risk_path(m)
+    rising = path is not None and path[1] - path[0] >= ESCALATION_RISING
+    if m.level == "Severe" or (m.severe and rising):
+        headline, tone, key = i18n.sentence("ri_response_activate", lang), "danger", "ri_response_activate_detail"
+    elif m.severe or rising or m.storm_score >= STORM_CAUTION:
+        headline, tone, key = i18n.sentence("ri_response_monitor", lang), "warn", "ri_response_monitor_detail"
+    else:
+        headline, tone, key = i18n.sentence("ri_response_routine", lang), "safe", "ri_response_routine_detail"
+    return _card("response_priority", "\U0001f691", i18n.sentence("ri_response_title", lang),
+                 headline, tone, i18n.sentence(key, lang))
+
+
+def _official_status(m: _Reading, lang: str) -> dict[str, Any]:
+    """The card that exists to say what this application is not.
+
+    There is no official feed wired into this product. A response manager
+    reading a screen that looks like a warning system has to be told that, in
+    the panel, every time — not in a footnote under it.
+    """
+    return _card("official_status", "\U0001f4dc", i18n.sentence("ri_official_title", lang),
+                 i18n.sentence("ri_official_none", lang), "info",
+                 i18n.sentence("ri_official_detail", lang))
+
+
+def _waterlogging(m: _Reading, lang: str) -> dict[str, Any]:
+    """Whether water will stand, for somebody who owns the drains.
+
+    Was the driver's road-surface verdict under a new title, which is how a
+    municipal engineer came to be told about braking distance. The measurement
+    is the same one — rainfall and the flood sub-score — but the question is
+    not, and a retitle cannot change a sentence that names somebody else's
+    windscreen.
+    """
+    if m.rain_24h is None and m.flood_score == 0 and m.rain_score == 0:
+        return _card("waterlogging", "\U0001f30a", i18n.sentence("ri_waterlog_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+    heavy = m.flood_score >= 61 or (m.rain_24h is not None and m.rain_24h >= RAIN_HEAVY_24H_MM * 2)
+    some = m.flood_score >= 31 or m.rain_score >= 40 or (
+        m.rain_24h is not None and m.rain_24h >= RAIN_HEAVY_24H_MM
+    )
+    if heavy:
+        headline, tone = i18n.sentence("ri_waterlog_high", lang), "warn"
+    elif some:
+        headline, tone = i18n.sentence("ri_waterlog_moderate", lang), "caution"
+    else:
+        headline, tone = i18n.sentence("ri_waterlog_low", lang), "safe"
+    detail = (
+        i18n.sentence("ri_urban_detail", lang, mm=_r(m.rain_24h, 1))
+        if m.rain_24h is not None
+        else i18n.sentence("ri_urban_detail_nodata", lang)
+    )
+    return _card("waterlogging", "\U0001f30a", i18n.sentence("ri_waterlog_title", lang),
+                 headline, tone, detail)
+
+
+def _urban_risk(m: _Reading, lang: str) -> dict[str, Any]:
+    urban = max(m.flood_score, m.rain_score * 0.95, m.wind_score * 0.8, m.heat_score * 0.8)
+    if urban >= 61:
+        headline, tone = i18n.sentence("ri_urban_high", lang), "danger"
+    elif urban >= 31:
+        headline, tone = i18n.sentence("ri_urban_moderate", lang), "caution"
+    else:
+        headline, tone = i18n.sentence("ri_urban_low", lang), "safe"
+    detail = (
+        i18n.sentence("ri_urban_detail", lang, mm=_r(m.rain_24h, 1))
+        if m.rain_24h is not None
+        else i18n.sentence("ri_urban_detail_nodata", lang)
+    )
+    return _card("urban_risk", "\U0001f3d9\ufe0f", i18n.sentence("ri_urban_title", lang),
+                 headline, tone, detail)
+
+
+def _infrastructure(m: _Reading, lang: str) -> dict[str, Any]:
+    if m.flood_score >= 31 or m.rain_score >= 40:
+        headline, tone, key = i18n.sentence("ri_infra_drainage", lang), "warn", "ri_infra_drainage_detail"
+    elif m.wind_score >= 31 or m.storm_score >= STORM_CAUTION:
+        headline, tone, key = i18n.sentence("ri_infra_wind", lang), "warn", "ri_infra_wind_detail"
+    elif m.heat_score >= 31:
+        headline, tone, key = i18n.sentence("ri_infra_heat", lang), "caution", "ri_infra_heat_detail"
+    else:
+        headline, tone, key = i18n.sentence("ri_infra_low", lang), "safe", "ri_infra_low_detail"
+    return _card("infrastructure", "\U0001f309", i18n.sentence("ri_infra_title", lang),
+                 headline, tone, i18n.sentence(key, lang))
+
+
+def _municipal_prep(m: _Reading, lang: str) -> dict[str, Any]:
+    if m.level == "Severe" or m.flood_score >= 61:
+        headline, tone = i18n.sentence("ri_municipal_act", lang), "warn"
+    elif m.severe or m.flood_score >= 31 or m.rain_score >= 40:
+        headline, tone = i18n.sentence("ri_municipal_watch", lang), "caution"
+    else:
+        headline, tone = i18n.sentence("ri_municipal_routine", lang), "safe"
+    return _card("municipal_prep", "\U0001f6e0\ufe0f", i18n.sentence("ri_municipal_title", lang),
+                 headline, tone, i18n.sentence("ri_municipal_detail", lang))
+
+
+def _anomaly(m: _Reading, lang: str) -> dict[str, Any]:
+    """Values outside the app's own thresholds — NOT a climatological anomaly.
+
+    A real anomaly needs a baseline, and the baseline this product has lives
+    behind an archive request that this module is not allowed to make. So the
+    card reports what is measurably unusual against the thresholds the risk
+    engine already uses, and points at the screen where the archive comparison
+    actually is. Calling a threshold exceedance a climate anomaly would be the
+    most quietly wrong thing on a researcher's screen.
+    """
+    notable: list[str] = []
+    if m.feels is not None and m.feels >= HOT_C:
+        notable.append(i18n.sentence("ri_anomaly_heat", lang, feels=_r(m.feels, 1)))
+    if m.rain_24h is not None and m.rain_24h >= RAIN_HEAVY_24H_MM:
+        notable.append(i18n.sentence("ri_anomaly_rain", lang, mm=_r(m.rain_24h, 1)))
+    if (m.gust_or_wind or 0) >= WIND_STRONG_KMH:
+        notable.append(i18n.sentence("ri_anomaly_wind", lang, wind=_r(m.gust_or_wind)))
+    if m.humidity is not None and m.humidity >= VERY_HUMID_PCT:
+        notable.append(i18n.sentence("ri_anomaly_humid", lang, hum=_r(m.humidity)))
+
+    if notable:
+        return _card("anomaly", "\U0001f4ca", i18n.sentence("ri_anomaly_title", lang),
+                     i18n.sentence("ri_anomaly_notable", lang), "caution", " \u00b7 ".join(notable))
+    return _card("anomaly", "\U0001f4ca", i18n.sentence("ri_anomaly_title", lang),
+                 i18n.sentence("ri_anomaly_none", lang), "safe",
+                 i18n.sentence("ri_anomaly_baseline", lang))
+
+
+def _trend(m: _Reading, lang: str) -> dict[str, Any]:
+    """Where temperature is heading, from the hourly series already fetched."""
+    if not m.has_hourly:
+        return _card("trend", "\U0001f4c9", i18n.sentence("ri_trend_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+    window = m.hourly[:TREND_WINDOW_H]
+    temps = [_num(h.get("temperature_c")) for h in window]
+    known = [t for t in temps if t is not None]
+    if len(known) < 2:
+        return _card("trend", "\U0001f4c9", i18n.sentence("ri_trend_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+    change = known[-1] - known[0]
+    if change >= TREND_EPSILON_C:
+        headline = i18n.sentence("ri_trend_warming", lang)
+    elif change <= -TREND_EPSILON_C:
+        headline = i18n.sentence("ri_trend_cooling", lang)
+    else:
+        headline = i18n.sentence("ri_trend_steady", lang)
+    return _card("trend", "\U0001f4c9", i18n.sentence("ri_trend_title", lang), headline, "info",
+                 i18n.sentence("ri_trend_detail", lang, start=_r(known[0], 1), end=_r(known[-1], 1),
+                               hours=len(known)))
+
+
+def _historical(m: _Reading, lang: str) -> dict[str, Any]:
+    return _card("historical", "\U0001f4da", i18n.sentence("ri_historical_title", lang),
+                 i18n.sentence("ri_historical_available", lang), "info",
+                 i18n.sentence("ri_historical_detail", lang))
+
+
+def _forecast_data(m: _Reading, lang: str) -> dict[str, Any]:
+    """What series this reading is actually standing on."""
+    if not m.hourly and not m.daily:
+        return _card("forecast_data", "\U0001f4e1", i18n.sentence("ri_forecast_data_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+    return _card("forecast_data", "\U0001f4e1", i18n.sentence("ri_forecast_data_title", lang),
+                 i18n.sentence("ri_forecast_data_head", lang, hours=len(m.hourly), days=len(m.daily)),
+                 "info", i18n.sentence("ri_forecast_data_detail", lang))
+
+
+def _indicators(m: _Reading, lang: str) -> dict[str, Any]:
+    """The measured values, compactly, for a reader who wants the numbers."""
+    parts: list[str] = []
+    if m.temp is not None:
+        parts.append(i18n.sentence("ri_ind_temp", lang, v=_r(m.temp, 1)))
+    if m.humidity is not None:
+        parts.append(i18n.sentence("ri_ind_hum", lang, v=_r(m.humidity)))
+    if m.pressure is not None:
+        parts.append(i18n.sentence("ri_ind_pressure", lang, v=_r(m.pressure)))
+    if m.gust_or_wind is not None:
+        parts.append(i18n.sentence("ri_ind_wind", lang, v=_r(m.gust_or_wind)))
+    if m.rain_24h is not None:
+        parts.append(i18n.sentence("ri_ind_rain", lang, v=_r(m.rain_24h, 1)))
+    if not parts:
+        return _card("indicators", "\U0001f4cb", i18n.sentence("ri_indicators_title", lang),
+                     i18n.sentence("ri_no_data", lang), "info")
+    return _card("indicators", "\U0001f4cb", i18n.sentence("ri_indicators_title", lang),
+                 " \u00b7 ".join(parts), "info", i18n.sentence("ri_indicators_detail", lang))
+
+
+_NEW_READINGS = {
+    "flight_conditions": _flight_conditions,
+    "cloud": _cloud,
+    "impact_area": _impact_area,
+    "escalation": _escalation,
+    "response_priority": _response_priority,
+    "official_status": _official_status,
+    "waterlogging": _waterlogging,
+    "urban_risk": _urban_risk,
+    "infrastructure": _infrastructure,
+    "municipal_prep": _municipal_prep,
+    "anomaly": _anomaly,
+    "trend": _trend,
+    "historical": _historical,
+    "forecast_data": _forecast_data,
+    "indicators": _indicators,
+}
+
+
+def reading(bundle: Any, risk: RiskOutput, name: str, lang: str = "en") -> dict[str, Any] | None:
+    """One reading, on its own.
+
+    Every reading in the library is available to every role, and the roles pick
+    from it — `pressure` is in here and on nobody's panel, because the brief
+    gives marine five other cards. A reading nobody shows is still a reading
+    that has to be right the day somebody does, so it stays covered.
+    """
+    return _Library(_Reading(bundle, risk), i18n.normalise_lang(lang)).get(name)
+
+
+def readings() -> frozenset[str]:
+    """Every reading a role may name. Used by the tests that keep the registry
+    and this module from drifting apart."""
+    return frozenset(_READING_GROUP) | frozenset(_NEW_READINGS)
 
 
 def build(bundle: Any, risk: RiskOutput, user_type: str | None, lang: str = "en") -> dict[str, Any]:
-    """Role-specific reading of the weather already fetched and already scored."""
+    """Role-specific reading of the weather already fetched and already scored.
+
+    The role says which readings it wants and what to call them; this composes
+    them. A reading that has nothing to say for these conditions — a departure
+    hour with no hourly series — is left out rather than filled in, so a panel
+    is always as long as the data supports and never longer.
+    """
     lang = i18n.normalise_lang(lang)
     spec = roles.get(user_type)
-    # A role described in the registry but not yet given a builder here reads as
-    # the general one rather than as an empty card list.
-    builder = _BUILDERS.get(spec.key, _general)
+    library = _Library(_Reading(bundle, risk), lang)
 
-    measured = _Reading(bundle, risk)
+    cards: list[dict[str, Any]] = []
+    for card_id, reading, title_key, icon in spec.cards:
+        card = library.get(reading)
+        if not card:
+            continue
+        if card_id != card["id"] or title_key or icon:
+            card = _retitle(card, card_id, title_key or "", lang, icon or None)
+        cards.append(card)
+
     return {
         "user_type": spec.key,
         "icon": spec.icon,
         "heading": i18n.sentence(spec.heading_key, lang),
-        "cards": builder(measured, lang),
+        "cards": cards[:5],
         "note": i18n.sentence(spec.note_key, lang) if spec.note_key else "",
     }

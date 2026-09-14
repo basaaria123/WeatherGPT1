@@ -38,47 +38,32 @@ HOT_FEELS_C = 36
 #
 # One table, not two: an order that disagreed with the selection would put a
 # reader's own sector somewhere other than first.
-PROFILE_IMPACT_CATEGORIES: dict[str, tuple[str, ...]] = {
-    "farmer": ("farming", "outdoor", "travel"),
-    "marine": ("fishing", "outdoor", "travel"),
-    "driver": ("travel", "outdoor"),
-    "outdoor_worker": ("outdoor", "travel", "household"),
-    # A student's day is the journey to it and the hours spent on a campus.
-    "student": ("travel", "outdoor", "household"),
-    # Exposure of the people being cared for first, then the home they are in.
-    "caregiver": ("outdoor", "household", "travel"),
-    # No stated role means no basis for leaving anything out.
-    "general": ("farming", "fishing", "travel", "household", "outdoor"),
-}
+# Three tables used to live here, one per question — which sectors a reader
+# sees, what their insight leads with, how far ahead they plan. All three were
+# keyed on the profile name, and all three had to be edited together to add a
+# role. They are fields on `Role` now, and these read through to the registry so
+# the call sites below are unchanged.
+#
+# The bug that made this worth doing: the general reading was given the farming
+# and fishing sectors, so a reader who had told the product nothing about
+# themselves was shown "Farming — Caution". Not a scoring error. The table said
+# to show it, and the table was three files away from anything that looked like
+# a role.
+def profile_impacts(profile: str) -> tuple[str, ...]:
+    """The sectors this reader sees, in their order. A view, not a permission:
+    every sector is still scored identically for everybody."""
+    return roles.get(profile).impacts
 
-# What each reader wants to hear first. "hazard" is not in these lists: an
-# actionable hazard always leads regardless of profile, and a non-actionable one
-# is appended after the profile's own concerns rather than crowding them out.
-PROFILE_FACTOR_ORDER: dict[str, tuple[str, ...]] = {
-    "farmer": ("rain", "heat", "wind", "visibility"),
-    "marine": ("wind", "rain", "visibility", "heat"),
-    # A driver is steering through it: what they can see comes first, then what
-    # the road surface is doing, then what the wind does to the vehicle.
-    "driver": ("visibility", "rain", "wind", "heat"),
-    # Someone working outside all day feels heat before anything else.
-    "outdoor_worker": ("heat", "rain", "wind", "visibility"),
-    "student": ("rain", "visibility", "wind", "heat"),
-    # Caring for people who overheat and get soaked faster than you do.
-    "caregiver": ("heat", "rain", "wind", "visibility"),
-    "general": ("rain", "wind", "heat", "visibility"),
-}
 
-# How far ahead each reader is actually planning. A student cares about the
-# next couple of hours; a farmer is planning the working day.
-PROFILE_HORIZON_HOURS: dict[str, int] = {
-    "farmer": 12,
-    "marine": 12,
-    "driver": 8,
-    "outdoor_worker": 12,
-    "student": 8,
-    "caregiver": 12,
-    "general": 12,
-}
+def profile_factors(profile: str) -> tuple[str, ...]:
+    """What this reader wants to hear about first."""
+    return roles.get(profile).factors
+
+
+def profile_horizon(profile: str) -> int:
+    """How far ahead this reader is actually planning, in hours."""
+    return roles.get(profile).horizon_h
+
 
 # Below this, a forecast hour does not count as "rain is coming".
 RAIN_ONSET_PROB = 55
@@ -343,6 +328,17 @@ def impact_cards(
                 return i18n.sentence("impact_household_risk", lang)
             return i18n.sentence("impact_household_calm", lang)
 
+        if kind == "everyday":
+            if score >= 61:
+                return i18n.sentence("impact_everyday_risk", lang)
+            if rain24 >= 1.0:
+                return i18n.sentence("impact_everyday_rain", lang) + " " + i18n.sentence(
+                    "rain_24", lang, mm=_r(rain24, 1)
+                )
+            if hot:
+                return i18n.sentence("heat_note", lang, feels=_r(feels, 1))
+            return i18n.sentence("impact_everyday_clear", lang)
+
         # outdoor
         if score >= 61:
             return i18n.sentence("impact_outdoor_risk", lang)
@@ -353,6 +349,10 @@ def impact_cards(
         return i18n.sentence("impact_outdoor_clear", lang)
 
     spec: list[tuple[str, float]] = [
+        # Everyday life, for the readers who have not named an occupation. It
+        # scores from every hazard, because an ordinary day is exposed to all
+        # of them and none of them more than the rest.
+        ("everyday", max(rain, storm, heat, wind, flood) * 0.95),
         ("farming", max(flood, rain * 0.9, heat * 0.9, storm * 0.8)),
         ("fishing", max(wind, storm, rain * 0.75)),
         ("travel", max(rain * 0.95, flood * 0.95, wind * 0.85, storm * 0.9)),
@@ -363,7 +363,7 @@ def impact_cards(
     # The reader's own sectors, in their own order. The content of a card never
     # changes with the profile — only whether this reader is shown it.
     profile = _view_profile(user_type)
-    wanted = PROFILE_IMPACT_CATEGORIES.get(profile)
+    wanted = profile_impacts(profile)
     if wanted:
         scores = dict(spec)
         spec = [(key, scores[key]) for key in wanted if key in scores]
@@ -705,7 +705,7 @@ def headline_insight(
     """
     lang = i18n.normalise_lang(lang)
     profile = _view_profile(user_type)
-    horizon = horizon_hours or PROFILE_HORIZON_HOURS.get(profile, 12)
+    horizon = horizon_hours or profile_horizon(profile)
     cur = bundle.current or {}
     window = list(bundle.hourly[:horizon])
 
@@ -778,7 +778,7 @@ def headline_insight(
         )
         factors.append(i18n.sentence("insight_factor_hazard", lang))
 
-    order = PROFILE_FACTOR_ORDER.get(profile, PROFILE_FACTOR_ORDER["general"])
+    order = profile_factors(profile)
     # A hazard the engine calls actionable outranks everything; below that the
     # profile's own priorities lead and the hazard follows as context.
     if risk_engine.is_actionable(risk):
@@ -998,7 +998,10 @@ def advisory_for_every_persona(risk: RiskOutput, lang: str = "en") -> list[dict[
 # still offers — a column labelled with a profile nobody can choose would be
 # showing advice the reader cannot get, which is why "commuter" and then
 # "traveler" left this set as each stopped being selectable.
-PERSONAS: tuple[str, ...] = ("farmer", "marine", "student", "driver", "general")
+# Whom the comparison view compares. Read from the registry rather than listed
+# again: a hand-written five is how "the same weather, different decisions"
+# screen came to leave eight readings out of the comparison it exists to make.
+PERSONAS: tuple[str, ...] = roles.keys()
 
 
 # ---------------------------------------------------------------------------

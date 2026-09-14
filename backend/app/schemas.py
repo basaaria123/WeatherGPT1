@@ -11,27 +11,31 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 UserType = Literal[
-    # The seven readings the selector offers.
+    # The twelve professions the selector offers, in its order, and the everyday
+    # reading that is the default.
     "farmer",
     "marine",
+    "aviation",
+    "disaster",
+    "smart_city",
+    "researcher",
     "student",
     "driver",
     "outdoor_worker",
+    "household",
+    "traveler",
     "caregiver",
     "general",
     # Still accepted so stored preferences and older clients keep working. Each
-    # resolves to one of the seven above through `services.roles.ALIASES`, which
-    # is the single place that mapping is written down; rejecting them here
-    # would turn somebody's saved choice into a 422.
+    # resolves to one of the readings above through `services.roles.ALIASES`,
+    # which is the single place that mapping is written down; rejecting them
+    # here would turn somebody's saved choice into a 422.
     "fisherman",
     "commuter",
     "urban",
-    "household",
     "government",
     "disaster_manager",
-    "traveler",
-    "researcher",
-    "aviation",
+    "climate_analyst",
     "event_planner",
 ]
 ResponseMode = Literal["normal", "simple", "emergency"]
@@ -61,9 +65,9 @@ SUPPORTED_LANGUAGES: dict[str, str] = {
 # Two lists, because they answer two questions.
 #
 # `SELECTABLE_USER_TYPES` is what a reader can choose — what `/config`
-# advertises, so a client builds its dropdown from the same seven the app
+# advertises, so a client builds its dropdown from the same thirteen the app
 # itself offers rather than hardcoding them. `USER_TYPES` is what a request may
-# carry: the same seven plus every retired name still resolved by the registry,
+# carry: those plus every retired name still resolved by the registry,
 # so a stored preference never becomes an invalid request.
 #
 # Both are derived from the role registry rather than listed again: the two

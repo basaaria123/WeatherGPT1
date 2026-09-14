@@ -14,7 +14,7 @@ from types import SimpleNamespace
 import pytest
 
 from app.schemas import RiskOutput
-from app.services import i18n, personalization, roles
+from app.services import i18n, personalization, role_intel, roles
 
 ALL_ROLES = list(roles.keys())
 
@@ -241,13 +241,19 @@ def test_the_registry_is_the_only_list_of_roles():
 # below is that a reader who picks a label is shown something that label earned,
 # and a label nobody can pick makes no such promise.
 BRIEF_ROLES = {
-    "General Public": "general",
     "Farmer": "farmer",
     "Marine / Fisherman": "marine",
+    "Aviation Professional": "aviation",
+    "Disaster Response Manager": "disaster",
+    "Government / Smart City Planner": "smart_city",
+    "Researcher / Climate Analyst": "researcher",
     "Student": "student",
-    "Driver": "driver",
+    "Driver / Commuter": "driver",
     "Outdoor Worker": "outdoor_worker",
-    "Caregiver / Community": "caregiver",
+    "Household": "household",
+    "Traveler": "traveler",
+    "Community / Caregiver": "caregiver",
+    "General Weather": "general",
 }
 
 
@@ -319,9 +325,8 @@ def test_a_retired_preference_still_lands_on_a_real_reading():
     for key in BRIEF_ROLES.values():
         out = personalization.personalize(bundle=bundle, risk=risk, role=key)
         known_ids.update(card["id"] for card in out["role_cards"])
-    for key in ("fisherman", "commuter", "urban", "household", "government",
-                "disaster_manager", "traveler", "researcher", "aviation",
-                "event_planner"):
+    for key in ("fisherman", "commuter", "urban", "government",
+                "disaster_manager", "climate_analyst", "event_planner"):
         out = personalization.personalize(bundle=bundle, risk=risk, role=key)
         assert out["role_cards"], key
         for card in out["role_cards"]:
@@ -382,16 +387,14 @@ def _card(out, card_id):
 
 def test_a_falling_barometer_is_read_as_falling():
     bundle = _with_pressure([1006 - i * 0.7 for i in range(12)], current=1006.0)
-    out = personalization.personalize(bundle=bundle, risk=_risk(), role="marine")
-    card = _card(out, "pressure")
+    card = role_intel.reading(bundle, _risk(), "pressure")
     assert card and card["tone"] in {"caution", "danger"}
     assert "-" in card["detail"]
 
 
 def test_a_steady_barometer_is_not_reported_as_a_change():
     bundle = _with_pressure([1010.0 + (i % 2) * 0.3 for i in range(12)], current=1010.0)
-    out = personalization.personalize(bundle=bundle, risk=_risk(), role="marine")
-    card = _card(out, "pressure")
+    card = role_intel.reading(bundle, _risk(), "pressure")
     assert card and card["tone"] == "safe"
 
 
@@ -401,8 +404,7 @@ def test_a_missing_barometer_is_not_a_flat_one():
     for hour in bundle.hourly:
         hour["pressure_hpa"] = None
     bundle.current["pressure_hpa"] = None
-    out = personalization.personalize(bundle=bundle, risk=_risk(), role="marine")
-    card = _card(out, "pressure")
+    card = role_intel.reading(bundle, _risk(), "pressure")
     assert card and card["tone"] == "info"
     assert "unavailable" in card["headline"].lower() or "no " in card["headline"].lower()
 

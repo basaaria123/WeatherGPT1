@@ -22,10 +22,13 @@ def test_config_drives_the_ui(client):
     from app.services import i18n
 
     assert {lang["code"] for lang in body["languages"]} == set(i18n.LANGUAGES)
-    # The selector's seven, and nothing a reader cannot choose.
-    assert set(body["user_types"]) == {
-        "general", "farmer", "marine", "driver", "outdoor_worker", "student", "caregiver",
-    }
+    # Exactly what the selector offers, and nothing a reader cannot choose.
+    # Read from the registry rather than repeated here: a second list is how
+    # /config comes to advertise a reading the app no longer has.
+    from app.services import roles
+
+    assert tuple(body["user_types"]) == roles.keys()
+    assert len(body["user_types"]) == 13
     assert [band["level"] for band in body["risk_bands"]] == ["Low", "Moderate", "High", "Severe"]
 
 

@@ -121,13 +121,21 @@ def test_no_english_leaks_into_localised_answers(lang, scenario):
         ("fisherman", "marine"),
         ("commuter", "driver"),
         ("urban", "driver"),
-        ("household", "caregiver"),
-        ("government", "caregiver"),
-        ("disaster_manager", "caregiver"),
-        ("traveler", "general"),
-        ("researcher", "general"),
-        ("aviation", "general"),
-        ("event_planner", "general"),
+        ("government", "smart_city"),
+        ("disaster_manager", "disaster"),
+        ("climate_analyst", "researcher"),
+        # Six readings that were aliases in the seven-role build are readings of
+        # their own again, so they resolve to themselves.
+        ("household", "household"),
+        ("traveler", "traveler"),
+        ("researcher", "researcher"),
+        ("aviation", "aviation"),
+        ("disaster", "disaster"),
+        ("smart_city", "smart_city"),
+        # Never had a reading, and still does not: an event planner is deciding
+        # whether an outdoor event can go ahead, which is the traveller's
+        # question about a fixed place.
+        ("event_planner", "traveler"),
     ],
 )
 def test_every_user_type_is_accepted(profile, expected, scenario):

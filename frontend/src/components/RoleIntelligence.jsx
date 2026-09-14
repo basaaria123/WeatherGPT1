@@ -126,6 +126,10 @@ function RoleCard({ card }) {
   const tone = toneOf(card.tone)
   return (
     <div
+      /* The card's stable id, on the element. The titles are translated and the
+         tone is presentation, so this is the only part of a card a test can
+         hold on to across thirteen roles and eleven languages. */
+      data-role-card={card.id}
       className="min-w-0 rounded-[var(--radius-card)] border bg-[rgb(var(--wx-tint)/0.03)] p-3"
       style={{ borderColor: tone.ring }}
     >
