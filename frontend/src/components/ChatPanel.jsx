@@ -76,7 +76,29 @@ export default function ChatPanel({
   const [voiceError, setVoiceError] = useState(null)
   const inputRef = useRef(null)
 
-  const recorder = useVoiceRecorder({ language })
+  /**
+   * Which transcriber this session is using.
+   *
+   * `voice_input_available` is what /config says about the deployment: false
+   * means no provider key is set, so there is nothing to upload audio TO.
+   * `sttServerDown` is what this session has since learned — a deployment can
+   * advertise a provider and still have every call to it fail, and after the
+   * first such answer there is no reason to keep spending a recording on it.
+   *
+   * Either way the answer is the same: stop recording, and let the browser's
+   * own recogniser have the microphone. That path needs no key, no provider
+   * and no round trip, and it is the reason the button still works on a
+   * deployment with nothing configured at all.
+   */
+  // Two separate reads, never combined into one `&&` expression: `&&`
+  // short-circuits, and a hook that is sometimes not called is a hook-order
+  // bug waiting for the first deployment that reports no voice input.
+  const serverAdvertisesStt = useStore((s) => s.capabilities?.voice_input_available)
+  const sttServerDown = useStore((s) => s.sttServerDown)
+  const noteSttServerDown = useStore((s) => s.noteSttServerDown)
+  const serverStt = serverAdvertisesStt !== false && !sttServerDown
+
+  const recorder = useVoiceRecorder({ language, recordAudio: serverStt })
   const quick = t(language, 'quick')
 
   useEffect(() => {
@@ -138,6 +160,7 @@ export default function ChatPanel({
       if (!result) return
 
       const browserHeard = result.transcript?.trim() || ''
+      // No blob at all is the recognition-only path, not a failure.
       const tooShortToSend = !result.blob || result.blob.size < MIN_AUDIO_BYTES
 
       // Nothing was captured and nothing was heard: say so here rather than
@@ -169,8 +192,16 @@ export default function ChatPanel({
         if (heard) setDraft(heard)
         else if (!browserHeard) setVoiceNote('noSpeech')
       } catch (err) {
-        // The server could not transcribe. If the browser did, that stands and
-        // the reader is not told about a failure that cost them nothing.
+        // A deployment with no provider, or one whose provider is failing, will
+        // answer this way every time. Remember it: the next tap skips the
+        // recorder and gives the microphone to the browser's recogniser, which
+        // is the difference between "voice is broken" and "voice works, just
+        // not through the server".
+        if (err?.code === 'stt_not_configured' || err?.code === 'stt_provider_failed') {
+          noteSttServerDown()
+        }
+        // If the browser heard it, that stands and the reader is not told about
+        // a failure that cost them nothing.
         if (!browserHeard) setVoiceError(userMessage(err, language))
       } finally {
         setTranscribing(false)
@@ -383,6 +414,7 @@ export default function ChatPanel({
         {recorder.supported && voiceQuestions && (
           <button
             type="button"
+            data-testid="mic"
             onClick={toggleRecording}
             /* Disabled while the server is listening to the last recording, so
                a second recording cannot start on top of one being transcribed.

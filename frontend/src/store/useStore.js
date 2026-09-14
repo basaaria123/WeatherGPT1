@@ -77,6 +77,15 @@ export const useStore = create((set, get) => ({
     set({ appearance: next })
   },
 
+  // --- Speech to text ------------------------------------------------------
+  // Latched for the session the first time the server answers a recording with
+  // "no provider configured" or "every provider failed". /config says what the
+  // deployment INTENDS to offer; this is what it actually did, and after one
+  // such answer there is no point spending another recording to be told again.
+  // The microphone still works — the browser's own recogniser takes over.
+  sttServerDown: false,
+  noteSttServerDown: () => set({ sttServerDown: true }),
+
   // --- Who is reading, and whether they have been set up -------------------
   // `onboarded` is remembered so a returning reader lands on the dashboard
   // rather than being asked the same three questions again.

@@ -193,7 +193,11 @@ def test_the_endpoint_never_puts_provider_configuration_on_the_wire(deepgram, mo
     )
     assert response.status_code == 422
     detail = response.json()["detail"]
-    assert detail["code"] == "stt_unavailable"
+    # Deepgram IS configured in this fixture and its call failed, which is a
+    # different situation from "nothing is configured" and now says so. The
+    # client acts on the difference: both codes stop it uploading the next
+    # recording, and only this one is worth an operator's attention.
+    assert detail["code"] == "stt_provider_failed"
     blob = response.text.lower()
     for secret in ("deepgram_api_key", "test-key", "api.deepgram.com", "faster-whisper", "token "):
         assert secret not in blob, secret

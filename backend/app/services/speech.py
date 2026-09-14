@@ -33,7 +33,14 @@ from ..config import get_settings
 
 log = logging.getLogger("weathergpt.speech")
 
-ALLOWED_AUDIO_SUFFIXES = {".wav", ".mp3", ".m4a", ".ogg", ".oga", ".webm", ".flac", ".mp4", ".mpeg", ".mpga"}
+# Kept in step with `extensionFor()` in the frontend's ChatPanel, which is what
+# names the upload. `.aac` is here because that function can produce it — Safari
+# offers `audio/aac` in the MediaRecorder fallback chain — and a name this set
+# does not contain is rejected before a single provider is tried, which is a
+# confusing way to lose a recording that was otherwise fine.
+ALLOWED_AUDIO_SUFFIXES = {
+    ".wav", ".mp3", ".m4a", ".ogg", ".oga", ".webm", ".flac", ".mp4", ".mpeg", ".mpga", ".aac",
+}
 ALLOWED_AUDIO_MIME_PREFIXES = ("audio/", "video/webm", "video/mp4", "application/octet-stream")
 
 # gTTS language codes for the six supported languages. Assamese has no gTTS
@@ -43,7 +50,20 @@ TTS_SUBSTITUTED: dict[str, str] = {"as": "bn"}
 
 
 class TranscriptionError(RuntimeError):
-    """Audio could not be turned into text. Message is user-safe."""
+    """Audio could not be turned into text. Message is user-safe.
+
+    `code` says WHICH of several very different things went wrong, because the
+    interface needs to act differently on each and, until it carried one, could
+    not: a deployment with no provider key, a provider that is configured and
+    failing, an unusable upload and a silent recording all arrived at the
+    browser as the same sentence. The client uses this to decide whether to stop
+    sending audio and let the browser's own recogniser take over — a decision it
+    cannot make from prose.
+    """
+
+    def __init__(self, message: str, *, code: str = "stt_provider_failed") -> None:
+        super().__init__(message)
+        self.code = code
 
 
 class SynthesisError(RuntimeError):
@@ -64,17 +84,17 @@ class Transcript:
 def validate_audio(data: bytes, filename: str | None, content_type: str | None) -> None:
     settings = get_settings()
     if not data:
-        raise TranscriptionError("The audio file was empty. Please record again.")
+        raise TranscriptionError("The audio file was empty. Please record again.", code="stt_bad_audio")
     if len(data) > settings.max_audio_bytes:
         limit_mb = settings.max_audio_bytes // (1024 * 1024)
-        raise TranscriptionError(f"That recording is too large. Please keep it under {limit_mb} MB.")
+        raise TranscriptionError(f"That recording is too large. Please keep it under {limit_mb} MB.", code="stt_bad_audio")
 
     suffix = Path(filename or "").suffix.lower()
     if suffix and suffix not in ALLOWED_AUDIO_SUFFIXES:
         supported = ", ".join(sorted(s.lstrip(".") for s in ALLOWED_AUDIO_SUFFIXES))
-        raise TranscriptionError(f"That audio format is not supported. Please use one of: {supported}.")
+        raise TranscriptionError(f"That audio format is not supported. Please use one of: {supported}.", code="stt_bad_audio")
     if content_type and not content_type.startswith(ALLOWED_AUDIO_MIME_PREFIXES):
-        raise TranscriptionError("That file does not look like audio. Please upload a voice recording.")
+        raise TranscriptionError("That file does not look like audio. Please upload a voice recording.", code="stt_bad_audio")
 
     # WAV headers are cheap to read, so catch over-long clips before transcribing.
     if suffix == ".wav" or data[:4] == b"RIFF":
@@ -84,7 +104,8 @@ def validate_audio(data: bytes, filename: str | None, content_type: str | None) 
                 if rate and frames / float(rate) > settings.max_audio_seconds:
                     raise TranscriptionError(
                         f"That recording is longer than {settings.max_audio_seconds} seconds. "
-                        "Please ask a shorter question."
+                        "Please ask a shorter question.",
+                        code="stt_bad_audio",
                     )
         except (wave.Error, RuntimeError, EOFError, struct.error):
             # A truncated or malformed header is not a reason to fail the turn:
@@ -165,9 +186,24 @@ _stt_working: bool | None = None
 _tts_working: bool | None = None
 
 
+# What the last transcription attempt actually did, for /health. A deployment
+# that advertises a provider and fails every call looks identical from outside
+# to one that works — which is exactly the question an operator has when a
+# reader says the microphone does nothing. Provider name and a short reason
+# only: never a key, a host or a response body.
+_stt_last_error: dict[str, str] | None = None
+
+
+def note_transcription_failure(provider: str, reason: str) -> None:
+    global _stt_last_error
+    _stt_last_error = {"provider": provider, "reason": reason[:200]}
+
+
 def note_transcription_result(ok: bool) -> None:
-    global _stt_working
+    global _stt_working, _stt_last_error
     _stt_working = ok
+    if ok:
+        _stt_last_error = None
 
 
 def note_synthesis_result(ok: bool) -> None:
@@ -262,7 +298,10 @@ def _elevenlabs_transcribe(
 
     text = str(payload.get("text") or "").strip()
     if not text:
-        raise TranscriptionError("I could not hear anything clear in that recording. Please try again.")
+        raise TranscriptionError(
+            "I could not hear anything clear in that recording. Please try again.",
+            code="stt_no_speech",
+        )
     return Transcript(
         text=text,
         language=str(payload.get("language_code") or language or "en"),
@@ -379,7 +418,8 @@ def _deepgram_transcribe(
         # different thing from the call having failed — and the one the reader
         # needs worded as advice rather than as an outage.
         raise TranscriptionError(
-            "I could not hear anything clear in that recording. Please try again."
+            "I could not hear anything clear in that recording. Please try again.",
+            code="stt_no_speech",
         )
 
     detected = str(channel.get("detected_language") or "").split("-")[0].lower()
@@ -437,7 +477,10 @@ def _sarvam_transcribe(
 
     text = str(payload.get("transcript") or "").strip()
     if not text:
-        raise TranscriptionError("I could not hear anything clear in that recording. Please try again.")
+        raise TranscriptionError(
+            "I could not hear anything clear in that recording. Please try again.",
+            code="stt_no_speech",
+        )
 
     # Sarvam answers with its own BCP-47 code; the rest of the app speaks the
     # two-letter one, so it is narrowed back here rather than at every reader.
@@ -598,6 +641,7 @@ def transcribe(
             return result
         except TranscriptionError as exc:
             log.warning("Deepgram unavailable, trying the next provider: %s", exc)
+            note_transcription_failure("deepgram", str(exc))
 
     if settings.sarvam_api_key:
         try:
@@ -608,6 +652,7 @@ def transcribe(
             return result
         except TranscriptionError as exc:
             log.warning("Sarvam unavailable, trying the next provider: %s", exc)
+            note_transcription_failure("sarvam", str(exc))
 
     if settings.elevenlabs_api_key:
         try:
@@ -620,6 +665,7 @@ def transcribe(
             # A hosted transcriber being down is not a reason to lose the turn
             # when another provider or a local model can answer.
             log.warning("ElevenLabs unavailable, trying the next provider: %s", exc)
+            note_transcription_failure("elevenlabs", str(exc))
 
     # Puter, when a token is configured. Second rather than first because
     # ElevenLabs is the one whose request shape has been verified against a live
@@ -633,16 +679,46 @@ def transcribe(
             return result
         except TranscriptionError as exc:
             log.warning("Puter unavailable, trying on-device engine: %s", exc)
+            note_transcription_failure("puter", str(exc))
 
-    if (
+    # Nothing left to try. The two ways of arriving here are very different and
+    # the client acts on the difference, so they are named separately rather
+    # than sharing one sentence:
+    #
+    #   stt_not_configured   no key is set and there is no on-device engine —
+    #                        the serverless deployment's normal state, since
+    #                        requirements-voice.txt is deliberately not
+    #                        installed there. Nothing is broken; nothing is
+    #                        configured. The browser's own recogniser is the
+    #                        answer, and the client switches to it on this code.
+    #   stt_provider_failed  a key IS set and every provider behind it failed.
+    #                        That is a deployment problem worth seeing in
+    #                        /health, and the client also stops uploading.
+    configured = bool(
         settings.deepgram_api_key
         or settings.sarvam_api_key
         or settings.elevenlabs_api_key
         or settings.puter_token
-    ) and _local_engine() == "none":
+    )
+    if _local_engine() == "none":
         note_transcription_result(False)
+        if configured:
+            raise TranscriptionError(
+                "Speech recognition is unavailable right now. Please type your question instead.",
+                code="stt_provider_failed",
+            )
         raise TranscriptionError(
-            "Speech recognition is unavailable right now. Please type your question instead."
+            # Named remedies, because this text goes to the operator's log and
+            # nowhere else — the route puts only a generic sentence and the code
+            # on the wire. Somebody reading "voice does not work" in a log needs
+            # to be told what to set, not that something is unavailable.
+            "Speech recognition is not configured on this server. Set "
+            "DEEPGRAM_API_KEY, SARVAM_API_KEY, ELEVENLABS_API_KEY or PUTER_TOKEN "
+            "for hosted transcription (no download needed), or install "
+            "faster-whisper for on-device transcription. Until then, voice still "
+            "works in browsers that support speech recognition, and you can "
+            "always type your question.",
+            code="stt_not_configured",
         )
 
     suffix = Path(filename or "").suffix.lower() or ".wav"
@@ -656,7 +732,13 @@ def transcribe(
         # model host this never succeeds, so stop claiming the capability.
         note_transcription_result(False)
         raise TranscriptionError(
-            "The speech recogniser could not start. Please type your question instead."
+            "The speech recogniser could not start. Please type your question instead.",
+            # Installed but unable to start — weights that will not download, a
+            # host that cannot reach them. That is a failure, not an absence,
+            # and "not configured" would send an operator looking for a missing
+            # key that is not missing. Absence is caught by the guard above,
+            # which runs before this and only when there is no engine at all.
+            code="stt_provider_failed",
         ) from exc
 
     tmp_path: str | None = None
@@ -685,7 +767,10 @@ def transcribe(
             Path(tmp_path).unlink(missing_ok=True)
 
     if not text or len(text.strip()) < 2:
-        raise TranscriptionError("I could not hear anything clear in that recording. Please try again.")
+        raise TranscriptionError(
+            "I could not hear anything clear in that recording. Please try again.",
+            code="stt_no_speech",
+        )
 
     note_transcription_result(True)
     return Transcript(text=text, language=detected, confidence=confidence, engine=kind)
@@ -931,6 +1016,9 @@ def capabilities() -> dict[str, object]:
         # reports its chain. With more than one provider the useful question is
         # which one is answering.
         "transcription_chain": transcription_chain(),
+        # Why the last attempt failed, if one did. This is the line that turns
+        # "voice does not work" into "Deepgram is returning 401".
+        "transcription_last_error": _stt_last_error,
         "puter_configured": bool(settings.puter_token),
         "sarvam_configured": bool(settings.sarvam_api_key),
         "synthesis": synthesis_available(),

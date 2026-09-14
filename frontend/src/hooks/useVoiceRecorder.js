@@ -15,6 +15,22 @@ import { speechTagFor } from '../i18n/languages'
  * the browser's transcript is what makes the feature work when the server has
  * no speech provider configured.
  *
+ * TWO THINGS ABOUT THAT SECOND TRANSCRIBER, both learned from an iPhone where
+ * the microphone appeared to do nothing at all:
+ *
+ *   1. `recognition.start()` has to be called in the same task as the click.
+ *      It used to be called after `await getUserMedia(...)`, which is a
+ *      different task — Safari refuses to start recognition outside a user
+ *      gesture, so on iOS the free transcriber never ran, and when the server
+ *      had nothing to offer either the reader got an error and no text. It is
+ *      now the first thing `start()` does, before any await.
+ *
+ *   2. iOS will not reliably give the microphone to SpeechRecognition and to
+ *      MediaRecorder at once. So when the server has no provider there is
+ *      nothing to record FOR, and opening a recorder only takes the microphone
+ *      away from the one transcriber that can still work. `recordAudio: false`
+ *      is that mode: recognition alone, no blob, no upload.
+ *
  * WHAT THIS FILE IS CAREFUL ABOUT, and why each one is here rather than
  * obvious: every item below was a way for the microphone to end up stuck on, or
  * for two microphones to end up running at once.
@@ -44,7 +60,7 @@ const MAX_SECONDS = 90
 // hand. Generous, because a large blob can take a moment to assemble.
 const STOP_TIMEOUT_MS = 4000
 
-export function useVoiceRecorder({ language = 'en' } = {}) {
+export function useVoiceRecorder({ language = 'en', recordAudio = true } = {}) {
   const [recording, setRecording] = useState(false)
   const [error, setError] = useState(null)
   const [seconds, setSeconds] = useState(0)
@@ -59,6 +75,8 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
   const transcriptRef = useRef('')
   const recognitionErrorRef = useRef(null)
   const recognitionStartedRef = useRef(false)
+  // Set while a recogniser-only stop is waiting for the final results.
+  const endedRef = useRef(null)
   // Set synchronously so a double-click cannot open two microphones. React
   // state cannot do this job: `recording` is still false on the second click of
   // a fast double-click, because the re-render has not happened yet.
@@ -69,11 +87,16 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
     typeof window !== 'undefined' &&
     Boolean(window.SpeechRecognition || window.webkitSpeechRecognition)
 
-  const supported =
+  // In recognition-only mode there is no recorder and no `getUserMedia` call —
+  // the recogniser opens the microphone itself — so requiring either would
+  // disable the button on exactly the browsers this mode exists to serve.
+  const canRecord =
     typeof navigator !== 'undefined' &&
     !!navigator.mediaDevices?.getUserMedia &&
     typeof window !== 'undefined' &&
     typeof window.MediaRecorder !== 'undefined'
+
+  const supported = recordAudio ? canRecord : recognitionSupported
 
   /** Release every device resource. Safe to call more than once. */
   const releaseDevice = useCallback(() => {
@@ -103,6 +126,7 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
       /* recognition may already be stopped */
     }
     recognitionRef.current = null
+    endedRef.current = null
     busyRef.current = false
   }, [])
 
@@ -142,7 +166,13 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
       // the reader to type rather than leaving them with a server error.
       recognition.onerror = (event) => {
         recognitionErrorRef.current = event?.error || 'unknown'
+        // In recognition-only mode this is the end of the recording: there is
+        // no recorder whose `onstop` would otherwise settle it.
+        endedRef.current?.()
       }
+      // Results keep arriving after `stop()` is called, so the end of the
+      // transcript is here rather than at the call site.
+      recognition.onend = () => { endedRef.current?.() }
       recognition.start()
       recognitionRef.current = recognition
       recognitionStartedRef.current = true
@@ -158,9 +188,14 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
     const resolve = resolveRef.current
     resolveRef.current = null
 
-    const blob = new Blob(chunksRef.current, {
-      type: recorder?.mimeType || chunksRef.current[0]?.type || 'audio/webm',
-    })
+    // `null` rather than an empty Blob when nothing was recorded: the caller
+    // tests the blob to decide whether there is anything to upload, and a
+    // zero-byte Blob is a thing that looks like a recording and is not one.
+    const blob = chunksRef.current.length
+      ? new Blob(chunksRef.current, {
+          type: recorder?.mimeType || chunksRef.current[0]?.type || 'audio/webm',
+        })
+      : null
     chunksRef.current = []
     releaseDevice()
 
@@ -195,8 +230,32 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
 
     if (!supported) {
       busyRef.current = false
-      setError('Voice recording is not supported in this browser. Please type your question.')
+      setError(
+        recordAudio
+          ? 'Voice recording is not supported in this browser. Please type your question.'
+          : 'Speech recognition is not supported in this browser. Please type your question.',
+      )
       return false
+    }
+
+    // FIRST, and before any `await`. Safari only starts recognition from
+    // inside the task that handled the click; moving this below the
+    // `getUserMedia` await — where it used to be — is what stopped the free
+    // transcriber from ever running on an iPhone. See the note at the top.
+    startRecognition()
+
+    // Recognition-only: the recogniser owns the microphone, there is no blob
+    // and there is no upload. This is the path that works with no key, no
+    // provider and no server at all.
+    if (!recordAudio) {
+      if (!mountedRef.current) {
+        releaseDevice()
+        return false
+      }
+      setRecording(true)
+      setSeconds(0)
+      tickRef.current = setInterval(() => setSeconds((value) => value + 1), 1000)
+      return true
     }
 
     try {
@@ -237,7 +296,6 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
       // usable recording instead of an empty blob.
       recorder.start(1000)
       recorderRef.current = recorder
-      startRecognition()
       setRecording(true)
       setSeconds(0)
 
@@ -256,7 +314,7 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
       }
       return false
     }
-  }, [supported, releaseDevice, settle, startRecognition])
+  }, [supported, recordAudio, releaseDevice, settle, startRecognition])
 
   // The duration cap, as an effect on the tick rather than inside it.
   useEffect(() => {
@@ -268,6 +326,14 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
       } catch {
         /* already stopping */
       }
+      return
+    }
+    // Recognition-only: the cap is enforced on the recogniser instead, or the
+    // microphone stays open past ninety seconds with nothing to stop it.
+    try {
+      recognitionRef.current?.stop()
+    } catch {
+      /* already stopping */
     }
   }, [recording, seconds])
 
@@ -275,6 +341,31 @@ export function useVoiceRecorder({ language = 'en' } = {}) {
     () =>
       new Promise((resolve) => {
         const recorder = recorderRef.current
+
+        // Recognition-only. There is no recorder to wait on, but there IS a
+        // recogniser still delivering the end of the sentence, so this waits
+        // for `onend` rather than resolving immediately and cutting off the
+        // last few words. `settle(null)` produces the same shape as the
+        // recorded path, with `blob: null`.
+        if (!recorder && recognitionRef.current) {
+          resolveRef.current = resolve
+          let done = false
+          const finish = () => {
+            if (done) return
+            done = true
+            endedRef.current = null
+            settle(null)
+          }
+          endedRef.current = finish
+          stopTimerRef.current = setTimeout(finish, STOP_TIMEOUT_MS)
+          try {
+            recognitionRef.current.stop()
+          } catch {
+            finish()
+          }
+          return
+        }
+
         if (!recorder || recorder.state === 'inactive') {
           releaseDevice()
           if (mountedRef.current) {

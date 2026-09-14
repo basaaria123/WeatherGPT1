@@ -26,9 +26,19 @@ const KEY_FOR_CODE = {
   offline: 'errOffline',
   unavailable: 'errUnavailable',
   generic: 'errGeneric',
-  // Sent by the server when no speech recogniser could run. It earns a sentence
-  // of its own because the useful part is the instruction: type instead.
+  // Speech to text. The server distinguishes four situations that used to
+  // arrive as one; the reader does not need four new sentences, but the ones
+  // they do get should be true, so "I heard nothing" no longer claims the
+  // recogniser is unavailable.
+  //
+  // `stt_unavailable` is the old undifferentiated code. It stays mapped because
+  // a browser holding a cached bundle can be talking to a server that still
+  // sends it, or the other way round.
   stt_unavailable: 'errVoiceUnavailable',
+  stt_not_configured: 'errVoiceUnavailable',
+  stt_provider_failed: 'errVoiceUnavailable',
+  stt_bad_audio: 'errVoiceUnavailable',
+  stt_no_speech: 'noSpeech',
 }
 
 export function userMessage(error, language = 'en') {

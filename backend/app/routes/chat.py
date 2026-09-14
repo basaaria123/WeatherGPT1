@@ -119,7 +119,7 @@ async def voice_chat(
                 # the same thing in the reader's own language rather than
                 # falling back to "something went wrong", which tells someone
                 # holding a microphone nothing they can act on.
-                log.warning("Speech-to-text unavailable: %s", exc)
+                log.warning("Speech-to-text unavailable (%s): %s", exc.code, exc)
                 raise HTTPException(
                     status_code=422,
                     detail={
@@ -127,7 +127,7 @@ async def voice_chat(
                             "Speech recognition is unavailable right now. "
                             "Please type your question instead."
                         ),
-                        "code": "stt_unavailable",
+                        "code": exc.code,
                     },
                 ) from exc
     elif client_transcript and client_transcript.strip():
@@ -221,7 +221,7 @@ async def transcribe_only(
         # Two audiences, two sentences: the operator gets the provider detail in
         # the log, the reader gets a code the interface can say in their own
         # language. Neither gets our configuration.
-        log.warning("Transcription failed: %s", exc)
+        log.warning("Transcription failed (%s): %s", exc.code, exc)
         raise HTTPException(
             status_code=422,
             detail={
@@ -229,7 +229,13 @@ async def transcribe_only(
                     "I could not make out any speech in that recording. "
                     "Please try again, or type your question."
                 ),
-                "code": "stt_unavailable",
+                # The reader still gets one sentence; the CLIENT gets the
+                # distinction, and uses it to fall back to the browser's own
+                # recogniser instead of uploading the next recording to a server
+                # that has already said it cannot transcribe. Still no
+                # configuration on the wire — the code names a situation, not a
+                # provider, a key or a host.
+                "code": exc.code,
             },
         ) from exc
 
